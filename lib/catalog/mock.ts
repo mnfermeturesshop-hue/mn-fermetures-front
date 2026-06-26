@@ -119,11 +119,13 @@ export const MENU: NavTop[] = [
         { name: 'Consoles et contre plaques', href: '/catalogue/consoles/contre-plaques' },
         { name: 'Flasques',                   href: '/catalogue/consoles/flasques'       },
       ]},
-      { name: 'Embouts',              href: '/catalogue/embouts'              },
-      { name: 'Verrouillages',        href: '/catalogue/verrouillages'        },
-      { name: 'Manœuvres manuelles',  href: '/catalogue/manoeuvres-manuelles' },
-      { name: 'Aide à la pose',       href: '/catalogue/aide-a-la-pose'       },
+      { name: 'Embouts',             href: '/catalogue/embouts',             children: [] },
+      { name: 'Verrouillages',       href: '/catalogue/verrouillages',       children: [] },
+      { name: 'Manœuvres manuelles', href: '/catalogue/manoeuvres-manuelles', children: [] },
     ],
+  },
+  {
+    name: 'Aide à la pose', href: '/catalogue/aide-a-la-pose',
   },
 ];
 
