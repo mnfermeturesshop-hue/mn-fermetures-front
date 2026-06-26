@@ -34,8 +34,8 @@ export function Footer() {
         </div>
         <div className="legal">
           Prix HT · Livraison franco en Occitanie dès 400 € HT (forfait 26 € HT en deçà).
-          <Link href="/admin" style={{ marginLeft: 16, opacity: 0.25, fontSize: 10, letterSpacing: '.05em' }}>
-            ⚙
+          <Link href="/admin" style={{ marginLeft: 12, opacity: 0.4, fontSize: 11, color: '#6b8fa8' }}>
+            admin
           </Link>
         </div>
       </div>
