@@ -329,6 +329,29 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 .filter-cat:hover { background: var(--surface-2); }
 .filter-cat.active { background: var(--navy-700); color: #fff; }
 .filter-cat-ic { font-size: 14px; width: 18px; text-align: center; }
+
+/* Sidebar hiérarchique catalogue */
+.cat-subnav { display: flex; flex-direction: column; gap: 2px; margin-bottom: 4px; }
+.cat-subnav-item { display: block; padding: 8px 10px; border-radius: 8px; font-size: 13px; color: var(--ink); }
+.cat-subnav-item:hover { background: var(--surface-2); }
+.cat-subnav-item.active { background: var(--navy-700); color: #fff; font-weight: 600; }
+.cat-subnav-group { display: flex; flex-direction: column; }
+.cat-subnav-hd { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--ink); background: none; border: none; cursor: pointer; text-align: left; width: 100%; gap: 6px; }
+.cat-subnav-hd:hover { background: var(--surface-2); }
+.cat-subnav-hd.open { color: var(--navy-600); }
+.cat-subnav-hd a { flex: 1; color: inherit; }
+.cat-subnav-chevron { font-size: 9px; color: var(--muted); flex-shrink: 0; }
+.cat-subnav-children { display: flex; flex-direction: column; gap: 1px; padding-left: 14px; border-left: 2px solid var(--line); margin: 2px 0 4px 10px; }
+.cat-subnav-leaf { display: block; padding: 6px 8px; border-radius: 6px; font-size: 12px; color: var(--ink-light); }
+.cat-subnav-leaf:hover { background: var(--surface-2); color: var(--ink); }
+.cat-subnav-leaf.active { color: var(--navy-600); font-weight: 600; }
+
+/* Grille de sous-catégories (page landing sans produits) */
+.cat-subcategories { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-top: 8px; }
+.cat-subcat-card { display: flex; flex-direction: column; gap: 6px; padding: 20px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; transition: box-shadow .15s, border-color .15s; }
+.cat-subcat-card:hover { box-shadow: var(--shadow); border-color: var(--navy-600); }
+.cat-subcat-name { font-size: 14px; font-weight: 700; color: var(--navy-600); }
+.cat-subcat-count { font-size: 12px; color: var(--muted); }
 .filter-checks { display: flex; flex-direction: column; gap: 6px; }
 .filter-checks label { display: flex; align-items: center; gap: 7px; font-size: 13px; cursor: pointer; }
 .cat-content { display: flex; flex-direction: column; gap: 20px; }

@@ -6,10 +6,10 @@ import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { CatalogueClient } from '@/components/catalogue/CatalogueClient';
 import type { Brand } from '@/lib/catalog/types';
 
-interface Props { params: { category: string } }
+interface Props { params: { slug: string[] } }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const resolved = resolveMenuPath([params.category]);
+  const resolved = resolveMenuPath(params.slug);
   if (!resolved) return { title: 'Catalogue' };
   return {
     title: `${resolved.name} — MN Fermetures`,
@@ -18,10 +18,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default function CataloguePage({ params }: Props) {
-  const resolved = resolveMenuPath([params.category]);
+  const resolved = resolveMenuPath(params.slug);
   if (!resolved) notFound();
 
-  const catProducts = products.filter((p) => p.categorySlug === params.category);
+  const catProducts = products.filter((p) =>
+    params.slug.some((s) => p.categorySlug === s)
+  );
 
   const brandSlugsInCat = new Set(
     catProducts.map((p) => p.brandSlug).filter(Boolean) as string[]
