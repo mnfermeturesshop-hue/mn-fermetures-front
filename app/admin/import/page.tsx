@@ -15,6 +15,7 @@ interface PreviewRow {
   prix_ht: number;
   description: string;
   pro_uniquement: boolean;
+  image_url: string;
   status: 'pending' | 'ok' | 'erreur';
   erreur?: string;
 }
@@ -22,7 +23,7 @@ interface PreviewRow {
 // Colonnes du fichier (en français)
 const TEMPLATE_HEADERS = [
   'slug', 'nom', 'menu_path', 'marque',
-  'type_prix', 'reference', 'prix_ht', 'description', 'pro_uniquement',
+  'type_prix', 'reference', 'prix_ht', 'description', 'pro_uniquement', 'image_url',
 ];
 
 const DESCRIPTIONS_COLONNES: Record<string, string> = {
@@ -35,6 +36,7 @@ const DESCRIPTIONS_COLONNES: Record<string, string> = {
   prix_ht:        'Prix HT en euros (ex: 255.00)',
   description:    'Texte libre (optionnel)',
   pro_uniquement: 'oui | non',
+  image_url:      'URL publique de la photo (optionnel — ex: https://…supabase.co/storage/…)',
 };
 
 // Mapping type_prix français → valeur interne
@@ -50,9 +52,9 @@ const TYPE_PRIX_MAP: Record<string, string> = {
 function downloadTemplate() {
   const csv = [
     TEMPLATE_HEADERS.join(';'),
-    'tablier-lame-pvc-40-blanc;Tablier lame PVC 40 Blanc;/catalogue/tabliers/pvc-40;mn;unitaire;LAMA40BLCS;4.50;Tablier agrafé coloris blanc;non',
-    'kit-axe-1500-somfy;Kit axe rénovation 1500 Somfy 10Nm;/catalogue/kits-axes/renovation/somfy;somfy;kit;KIT-AX-1500-S10;245.00;;non',
-    'moteur-lt50-20nm;Moteur filaire LT50 20 Nm;/catalogue/motorisations/somfy-filaires;somfy;unitaire;MOTLT50020;255.00;;non',
+    'tablier-lame-pvc-40-blanc;Tablier lame PVC 40 Blanc;/catalogue/tabliers/pvc-40;mn;unitaire;LAMA40BLCS;4.50;Tablier agrafé coloris blanc;non;',
+    'kit-axe-1500-somfy;Kit axe rénovation 1500 Somfy 10Nm;/catalogue/kits-axes/renovation/somfy;somfy;kit;KIT-AX-1500-S10;245.00;;non;',
+    'moteur-lt50-20nm;Moteur filaire LT50 20 Nm;/catalogue/motorisations/somfy-filaires;somfy;unitaire;MOTLT50020;255.00;;non;https://bovvvbxwskldoyybhohk.supabase.co/storage/v1/object/public/product-images/exemple.jpg',
   ].join('\n');
 
   // BOM UTF-8 pour Excel
@@ -112,6 +114,7 @@ export default function AdminImport() {
     const description = r.description ?? '';
     const pro_raw     = (r.pro_uniquement ?? r.pro_only ?? 'non').toLowerCase();
     const pro_uniquement = pro_raw === 'oui' || pro_raw === 'true' || pro_raw === '1';
+    const image_url   = (r.image_url ?? '').trim();
 
     if (!slug)       erreurs.push('slug manquant');
     if (!nom)        erreurs.push('nom manquant');
@@ -121,7 +124,7 @@ export default function AdminImport() {
     return {
       slug, nom, menu_path, marque,
       type_prix: TYPE_PRIX_MAP[type_brut] ?? type_brut,
-      reference, prix_ht, description, pro_uniquement,
+      reference, prix_ht, description, pro_uniquement, image_url,
       status: erreurs.length ? 'erreur' : 'pending',
       erreur: erreurs.join(' · ') || undefined,
     };
@@ -148,6 +151,7 @@ export default function AdminImport() {
           brand_slug: row.marque || null,
           pricing_type: row.type_prix,
           pro_only: row.pro_uniquement,
+          image_url: row.image_url || null,
           active: true,
           variants: row.type_prix === 'unit' ? [{
             reference: row.reference,
@@ -251,6 +255,7 @@ export default function AdminImport() {
                   <th>Type prix</th>
                   <th>Prix HT</th>
                   <th>Pro</th>
+                  <th>Photo</th>
                 </tr>
               </thead>
               <tbody>
@@ -267,6 +272,11 @@ export default function AdminImport() {
                     <td><span className={`adm-pill adm-pill-${r.type_prix}`}>{TYPE_LABELS[r.type_prix] ?? r.type_prix}</span></td>
                     <td>{r.prix_ht.toFixed(2)} €</td>
                     <td>{r.pro_uniquement ? '✓' : '—'}</td>
+                    <td>
+                      {r.image_url
+                        ? <img src={r.image_url} alt="" style={{ width: 40, height: 40, objectFit: 'contain', borderRadius: 4, border: '1px solid var(--line)' }} />
+                        : <span style={{ color: 'var(--muted)', fontSize: 11 }}>—</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>
