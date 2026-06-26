@@ -42,9 +42,9 @@ export async function middleware(request: NextRequest) {
   }
 
   // Protège /admin — réservé au rôle admin
-  if (pathname.startsWith('/admin')) {
+  if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
     if (!user) {
-      return NextResponse.redirect(new URL('/pro?redirect=/admin', request.url));
+      return NextResponse.redirect(new URL('/admin/login', request.url));
     }
     // Vérifie le rôle dans la table profiles
     const { data: profile } = await supabase

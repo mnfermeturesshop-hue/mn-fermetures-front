@@ -14,6 +14,9 @@ const NAV = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
+  if (pathname === '/admin/login') return <>{children}</>;
+
+
   return (
     <div className="adm-shell">
       <aside className="adm-sidebar">
