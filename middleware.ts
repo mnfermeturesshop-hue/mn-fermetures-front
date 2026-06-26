@@ -4,12 +4,8 @@ import { NextResponse, type NextRequest } from 'next/server';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Supabase non configuré → admin accessible uniquement en dev local
+  // Supabase non configuré → admin accessible en dev local
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-    if (pathname.startsWith('/admin')) {
-      // En dev sans Supabase : accès libre pour pouvoir travailler sur l'UI
-      return NextResponse.next({ request });
-    }
     return NextResponse.next({ request });
   }
 
@@ -46,15 +42,11 @@ export async function middleware(request: NextRequest) {
     if (!user) {
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
-    // Vérifie le rôle dans la table profiles
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
 
-    if (profile?.role !== 'admin') {
-      return NextResponse.redirect(new URL('/', request.url));
+    // Rôle stocké dans app_metadata (JWT) — pas de requête DB
+    const role = (user.app_metadata as Record<string, string>)?.role;
+    if (role !== 'admin') {
+      return NextResponse.redirect(new URL('/admin/login', request.url));
     }
   }
 
