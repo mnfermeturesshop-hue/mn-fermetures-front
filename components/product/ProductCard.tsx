@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { type Product, isUnit, isMatrix, isKit } from '@/lib/catalog/types';
+import { ZoomableImage } from '@/components/ui/ZoomableImage';
 import { priceFrom } from '@/lib/catalog/resolvePrice';
 import { getBrand } from '@/lib/catalog/mock';
 
@@ -45,12 +45,10 @@ export function ProductCard({ product }: { product: Product }) {
         <span className={`pill ${cls}`}>{label}</span>
         {brand && <span className="brandchip">{brand.name.toUpperCase()}</span>}
         {product.imageUrl ? (
-          <Image
+          <ZoomableImage
             src={product.imageUrl}
             alt={product.name}
-            fill
             sizes="(max-width:600px) 50vw, 220px"
-            style={{ objectFit: 'contain', padding: 8 }}
           />
         ) : (
           <span className="glyph">{GLYPHS[product.categorySlug] ?? '▣'}</span>
