@@ -3,36 +3,64 @@
 import { useRef, useState } from 'react';
 import { toast } from '@/components/ui/Toast';
 import { upsertProduct } from '@/lib/catalog/db';
+import { categorySlugFromHref } from '@/lib/catalog/menuResolve';
 
 interface PreviewRow {
   slug: string;
-  name: string;
-  category_slug: string;
-  brand_slug: string;
-  pricing_type: string;
-  price: number;
+  nom: string;
+  menu_path: string;
+  marque: string;
+  type_prix: string;
   reference: string;
+  prix_ht: number;
   description: string;
-  pro_only: boolean;
-  status: 'pending' | 'ok' | 'error';
-  error?: string;
+  pro_uniquement: boolean;
+  status: 'pending' | 'ok' | 'erreur';
+  erreur?: string;
 }
 
+// Colonnes du fichier (en français)
 const TEMPLATE_HEADERS = [
-  'slug', 'name', 'category_slug', 'brand_slug', 'pricing_type',
-  'reference', 'price', 'description', 'pro_only',
+  'slug', 'nom', 'menu_path', 'marque',
+  'type_prix', 'reference', 'prix_ht', 'description', 'pro_uniquement',
 ];
+
+const DESCRIPTIONS_COLONNES: Record<string, string> = {
+  slug:           'Identifiant URL unique (ex: moteur-lt50-10nm)',
+  nom:            'Nom affiché du produit',
+  menu_path:      'Position dans le catalogue (ex: /catalogue/motorisations/somfy-filaires)',
+  marque:         'Slug de la marque : somfy, mn, gaposa…',
+  type_prix:      'unitaire | sur_mesure | kit',
+  reference:      'Référence fournisseur (ex: MOTLT50010)',
+  prix_ht:        'Prix HT en euros (ex: 255.00)',
+  description:    'Texte libre (optionnel)',
+  pro_uniquement: 'oui | non',
+};
+
+// Mapping type_prix français → valeur interne
+const TYPE_PRIX_MAP: Record<string, string> = {
+  unitaire: 'unit',
+  sur_mesure: 'matrix',
+  kit: 'kit',
+  // compatibilité anglais
+  unit: 'unit',
+  matrix: 'matrix',
+};
 
 function downloadTemplate() {
   const csv = [
     TEMPLATE_HEADERS.join(';'),
-    'lame-pvc-40-blanc;Lame PVC 40 Blanc;tabliers;mn;unit;LAMA40BLCS;4.50;Lame PVC 40mm coloris blanc;false',
-    'kit-axe-1500-somfy;Kit axe 1500 Somfy 10Nm;kits-axes;somfy;kit;KIT-AX-1500-S10;245.00;;false',
+    'tablier-lame-pvc-40-blanc;Tablier lame PVC 40 Blanc;/catalogue/tabliers/pvc-40;mn;unitaire;LAMA40BLCS;4.50;Tablier agrafé coloris blanc;non',
+    'kit-axe-1500-somfy;Kit axe rénovation 1500 Somfy 10Nm;/catalogue/kits-axes/renovation/somfy;somfy;kit;KIT-AX-1500-S10;245.00;;non',
+    'moteur-lt50-20nm;Moteur filaire LT50 20 Nm;/catalogue/motorisations/somfy-filaires;somfy;unitaire;MOTLT50020;255.00;;non',
   ].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+
+  // BOM UTF-8 pour Excel
+  const bom = '﻿';
+  const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'template-import-produits.csv';
+  a.download = 'modele-import-produits.csv';
   a.click();
 }
 
@@ -59,10 +87,9 @@ export default function AdminImport() {
       const data: Record<string, string>[] = utils.sheet_to_json(ws, { defval: '' });
       setRows(data.map(parseRow));
     } else {
-      // CSV
       const text = await file.text();
-      const lines = text.trim().split('\n');
-      const headers = lines[0].split(';').map((h) => h.trim());
+      const lines = text.replace(/^﻿/, '').trim().split('\n');
+      const headers = lines[0].split(';').map((h) => h.trim().toLowerCase());
       const data = lines.slice(1).map((line) => {
         const vals = line.split(';');
         return Object.fromEntries(headers.map((h, i) => [h, (vals[i] ?? '').trim()]));
@@ -72,34 +99,41 @@ export default function AdminImport() {
   };
 
   function parseRow(r: Record<string, string>): PreviewRow {
-    const errors: string[] = [];
-    if (!r.slug) errors.push('slug manquant');
-    if (!r.name) errors.push('nom manquant');
-    if (!r.category_slug) errors.push('catégorie manquante');
-    if (!['unit', 'matrix', 'kit'].includes(r.pricing_type)) errors.push('pricing_type invalide');
+    const erreurs: string[] = [];
+
+    // Support colonnes françaises et anglaises (compat)
+    const slug        = r.slug ?? '';
+    const nom         = r.nom ?? r.name ?? '';
+    const menu_path   = r.menu_path ?? '';
+    const marque      = r.marque ?? r.brand_slug ?? '';
+    const type_brut   = (r.type_prix ?? r.pricing_type ?? 'unitaire').toLowerCase().trim();
+    const reference   = r.reference ?? '';
+    const prix_ht     = parseFloat((r.prix_ht ?? r.price ?? '0').replace(',', '.')) || 0;
+    const description = r.description ?? '';
+    const pro_raw     = (r.pro_uniquement ?? r.pro_only ?? 'non').toLowerCase();
+    const pro_uniquement = pro_raw === 'oui' || pro_raw === 'true' || pro_raw === '1';
+
+    if (!slug)       erreurs.push('slug manquant');
+    if (!nom)        erreurs.push('nom manquant');
+    if (!menu_path)  erreurs.push('menu_path manquant');
+    if (!TYPE_PRIX_MAP[type_brut]) erreurs.push(`type_prix invalide (reçu : "${type_brut}")`);
+
     return {
-      slug: r.slug ?? '',
-      name: r.name ?? '',
-      category_slug: r.category_slug ?? '',
-      brand_slug: r.brand_slug ?? '',
-      pricing_type: r.pricing_type ?? 'unit',
-      reference: r.reference ?? '',
-      price: parseFloat(r.price?.replace(',', '.') ?? '0') || 0,
-      description: r.description ?? '',
-      pro_only: r.pro_only === 'true' || r.pro_only === '1',
-      status: errors.length ? 'error' : 'pending',
-      error: errors.join(', ') || undefined,
+      slug, nom, menu_path, marque,
+      type_prix: TYPE_PRIX_MAP[type_brut] ?? type_brut,
+      reference, prix_ht, description, pro_uniquement,
+      status: erreurs.length ? 'erreur' : 'pending',
+      erreur: erreurs.join(' · ') || undefined,
     };
   }
 
-  const validRows = rows.filter((r) => r.status !== 'error');
+  const validRows  = rows.filter((r) => r.status !== 'erreur');
+  const errorRows  = rows.filter((r) => r.status === 'erreur');
 
   const handleImport = async () => {
     if (!validRows.length) return;
     setImporting(true);
-    let ok = 0;
-    let fail = 0;
-
+    let ok = 0; let fail = 0;
     const updated = [...rows];
 
     for (const row of validRows) {
@@ -107,31 +141,32 @@ export default function AdminImport() {
       try {
         await upsertProduct({
           slug: row.slug,
-          name: row.name,
+          name: row.nom,
           description: row.description || null,
-          category_slug: row.category_slug,
-          brand_slug: row.brand_slug || null,
-          pricing_type: row.pricing_type,
-          pro_only: row.pro_only,
+          menu_path: row.menu_path,
+          category_slug: categorySlugFromHref(row.menu_path),
+          brand_slug: row.marque || null,
+          pricing_type: row.type_prix,
+          pro_only: row.pro_uniquement,
           active: true,
-          variants: row.pricing_type === 'unit' ? [{
+          variants: row.type_prix === 'unit' ? [{
             reference: row.reference,
             label: '',
             uom: 'unite',
-            priceHT: row.price,
+            priceHT: row.prix_ht,
             inStock: true,
           }] : undefined,
-          configs: row.pricing_type === 'kit' ? [{
+          configs: row.type_prix === 'kit' ? [{
             reference: row.reference,
-            label: row.name,
-            priceHT: row.price,
+            label: row.nom,
+            priceHT: row.prix_ht,
             bom: [],
           }] : undefined,
         });
         updated[idx] = { ...row, status: 'ok' };
         ok++;
       } catch (e) {
-        updated[idx] = { ...row, status: 'error', error: String(e) };
+        updated[idx] = { ...row, status: 'erreur', erreur: String(e) };
         fail++;
       }
       setRows([...updated]);
@@ -139,8 +174,10 @@ export default function AdminImport() {
 
     setImporting(false);
     setDone(true);
-    toast.success(`${ok} produit${ok > 1 ? 's' : ''} importé${ok > 1 ? 's' : ''}${fail ? `, ${fail} erreur${fail > 1 ? 's' : ''}` : ''}`);
+    toast.success(`${ok} produit${ok > 1 ? 's' : ''} importé${ok > 1 ? 's' : ''}${fail ? ` · ${fail} erreur${fail > 1 ? 's' : ''}` : ''}`);
   };
+
+  const TYPE_LABELS: Record<string, string> = { unit: 'Unitaire', matrix: 'Sur mesure', kit: 'Kit' };
 
   return (
     <div className="adm-page">
@@ -154,14 +191,21 @@ export default function AdminImport() {
       {/* Instructions */}
       <div className="adm-import-info">
         <h3>Format attendu</h3>
-        <p>Fichier <strong>.xlsx</strong> ou <strong>.csv</strong> (séparateur <code>;</code>) avec les colonnes :</p>
-        <div className="adm-import-cols">
-          {TEMPLATE_HEADERS.map((h) => <code key={h}>{h}</code>)}
-        </div>
-        <p style={{ marginTop: 8 }}>Le champ <code>pricing_type</code> accepte : <code>unit</code>, <code>matrix</code>, <code>kit</code>.</p>
+        <p>Fichier <strong>.xlsx</strong> ou <strong>.csv</strong> (séparateur <code>;</code> · encodage UTF-8). Colonnes :</p>
+        <table className="adm-import-cols-table">
+          <thead><tr><th>Colonne</th><th>Description</th></tr></thead>
+          <tbody>
+            {TEMPLATE_HEADERS.map((h) => (
+              <tr key={h}>
+                <td><code>{h}</code></td>
+                <td style={{ fontSize: 12, color: 'var(--muted)' }}>{DESCRIPTIONS_COLONNES[h]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      {/* Drop zone */}
+      {/* Zone de dépôt */}
       <div
         className="adm-drop-zone"
         onClick={() => fileRef.current?.click()}
@@ -191,8 +235,8 @@ export default function AdminImport() {
         <>
           <div className="adm-import-summary">
             <span className="adm-import-ok">✓ {validRows.length} valide{validRows.length > 1 ? 's' : ''}</span>
-            {rows.filter((r) => r.status === 'error').length > 0 && (
-              <span className="adm-import-err">✗ {rows.filter((r) => r.status === 'error').length} erreur{rows.filter((r) => r.status === 'error').length > 1 ? 's' : ''}</span>
+            {errorRows.length > 0 && (
+              <span className="adm-import-err">✗ {errorRows.length} erreur{errorRows.length > 1 ? 's' : ''}</span>
             )}
           </div>
 
@@ -200,23 +244,29 @@ export default function AdminImport() {
             <table className="adm-table">
               <thead>
                 <tr>
-                  <th>Statut</th><th>Slug</th><th>Nom</th><th>Catégorie</th><th>Type</th><th>Prix HT</th><th>Pro</th>
+                  <th>Statut</th>
+                  <th>Slug</th>
+                  <th>Nom</th>
+                  <th>Position menu</th>
+                  <th>Type prix</th>
+                  <th>Prix HT</th>
+                  <th>Pro</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r, i) => (
                   <tr key={i} className={`adm-tr adm-import-row-${r.status}`}>
                     <td>
-                      {r.status === 'ok'    && <span className="adm-yes">✓ Importé</span>}
-                      {r.status === 'error' && <span className="adm-no" title={r.error}>✗ Erreur</span>}
+                      {r.status === 'ok'      && <span className="adm-yes">✓ Importé</span>}
+                      {r.status === 'erreur'  && <span className="adm-no" title={r.erreur}>✗ {r.erreur}</span>}
                       {r.status === 'pending' && <span className="adm-pending">En attente</span>}
                     </td>
                     <td><span className="ref">{r.slug}</span></td>
-                    <td>{r.name}</td>
-                    <td>{r.category_slug}</td>
-                    <td><span className={`adm-pill adm-pill-${r.pricing_type}`}>{r.pricing_type}</span></td>
-                    <td>{r.price.toFixed(2)} €</td>
-                    <td>{r.pro_only ? '✓' : '—'}</td>
+                    <td>{r.nom}</td>
+                    <td style={{ fontSize: 11 }}>{r.menu_path}</td>
+                    <td><span className={`adm-pill adm-pill-${r.type_prix}`}>{TYPE_LABELS[r.type_prix] ?? r.type_prix}</span></td>
+                    <td>{r.prix_ht.toFixed(2)} €</td>
+                    <td>{r.pro_uniquement ? '✓' : '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -225,7 +275,9 @@ export default function AdminImport() {
 
           {!done && (
             <div className="adm-form-actions">
-              <button type="button" className="btn ghost" onClick={() => { setRows([]); setFileName(''); }}>Annuler</button>
+              <button type="button" className="btn ghost" onClick={() => { setRows([]); setFileName(''); }}>
+                Annuler
+              </button>
               <button
                 type="button"
                 className="btn solid adm-btn-save"

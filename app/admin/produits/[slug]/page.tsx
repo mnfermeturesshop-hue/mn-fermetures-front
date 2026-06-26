@@ -175,7 +175,8 @@ export default function ProduitForm() {
       router.push('/admin/produits');
     } catch (err) {
       console.error(err);
-      toast.error('Erreur lors de la sauvegarde');
+      const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? String(err);
+      toast.error(`Erreur : ${msg}`);
     } finally {
       setSaving(false);
     }

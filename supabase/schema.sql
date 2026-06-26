@@ -135,6 +135,8 @@ CREATE TABLE IF NOT EXISTS public.products (
   matrix_max_w  NUMERIC(6,0),
   -- Champs type kit
   configs      JSONB,
+  -- Position dans l'arborescence menu
+  menu_path    TEXT,
   -- Image principale
   image_url    TEXT,
   -- Statut
