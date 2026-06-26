@@ -43,37 +43,37 @@ export const MENU: NavTop[] = [
   {
     name: 'Tabliers', href: '/catalogue/tabliers', icon: '▤',
     children: [
-      { name: 'Tablier lames PVC 40',        href: '/catalogue/tablier-pvc-40'   },
-      { name: 'Tablier lames PVC 55',        href: '/catalogue/tablier-pvc-55'   },
-      { name: 'Tablier lames aluminium 37',  href: '/catalogue/tablier-alu-37'   },
-      { name: 'Tablier lames aluminium 42',  href: '/catalogue/tablier-alu-42'   },
-      { name: 'Tablier lames aluminium 56',  href: '/catalogue/tablier-alu-56'   },
-      { name: 'Tablier lames aluminium 55',  href: '/catalogue/tablier-alu-55'   },
-      { name: 'Tablier lames aluminium 77',  href: '/catalogue/tablier-alu-77'   },
+      { name: 'Tablier lames PVC 40',        href: '/catalogue/tabliers/pvc-40'  },
+      { name: 'Tablier lames PVC 55',        href: '/catalogue/tabliers/pvc-55'  },
+      { name: 'Tablier lames aluminium 37',  href: '/catalogue/tabliers/alu-37'  },
+      { name: 'Tablier lames aluminium 42',  href: '/catalogue/tabliers/alu-42'  },
+      { name: 'Tablier lames aluminium 56',  href: '/catalogue/tabliers/alu-56'  },
+      { name: 'Tablier lames aluminium 55',  href: '/catalogue/tabliers/alu-55'  },
+      { name: 'Tablier lames aluminium 77',  href: '/catalogue/tabliers/alu-77'  },
     ],
   },
   {
     name: 'Kits axes', href: '/catalogue/kits-axes', icon: '⚙',
     children: [
-      { name: 'Volet rénovation',    href: '/catalogue/kits-axes/renovation',    children: [
-        { name: 'Motorisation Somfy', href: '/catalogue/kits-axes/kit-axe-reno-filaire-somfy' },
-        { name: 'Motorisation MN',    href: '/catalogue/kits-axes/renovation/mn' },
+      { name: 'Volet rénovation',   href: '/catalogue/kits-axes/renovation',    children: [
+        { name: 'Motorisation Somfy', href: '/catalogue/kits-axes/renovation/somfy' },
+        { name: 'Motorisation MN',    href: '/catalogue/kits-axes/renovation/mn'   },
       ]},
-      { name: 'Volet traditionnel',  href: '/catalogue/kits-axes/traditionnel',  children: [
+      { name: 'Volet traditionnel', href: '/catalogue/kits-axes/traditionnel',  children: [
         { name: 'Motorisation Somfy', href: '/catalogue/kits-axes/traditionnel/somfy' },
         { name: 'Motorisation MN',    href: '/catalogue/kits-axes/traditionnel/mn'   },
       ]},
-      { name: 'Bloc baie 168',       href: '/catalogue/kits-axes/bloc-baie-168', children: [
+      { name: 'Bloc baie 168',      href: '/catalogue/kits-axes/bloc-baie-168', children: [
         { name: 'Motorisation Somfy', href: '/catalogue/kits-axes/bloc-baie-168/somfy' },
         { name: 'Motorisation MN',    href: '/catalogue/kits-axes/bloc-baie-168/mn'   },
       ]},
-      { name: 'Bloc baie 205',       href: '/catalogue/kits-axes/bloc-baie-205', children: [
+      { name: 'Bloc baie 205',      href: '/catalogue/kits-axes/bloc-baie-205', children: [
         { name: 'Motorisation Somfy', href: '/catalogue/kits-axes/bloc-baie-205/somfy' },
         { name: 'Motorisation MN',    href: '/catalogue/kits-axes/bloc-baie-205/mn'   },
       ]},
-      { name: 'Kit solaire',         href: '/catalogue/kits-axes/solaire',       children: [
-        { name: 'Volet rénovation',   href: '/catalogue/kits-axes/solaire/renovation'   },
-        { name: 'Volet traditionnel', href: '/catalogue/kits-axes/solaire/traditionnel' },
+      { name: 'Kit solaire',        href: '/catalogue/kits-axes/solaire',       children: [
+        { name: 'Volet rénovation',   href: '/catalogue/kits-axes/solaire/renovation'    },
+        { name: 'Volet traditionnel', href: '/catalogue/kits-axes/solaire/traditionnel'  },
         { name: 'Bloc baie 168',      href: '/catalogue/kits-axes/solaire/bloc-baie-168' },
         { name: 'Bloc baie 205',      href: '/catalogue/kits-axes/solaire/bloc-baie-205' },
       ]},
@@ -136,6 +136,7 @@ export const products: Product[] = [
     slug: 'tablier-pvc-40',
     name: 'Tablier lame PVC 40',
     categorySlug: 'tabliers',
+    menuPath: '/catalogue/tabliers/pvc-40',
     uom: 'unite',
     description: 'Tablier agrafé fourni avec attaches souples. Dimensions de commande = largeur finie × hauteur finie.',
     colors: [COLORS.blanc, COLORS.beige, COLORS.gris],
@@ -163,6 +164,7 @@ export const products: Product[] = [
     slug: 'kit-axe-reno-filaire-somfy',
     name: 'Kit axe rénovation — filaire Somfy',
     categorySlug: 'kits-axes',
+    menuPath: '/catalogue/kits-axes/renovation/somfy',
     brandSlug: 'somfy',
     configs: [
       {
@@ -197,34 +199,40 @@ export const products: Product[] = [
   // --- UNIT (€/unité) ---
   {
     pricingType: 'unit', slug: 'moteur-filaire-lt50-meteor-20', name: 'Moteur filaire LT50 Meteor 20 nm',
-    categorySlug: 'motorisations', brandSlug: 'somfy', uom: 'unite', specs: { puissance_nm: 20 },
+    categorySlug: 'motorisations', menuPath: '/catalogue/motorisations/somfy-filaires',
+    brandSlug: 'somfy', uom: 'unite', specs: { puissance_nm: 20 },
     variants: [{ reference: 'MOTLT50020', priceHT: 255, inStock: true, stockQty: 147 }],
   },
   {
     pricingType: 'unit', slug: 'moteur-radio-io-rs100-10', name: 'Moteur radio io RS100 10 nm',
-    categorySlug: 'motorisations', brandSlug: 'somfy', uom: 'unite', specs: { puissance_nm: 10 },
+    categorySlug: 'motorisations', menuPath: '/catalogue/motorisations/somfy-io',
+    brandSlug: 'somfy', uom: 'unite', specs: { puissance_nm: 10 },
     variants: [{ reference: 'MOTRS100010', priceHT: 345, inStock: true, stockQty: 32 }],
   },
   {
     pricingType: 'unit', slug: 'telecommande-amy1-sunprotect-io', name: 'Télécommande Amy 1 Sunprotect io',
-    categorySlug: 'commandes', brandSlug: 'somfy', uom: 'unite',
+    categorySlug: 'commandes', menuPath: '/catalogue/commandes/io',
+    brandSlug: 'somfy', uom: 'unite',
     variants: [{ reference: 'CDEEMSMOAMYSUIO', priceHT: 84, inStock: true, stockQty: 60, color: COLORS.blanc }],
   },
   {
     pricingType: 'unit', slug: 'moteur-filaire-mn-10', name: 'Moteur filaire MN 10 nm',
-    categorySlug: 'motorisations', brandSlug: 'mn', uom: 'unite', specs: { puissance_nm: 10 },
+    categorySlug: 'motorisations', menuPath: '/catalogue/motorisations/mn-filaires',
+    brandSlug: 'mn', uom: 'unite', specs: { puissance_nm: 10 },
     variants: [{ reference: 'MOTXPFIL010', priceHT: 128, inStock: false, stockQty: 0 }],
   },
   {
     pricingType: 'unit', slug: 'moteur-filaire-lt50-apollo-35', name: 'Moteur filaire LT50 Apollo 35 nm',
-    categorySlug: 'motorisations', brandSlug: 'somfy', uom: 'unite', specs: { puissance_nm: 35 }, proOnly: true,
+    categorySlug: 'motorisations', menuPath: '/catalogue/motorisations/somfy-filaires',
+    brandSlug: 'somfy', uom: 'unite', specs: { puissance_nm: 35 }, proOnly: true,
     variants: [{ reference: 'MOTLT50035', priceHT: 325, inStock: true, stockQty: 18 }],
   },
 
   // --- UNIT (€/ml avec variantes couleur) ---
   {
     pricingType: 'unit', slug: 'lame-aluminium-42-ajouree', name: 'Lame aluminium 42 ajourée',
-    categorySlug: 'profils', uom: 'ml',
+    categorySlug: 'profils', menuPath: '/catalogue/profils/lames',
+    uom: 'ml',
     variants: [
       { reference: 'LAMA42AJBLC', label: 'blanc', color: COLORS.blanc, priceHT: 3.29, inStock: true },
       { reference: 'LAMA42AJ7016', label: '7016', color: COLORS['7016'], priceHT: 3.46, inStock: true },
@@ -237,7 +245,8 @@ export const products: Product[] = [
   },
   {
     pricingType: 'unit', slug: 'coulisse-40-22', name: 'Coulisse 40 × 22',
-    categorySlug: 'profils', uom: 'ml',
+    categorySlug: 'profils', menuPath: '/catalogue/profils/coulisses',
+    uom: 'ml',
     variants: [
       { reference: 'COU4022D6BLC', label: 'blanc', color: COLORS.blanc, priceHT: 18.76, inStock: true },
       { reference: 'COU4022D67016', label: '7016', color: COLORS['7016'], priceHT: 19.70, inStock: true },

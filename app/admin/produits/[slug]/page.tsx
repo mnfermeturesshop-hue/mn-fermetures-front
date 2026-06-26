@@ -4,8 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { toast } from '@/components/ui/Toast';
-import { getAllCategories, getAllBrands, getProductBySlugDB, upsertProduct, uploadProductImage } from '@/lib/catalog/db';
-import type { Category, Brand } from '@/lib/catalog/types';
+import { getAllBrands, getProductBySlugDB, upsertProduct, uploadProductImage } from '@/lib/catalog/db';
+import type { Brand } from '@/lib/catalog/types';
+import { flatMenuOptions, categorySlugFromHref } from '@/lib/catalog/menuResolve';
+import type { MenuOption } from '@/lib/catalog/menuResolve';
 
 type PricingType = 'unit' | 'matrix' | 'kit';
 
@@ -21,7 +23,7 @@ export default function ProduitForm() {
   const isNew = params.slug === 'nouveau';
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [menuOptions] = useState<MenuOption[]>(() => flatMenuOptions());
   const [brands, setBrands] = useState<Brand[]>([]);
   const [saving, setSaving] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -31,6 +33,7 @@ export default function ProduitForm() {
   const [slug, setSlug] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [menuPath, setMenuPath] = useState('');
   const [categorySlug, setCategorySlug] = useState('');
   const [brandSlug, setBrandSlug] = useState('');
   const [pricingType, setPricingType] = useState<PricingType>('unit');
@@ -47,10 +50,7 @@ export default function ProduitForm() {
   const [kitConfigs, setKitConfigs] = useState<KitConfigRow[]>([{ ...EMPTY_KIT }]);
 
   useEffect(() => {
-    Promise.all([getAllCategories(), getAllBrands()]).then(([cats, brs]) => {
-      setCategories(cats);
-      setBrands(brs);
-    });
+    getAllBrands().then(setBrands);
 
     if (!isNew) {
       getProductBySlugDB(params.slug as string).then((p) => {
@@ -58,8 +58,10 @@ export default function ProduitForm() {
         setSlug(p.slug);
         setName(p.name);
         setDescription(p.description ?? '');
+        setMenuPath(p.menuPath ?? '');
         setCategorySlug(p.categorySlug);
         setBrandSlug(p.brandSlug ?? '');
+        if (p.imageUrl) setImagePreview(p.imageUrl);
         setPricingType(p.pricingType);
         setProOnly(p.proOnly ?? false);
         if (p.pricingType === 'unit') {
@@ -108,8 +110,8 @@ export default function ProduitForm() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!slug || !name || !categorySlug) {
-      toast.error('Champs obligatoires manquants (slug, nom, catégorie)');
+    if (!slug || !name || !menuPath) {
+      toast.error('Champs obligatoires manquants (slug, nom, position menu)');
       return;
     }
     setSaving(true);
@@ -123,7 +125,8 @@ export default function ProduitForm() {
         slug,
         name,
         description: description || null,
-        category_slug: categorySlug,
+        menu_path: menuPath,
+        category_slug: categorySlugFromHref(menuPath),
         brand_slug: brandSlug || null,
         pricing_type: pricingType,
         pro_only: proOnly,
@@ -201,12 +204,26 @@ export default function ProduitForm() {
               <label>Description</label>
               <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
             </div>
-            <div className="adm-field">
-              <label>Catégorie *</label>
-              <select value={categorySlug} onChange={(e) => setCategorySlug(e.target.value)} required>
-                <option value="">— Choisir —</option>
-                {categories.map((c) => <option key={c.slug} value={c.slug}>{c.icon} {c.name}</option>)}
+            <div className="adm-field" style={{ gridColumn: '1 / -1' }}>
+              <label>Position dans le menu *</label>
+              <select
+                value={menuPath}
+                onChange={(e) => {
+                  setMenuPath(e.target.value);
+                  setCategorySlug(categorySlugFromHref(e.target.value));
+                }}
+                required
+              >
+                <option value="">— Choisir une position —</option>
+                {menuOptions.map((o) => (
+                  <option key={o.href} value={o.href}>{o.label}</option>
+                ))}
               </select>
+              {menuPath && (
+                <div className="adm-form-hint">
+                  Catégorie dérivée : <strong>{categorySlugFromHref(menuPath)}</strong> · URL catalogue : <code>{menuPath}</code>
+                </div>
+              )}
             </div>
             <div className="adm-field">
               <label>Marque</label>

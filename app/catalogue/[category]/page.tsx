@@ -21,7 +21,11 @@ export default function CataloguePage({ params }: Props) {
   const resolved = resolveMenuPath([params.category]);
   if (!resolved) notFound();
 
-  const catProducts = products.filter((p) => p.categorySlug === params.category);
+  const catProducts = products.filter((p) =>
+    p.menuPath
+      ? p.menuPath.startsWith(resolved.href)
+      : p.categorySlug === params.category
+  );
 
   const brandSlugsInCat = new Set(
     catProducts.map((p) => p.brandSlug).filter(Boolean) as string[]

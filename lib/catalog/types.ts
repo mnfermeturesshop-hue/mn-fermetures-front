@@ -29,6 +29,10 @@ interface ProductBase {
   slug: string;
   name: string;
   categorySlug: string;
+  /** Position exacte dans l'arbre menu — ex: /catalogue/motorisations/somfy-filaires */
+  menuPath?: string;
+  /** URL publique du visuel (Supabase Storage) */
+  imageUrl?: string;
   brandSlug?: string;
   description?: string;
   /** Caractéristiques techniques libres (Ø, puissance nm, etc.). */

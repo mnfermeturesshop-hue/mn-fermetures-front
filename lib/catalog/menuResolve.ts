@@ -83,3 +83,41 @@ export function topNavItems(): NavItem[] {
     children: (t.children ?? []).map(toNavItem),
   }));
 }
+
+/** Dérive le categorySlug depuis un menuPath.
+ *  /catalogue/motorisations/somfy-filaires → 'motorisations'
+ *  /catalogue/pieces-detachees → 'pieces-detachees'
+ */
+export function categorySlugFromHref(href: string): string {
+  const parts = href.replace('/catalogue/', '').split('/');
+  return parts[0] ?? '';
+}
+
+/** Option pour le sélecteur admin (liste plate avec profondeur). */
+export interface MenuOption {
+  label: string;   // nom avec indentation visuelle
+  href: string;    // valeur du champ menuPath
+  depth: number;
+  categorySlug: string;
+}
+
+/** Aplatit l'arbre MENU en liste pour un <select> admin. */
+export function flatMenuOptions(): MenuOption[] {
+  const result: MenuOption[] = [];
+  const indent = ['', '  └ ', '    └ '];
+
+  function traverse(items: NavItem[], depth: number) {
+    for (const item of items) {
+      result.push({
+        label: (indent[depth] ?? '      ') + item.name,
+        href: item.href,
+        depth,
+        categorySlug: categorySlugFromHref(item.href),
+      });
+      if (item.children?.length) traverse(item.children, depth + 1);
+    }
+  }
+
+  traverse(topNavItems(), 0);
+  return result;
+}

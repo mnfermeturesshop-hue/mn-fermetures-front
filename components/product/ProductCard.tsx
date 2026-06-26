@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { type Product, isUnit, isMatrix, isKit } from '@/lib/catalog/types';
 import { priceFrom } from '@/lib/catalog/resolvePrice';
 import { getBrand } from '@/lib/catalog/mock';
@@ -43,7 +44,17 @@ export function ProductCard({ product }: { product: Product }) {
       <div className="thumb">
         <span className={`pill ${cls}`}>{label}</span>
         {brand && <span className="brandchip">{brand.name.toUpperCase()}</span>}
-        <span className="glyph">{GLYPHS[product.categorySlug] ?? '▣'}</span>
+        {product.imageUrl ? (
+          <Image
+            src={product.imageUrl}
+            alt={product.name}
+            fill
+            sizes="(max-width:600px) 50vw, 220px"
+            style={{ objectFit: 'contain', padding: 8 }}
+          />
+        ) : (
+          <span className="glyph">{GLYPHS[product.categorySlug] ?? '▣'}</span>
+        )}
       </div>
       <div className="info">
         {ref && <div className="ref">{ref}</div>}

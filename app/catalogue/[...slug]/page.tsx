@@ -22,7 +22,9 @@ export default function CataloguePage({ params }: Props) {
   if (!resolved) notFound();
 
   const catProducts = products.filter((p) =>
-    params.slug.some((s) => p.categorySlug === s)
+    p.menuPath
+      ? p.menuPath.startsWith(resolved.href)
+      : params.slug.some((s) => p.categorySlug === s)
   );
 
   const brandSlugsInCat = new Set(
