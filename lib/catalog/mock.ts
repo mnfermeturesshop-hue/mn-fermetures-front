@@ -32,16 +32,99 @@ export const categories: Category[] = [
   { slug: 'verrouillages', name: 'Verrouillages', icon: '⛓' },
 ];
 
-/** Config de navigation du méga-menu (données d'app, hors contrat catalogue). */
-export const MENU: { name: string; categorySlug: string; sub: string[] }[] = [
-  { name: 'Tabliers', categorySlug: 'tabliers', sub: ['Lame PVC 40', 'Lame PVC 55', 'Lame alu 37', 'Lame alu 42', 'Lame alu 55', 'Lame alu 77'] },
-  { name: 'Kits axes', categorySlug: 'kits-axes', sub: ['Volet rénovation', 'Volet traditionnel', 'Bloc baie 168', 'Bloc baie 205', 'Solaire'] },
-  { name: 'Motorisations', categorySlug: 'motorisations', sub: ['Somfy filaires', 'Somfy radio io', 'Solaires', 'MN', 'Roues & couronnes', 'Supports moteurs'] },
-  { name: 'Commandes', categorySlug: 'commandes', sub: ['Filaires', 'Radio Somfy io', 'Radio RTS', 'Radio MN', 'Garage', 'Domotique'] },
-  { name: 'Profils', categorySlug: 'profils', sub: ['Axes', 'Lames', 'Lames finales', 'Coulisses', 'Coffres', 'Accessoires'] },
-  { name: 'Consoles', categorySlug: 'consoles', sub: ['Consoles & contre-plaques', 'Flasques'] },
-  { name: 'Embouts', categorySlug: 'embouts', sub: ['Côté manœuvre', 'Côté opposé', 'Tandems'] },
-  { name: 'Verrouillages', categorySlug: 'verrouillages', sub: ['Attaches rigides', 'Verrous automatiques', 'Bagues'] },
+/** Types du méga-menu (3 niveaux : NavTop > NavGroup > NavLeaf). */
+export interface NavLeaf  { name: string; href: string }
+export interface NavGroup extends NavLeaf { children: NavLeaf[] }
+export interface NavTop   extends NavLeaf { icon?: string; children?: (NavGroup | NavLeaf)[] }
+export const isNavGroup = (item: NavLeaf | NavGroup): item is NavGroup =>
+  'children' in item && Array.isArray((item as NavGroup).children);
+
+export const MENU: NavTop[] = [
+  {
+    name: 'Tabliers', href: '/catalogue/tabliers', icon: '▤',
+    children: [
+      { name: 'Tablier lames PVC 40',        href: '/catalogue/tablier-pvc-40'   },
+      { name: 'Tablier lames PVC 55',        href: '/catalogue/tablier-pvc-55'   },
+      { name: 'Tablier lames aluminium 37',  href: '/catalogue/tablier-alu-37'   },
+      { name: 'Tablier lames aluminium 42',  href: '/catalogue/tablier-alu-42'   },
+      { name: 'Tablier lames aluminium 56',  href: '/catalogue/tablier-alu-56'   },
+      { name: 'Tablier lames aluminium 55',  href: '/catalogue/tablier-alu-55'   },
+      { name: 'Tablier lames aluminium 77',  href: '/catalogue/tablier-alu-77'   },
+    ],
+  },
+  {
+    name: 'Kits axes', href: '/catalogue/kits-axes', icon: '⚙',
+    children: [
+      { name: 'Volet rénovation',    href: '/catalogue/kits-axes/renovation',    children: [
+        { name: 'Motorisation Somfy', href: '/catalogue/kits-axes/kit-axe-reno-filaire-somfy' },
+        { name: 'Motorisation MN',    href: '/catalogue/kits-axes/renovation/mn' },
+      ]},
+      { name: 'Volet traditionnel',  href: '/catalogue/kits-axes/traditionnel',  children: [
+        { name: 'Motorisation Somfy', href: '/catalogue/kits-axes/traditionnel/somfy' },
+        { name: 'Motorisation MN',    href: '/catalogue/kits-axes/traditionnel/mn'   },
+      ]},
+      { name: 'Bloc baie 168',       href: '/catalogue/kits-axes/bloc-baie-168', children: [
+        { name: 'Motorisation Somfy', href: '/catalogue/kits-axes/bloc-baie-168/somfy' },
+        { name: 'Motorisation MN',    href: '/catalogue/kits-axes/bloc-baie-168/mn'   },
+      ]},
+      { name: 'Bloc baie 205',       href: '/catalogue/kits-axes/bloc-baie-205', children: [
+        { name: 'Motorisation Somfy', href: '/catalogue/kits-axes/bloc-baie-205/somfy' },
+        { name: 'Motorisation MN',    href: '/catalogue/kits-axes/bloc-baie-205/mn'   },
+      ]},
+      { name: 'Kit solaire',         href: '/catalogue/kits-axes/solaire',       children: [
+        { name: 'Volet rénovation',   href: '/catalogue/kits-axes/solaire/renovation'   },
+        { name: 'Volet traditionnel', href: '/catalogue/kits-axes/solaire/traditionnel' },
+        { name: 'Bloc baie 168',      href: '/catalogue/kits-axes/solaire/bloc-baie-168' },
+        { name: 'Bloc baie 205',      href: '/catalogue/kits-axes/solaire/bloc-baie-205' },
+      ]},
+    ],
+  },
+  {
+    name: 'Pièces détachées', href: '/catalogue/pieces-detachees', icon: '⊙',
+    children: [
+      { name: 'Motorisations', href: '/catalogue/motorisations', children: [
+        { name: 'Somfy — filaires',       href: '/catalogue/motorisations/somfy-filaires'    },
+        { name: 'Somfy — radio RTS',      href: '/catalogue/motorisations/somfy-rts'         },
+        { name: 'Somfy — radio io',       href: '/catalogue/motorisations/somfy-io'          },
+        { name: 'Somfy — solaires',       href: '/catalogue/motorisations/somfy-solaires'    },
+        { name: 'Somfy — filaires CSI',   href: '/catalogue/motorisations/somfy-csi-filaires'},
+        { name: 'Somfy — radio RTS CSI',  href: '/catalogue/motorisations/somfy-csi-rts'     },
+        { name: 'MN — filaires',          href: '/catalogue/motorisations/mn-filaires'       },
+        { name: 'MN — radio',             href: '/catalogue/motorisations/mn-radio'          },
+        { name: 'MN — filaires CSI',      href: '/catalogue/motorisations/mn-csi'            },
+        { name: 'Roues & couronnes Somfy',href: '/catalogue/motorisations/roues-somfy'       },
+        { name: 'Roues & couronnes MN',   href: '/catalogue/motorisations/roues-mn'          },
+        { name: 'Supports moteurs',       href: '/catalogue/motorisations/supports'          },
+      ]},
+      { name: 'Commandes', href: '/catalogue/commandes', children: [
+        { name: 'Moteurs filaires',        href: '/catalogue/commandes/filaires'    },
+        { name: 'Moteurs radio Somfy',     href: '/catalogue/commandes/somfy'       },
+        { name: 'Moteurs io',              href: '/catalogue/commandes/io'          },
+        { name: 'Moteurs RTS ou solaire',  href: '/catalogue/commandes/rts-solaire' },
+        { name: 'Moteurs radio MN',        href: '/catalogue/commandes/mn'          },
+        { name: 'Moteurs garage',          href: '/catalogue/commandes/garage'      },
+        { name: 'Récepteurs portail',      href: '/catalogue/commandes/portail'     },
+        { name: 'Domotique',               href: '/catalogue/commandes/domotique'   },
+      ]},
+      { name: 'Profils', href: '/catalogue/profils', children: [
+        { name: 'Axes',           href: '/catalogue/profils/axes'          },
+        { name: 'Lames',          href: '/catalogue/profils/lames'         },
+        { name: 'Lames finales',  href: '/catalogue/profils/lames-finales' },
+        { name: 'Coulisses',      href: '/catalogue/profils/coulisses'     },
+        { name: 'Coffres',        href: '/catalogue/profils/coffres'       },
+        { name: 'Coffres tunnel', href: '/catalogue/profils/coffres-tunnel'},
+        { name: 'Accessoires',    href: '/catalogue/profils/accessoires'   },
+      ]},
+      { name: 'Consoles', href: '/catalogue/consoles', children: [
+        { name: 'Consoles et contre plaques', href: '/catalogue/consoles/contre-plaques' },
+        { name: 'Flasques',                   href: '/catalogue/consoles/flasques'       },
+      ]},
+      { name: 'Embouts',              href: '/catalogue/embouts'              },
+      { name: 'Verrouillages',        href: '/catalogue/verrouillages'        },
+      { name: 'Manœuvres manuelles',  href: '/catalogue/manoeuvres-manuelles' },
+      { name: 'Aide à la pose',       href: '/catalogue/aide-a-la-pose'       },
+    ],
+  },
 ];
 
 export const products: Product[] = [

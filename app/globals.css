@@ -23,15 +23,33 @@ header.top { position: sticky; top: 0; z-index: 50; background: var(--navy-800);
 .act .badge { background: var(--steel-600); color: #fff; border-radius: 20px; min-width: 20px; height: 20px; display: grid; place-items: center; font-size: 11px; font-weight: 800; padding: 0 5px; }
 
 /* Méga-menu */
-nav.cats { background: var(--navy-600); color: #fff; }
+nav.cats { background: var(--navy-600); color: #fff; position: relative; }
 nav.cats > .wrap { display: flex; flex-wrap: wrap; }
 .mi { position: relative; }
-.mi > a { display: block; padding: 13px 16px; font-size: 13px; font-weight: 600; border-right: 1px solid rgba(255,255,255,.1); }
+.mi > a { display: block; padding: 13px 16px; font-size: 13px; font-weight: 600; border-right: 1px solid rgba(255,255,255,.1); white-space: nowrap; }
 .mi:hover > a, .mi:focus-within > a { background: var(--steel-600); }
-.mega { display: none; position: absolute; left: 0; top: 100%; background: #fff; color: var(--ink); min-width: 240px; box-shadow: var(--shadow); border: 1px solid var(--line); border-radius: 0 0 10px 10px; padding: 8px; z-index: 60; }
-.mi:hover .mega, .mi:focus-within .mega { display: block; }
-.mega a { display: block; padding: 9px 12px; border-radius: 7px; font-size: 13px; }
-.mega a:hover { background: var(--surface-2); color: var(--steel-600); }
+
+/* Panel méga (base commune) */
+.mega { display: none; position: absolute; left: 0; top: 100%; background: #fff; color: var(--ink); box-shadow: var(--shadow); border: 1px solid var(--line); border-radius: 0 0 10px 10px; z-index: 60; }
+.mi:hover .mega, .mi:focus-within .mega { display: flex; flex-direction: column; }
+
+/* Panel simple — liste verticale (Tabliers) */
+.mega-simple { min-width: 240px; padding: 8px; }
+.mega-leaf-s { display: block; padding: 9px 12px; border-radius: 7px; font-size: 13px; }
+.mega-leaf-s:hover { background: var(--surface-2); color: var(--steel-600); }
+
+/* Panel large — colonnes (Kits axes, Pièces détachées) */
+.mi-wide { position: static; }
+.mega-cols { left: 0; right: 0; padding: 20px 28px 16px; }
+.mega-groups-row { display: flex; flex-wrap: wrap; gap: 0 32px; }
+.mega-group { min-width: 150px; flex: 1; margin-bottom: 16px; }
+.mega-group-hd { display: block; padding-bottom: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--navy-600); border-bottom: 2px solid var(--navy-600); margin-bottom: 6px; }
+.mega-group-hd:hover { color: var(--steel-600); border-color: var(--steel-600); }
+.mega-leaf { display: block; padding: 5px 4px; border-radius: 5px; font-size: 12px; color: var(--ink-light); }
+.mega-leaf:hover { background: var(--surface-2); color: var(--steel-600); }
+.mega-orphans-row { display: flex; flex-wrap: wrap; gap: 4px 8px; padding-top: 12px; border-top: 1px solid var(--line); margin-top: 4px; }
+.mega-orphan { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: var(--surface-2); color: var(--ink); }
+.mega-orphan:hover { background: var(--navy-600); color: #fff; }
 
 /* Trust bar */
 .trust { background: #fff; border-bottom: 1px solid var(--line); }
@@ -832,11 +850,16 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 .mob-chevron { font-size: 9px; color: var(--alu-400); flex-shrink: 0; }
 
 .mob-sub { background: rgba(0,0,0,.2); padding: 4px 0; }
-.mob-sub-all { display: block; padding: 10px 28px; font-size: 13px; font-weight: 700;
-  color: var(--steel-400, #6eb5e4); }
+.mob-sub-all { display: block; padding: 10px 28px; font-size: 13px; font-weight: 700; color: var(--steel-400, #6eb5e4); }
 .mob-sub-all:hover { color: #fff; }
 .mob-sub-item { display: block; padding: 8px 28px; font-size: 13px; color: var(--alu-200); }
 .mob-sub-item:hover { color: #fff; background: rgba(255,255,255,.05); }
+/* Sous-groupe niveau 2 (ex : Volet rénovation dans Kits axes) */
+.mob-subgroup { }
+.mob-subgroup-btn { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 9px 28px 9px 36px; font-size: 13px; font-weight: 600; color: var(--alu-300, #b0bec5); background: none; border: none; cursor: pointer; text-align: left; }
+.mob-subgroup-btn:hover, .mob-subgroup-btn.open { color: #fff; }
+.mob-sub-lvl3 { background: rgba(0,0,0,.15); }
+.mob-sub-item--leaf { padding-left: 48px; font-size: 12px; }
 
 .mob-footer-links { padding: 14px 0; display: flex; flex-direction: column; }
 .mob-footer-links a { padding: 11px 16px; font-size: 13px; color: var(--alu-200); }

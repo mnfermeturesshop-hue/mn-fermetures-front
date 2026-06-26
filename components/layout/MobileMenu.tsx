@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { categories, MENU } from '@/lib/catalog/mock';
+import { MENU, isNavGroup } from '@/lib/catalog/mock';
 import { useCartStore } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
 import { toast } from '@/components/ui/Toast';
@@ -12,11 +12,17 @@ import { toast } from '@/components/ui/Toast';
 interface Props { isOpen: boolean; onClose: () => void }
 
 export function MobileMenu({ isOpen, onClose }: Props) {
-  const [openCat, setOpenCat] = useState<string | null>(null);
-  const { totalLines, openCart } = useCartStore();
-  const { user, isPro, logout } = useAuthStore();
+  const [openTop, setOpenTop]     = useState<string | null>(null);
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const { totalLines, openCart }  = useCartStore();
+  const { user, isPro, logout }   = useAuthStore();
   const router = useRouter();
-  const count = totalLines();
+  const count  = totalLines();
+
+  const toggleTop = (href: string) => {
+    setOpenTop(openTop === href ? null : href);
+    setOpenGroup(null);
+  };
 
   const handleCartClick = () => { onClose(); openCart(); };
 
@@ -33,15 +39,10 @@ export function MobileMenu({ isOpen, onClose }: Props) {
     <>
       <div className="mob-overlay" onClick={onClose} aria-hidden />
       <nav className="mob-menu" aria-label="Navigation mobile">
+
         <div className="mob-head">
           <Link href="/" onClick={onClose} className="logo-pill">
-            <Image
-              src="/logo.png"
-              alt="MN Fermetures"
-              width={120}
-              height={46}
-              className="logo-img"
-            />
+            <Image src="/logo.png" alt="MN Fermetures" width={120} height={46} className="logo-img" />
           </Link>
           <button className="mob-close" type="button" onClick={onClose} aria-label="Fermer">✕</button>
         </div>
@@ -72,50 +73,71 @@ export function MobileMenu({ isOpen, onClose }: Props) {
           {count > 0 && <span className="badge badge-live">{count}</span>}
         </button>
 
-        {/* Catégories */}
+        {/* Catalogue */}
         <div className="mob-cats">
           <div className="mob-section-label">Catalogue</div>
-          {MENU.map((m) => (
-            <div key={m.categorySlug} className="mob-cat-group">
-              <button
-                type="button"
-                className={`mob-cat-btn ${openCat === m.categorySlug ? 'open' : ''}`}
-                onClick={() => setOpenCat(openCat === m.categorySlug ? null : m.categorySlug)}
-              >
-                <span>{categories.find((c) => c.slug === m.categorySlug)?.icon} {m.name}</span>
-                <span className="mob-chevron">{openCat === m.categorySlug ? '▲' : '▼'}</span>
-              </button>
-              {openCat === m.categorySlug && (
-                <div className="mob-sub">
-                  <Link
-                    href={`/catalogue/${m.categorySlug}`}
-                    className="mob-sub-all"
-                    onClick={onClose}
-                  >
-                    Tout voir — {m.name}
-                  </Link>
-                  {m.sub.map((s) => (
-                    <Link
-                      key={s}
-                      href={`/catalogue/${m.categorySlug}`}
-                      className="mob-sub-item"
-                      onClick={onClose}
-                    >
-                      {s}
+
+          {MENU.map((top) => {
+            const hasGroups = top.children?.some(isNavGroup) ?? false;
+            const isTopOpen = openTop === top.href;
+
+            return (
+              <div key={top.href} className="mob-cat-group">
+                <button
+                  type="button"
+                  className={`mob-cat-btn ${isTopOpen ? 'open' : ''}`}
+                  onClick={() => toggleTop(top.href)}
+                >
+                  <span>{top.icon} {top.name}</span>
+                  <span className="mob-chevron">{isTopOpen ? '▲' : '▼'}</span>
+                </button>
+
+                {isTopOpen && top.children && (
+                  <div className="mob-sub">
+                    <Link href={top.href} className="mob-sub-all" onClick={onClose}>
+                      Tout voir — {top.name}
                     </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-          <Link
-            href="/catalogue/pieces-detachees"
-            className="mob-cat-btn"
-            style={{ color: 'var(--somfy)', fontWeight: 700 }}
-            onClick={onClose}
-          >
-            ⚡ Pièces détachées
-          </Link>
+
+                    {top.children.map((child) => {
+                      if (!isNavGroup(child)) {
+                        return (
+                          <Link key={child.href} href={child.href} className="mob-sub-item" onClick={onClose}>
+                            {child.name}
+                          </Link>
+                        );
+                      }
+
+                      const isGroupOpen = openGroup === child.href;
+                      return (
+                        <div key={child.href} className="mob-subgroup">
+                          <button
+                            type="button"
+                            className={`mob-subgroup-btn ${isGroupOpen ? 'open' : ''}`}
+                            onClick={() => setOpenGroup(isGroupOpen ? null : child.href)}
+                          >
+                            <span>{child.name}</span>
+                            <span className="mob-chevron">{isGroupOpen ? '▲' : '▼'}</span>
+                          </button>
+                          {isGroupOpen && (
+                            <div className="mob-sub-lvl3">
+                              <Link href={child.href} className="mob-sub-all" onClick={onClose}>
+                                Tout voir — {child.name}
+                              </Link>
+                              {child.children.map((leaf) => (
+                                <Link key={leaf.href} href={leaf.href} className="mob-sub-item mob-sub-item--leaf" onClick={onClose}>
+                                  {leaf.name}
+                                </Link>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Liens bas */}
