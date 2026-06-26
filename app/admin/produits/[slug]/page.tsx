@@ -26,8 +26,9 @@ export default function ProduitForm() {
   const [menuOptions] = useState<MenuOption[]>(() => flatMenuOptions());
   const [brands, setBrands] = useState<Brand[]>([]);
   const [saving, setSaving] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null); // URL enregistrée en base
+  const [imagePreview, setImagePreview] = useState<string | null>(null);         // URL d'affichage (blob ou supabase)
+  const [imageFile, setImageFile] = useState<File | null>(null);                 // Fichier à uploader
 
   // Champs communs
   const [slug, setSlug] = useState('');
@@ -61,7 +62,7 @@ export default function ProduitForm() {
         setMenuPath(p.menuPath ?? '');
         setCategorySlug(p.categorySlug);
         setBrandSlug(p.brandSlug ?? '');
-        if (p.imageUrl) setImagePreview(p.imageUrl);
+        if (p.imageUrl) { setExistingImageUrl(p.imageUrl); setImagePreview(p.imageUrl); }
         setPricingType(p.pricingType);
         setProOnly(p.proOnly ?? false);
         if (p.pricingType === 'unit') {
@@ -98,6 +99,7 @@ export default function ProduitForm() {
     if (!file) return;
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
+    // existingImageUrl reste inchangé : l'upload n'a pas encore eu lieu
   };
 
   const updateVariant = (i: number, field: keyof VariantRow, value: string | number | boolean) => {
@@ -116,9 +118,11 @@ export default function ProduitForm() {
     }
     setSaving(true);
     try {
-      let imageUrl: string | undefined;
+      // Si un nouveau fichier est sélectionné → upload → nouvelle URL
+      // Sinon on conserve l'URL déjà en base (existingImageUrl)
+      let finalImageUrl: string | null = existingImageUrl;
       if (imageFile) {
-        imageUrl = await uploadProductImage(imageFile, slug);
+        finalImageUrl = await uploadProductImage(imageFile, slug);
       }
 
       const payload: Record<string, unknown> = {
@@ -131,7 +135,7 @@ export default function ProduitForm() {
         pricing_type: pricingType,
         pro_only: proOnly,
         active: true,
-        ...(imageUrl ? { image_url: imageUrl } : {}),
+        image_url: finalImageUrl, // toujours explicite (null = suppression)
       };
 
       if (pricingType === 'unit') {
@@ -257,7 +261,7 @@ export default function ProduitForm() {
             {imagePreview ? (
               <div className="adm-image-preview">
                 <Image src={imagePreview} alt="Aperçu" width={200} height={200} style={{ objectFit: 'contain' }} />
-                <button type="button" className="adm-image-remove" onClick={() => { setImagePreview(null); setImageFile(null); }}>✕ Supprimer</button>
+                <button type="button" className="adm-image-remove" onClick={() => { setImagePreview(null); setImageFile(null); setExistingImageUrl(null); }}>✕ Supprimer</button>
               </div>
             ) : (
               <div className="adm-image-drop" onClick={() => fileRef.current?.click()}>
