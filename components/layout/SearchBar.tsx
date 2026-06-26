@@ -1,0 +1,141 @@
+'use client';
+
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { suggest } from '@/lib/catalog/search';
+import type { SearchResult } from '@/lib/catalog/search';
+import { isUnit, isKit } from '@/lib/catalog/types';
+
+function firstRef(r: SearchResult): string | undefined {
+  const p = r.product;
+  if (isUnit(p)) return p.variants[0]?.reference;
+  if (isKit(p)) return p.configs[0]?.reference;
+  return undefined;
+}
+
+const FIELD_LABELS: Record<string, string> = {
+  reference: 'Réf.',
+  name: '',
+  brand: 'Marque',
+  category: 'Famille',
+  description: '',
+};
+
+export function SearchBar() {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [open, setOpen] = useState(false);
+  const [focused, setFocused] = useState(-1);
+  const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const search = useCallback((q: string) => {
+    setQuery(q);
+    if (q.trim().length >= 2) {
+      setResults(suggest(q));
+      setOpen(true);
+      setFocused(-1);
+    } else {
+      setResults([]);
+      setOpen(false);
+    }
+  }, []);
+
+  const submit = (q = query) => {
+    if (!q.trim()) return;
+    setOpen(false);
+    router.push(`/recherche?q=${encodeURIComponent(q.trim())}`);
+  };
+
+  const handleKey = (e: React.KeyboardEvent) => {
+    if (!open || results.length === 0) {
+      if (e.key === 'Enter') submit();
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setFocused((f) => Math.min(f + 1, results.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setFocused((f) => Math.max(f - 1, -1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (focused >= 0) {
+        router.push(`/produit/${results[focused].product.slug}`);
+        setOpen(false);
+      } else {
+        submit();
+      }
+    } else if (e.key === 'Escape') {
+      setOpen(false);
+    }
+  };
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div className="searchbar" ref={containerRef}>
+      <div className="search">
+        <input
+          ref={inputRef}
+          placeholder="Référence (MOTLT50010), produit, marque…"
+          aria-label="Rechercher"
+          aria-expanded={open}
+          aria-autocomplete="list"
+          autoComplete="off"
+          value={query}
+          onChange={(e) => search(e.target.value)}
+          onKeyDown={handleKey}
+          onFocus={() => query.length >= 2 && setOpen(true)}
+        />
+        <button type="button" onClick={() => submit()}>Rechercher</button>
+      </div>
+
+      {open && results.length > 0 && (
+        <div className="suggest-panel" role="listbox">
+          {results.map((r, i) => {
+            const ref = firstRef(r);
+            const fieldLabel = FIELD_LABELS[r.matchedField];
+            return (
+              <Link
+                key={r.product.slug}
+                href={`/produit/${r.product.slug}`}
+                className={`suggest-item ${i === focused ? 'focused' : ''}`}
+                role="option"
+                onClick={() => setOpen(false)}
+              >
+                <div className="suggest-left">
+                  {ref && <span className="ref suggest-ref">{ref}</span>}
+                  <span className="suggest-name">{r.product.name}</span>
+                </div>
+                <div className="suggest-right">
+                  {fieldLabel && <span className="suggest-field">{fieldLabel}</span>}
+                  <span className="suggest-cat">
+                    {r.product.categorySlug.replace(/-/g, ' ')}
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
+          <Link
+            className="suggest-footer"
+            href={`/recherche?q=${encodeURIComponent(query)}`}
+            onClick={() => setOpen(false)}
+          >
+            Voir tous les résultats pour « {query} » →
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,66 @@
+/* =====================================================================
+   MM FERMETURES — Design tokens (Bloc 1 · Cadrage)
+   Dérivés de la charte du catalogue : logo marine + swooshs acier/gris,
+   bandeaux de tableaux marine sur blanc, badges Somfy / Fabriqué en France.
+   À importer dans app/layout.tsx (ou globals.css).
+   ===================================================================== */
+:root {
+  /* ---- Marine (logo "mn", bandeaux de tableaux) ---- */
+  --navy-900: #0e2f4c;   /* lettrage logo */
+  --navy-800: #10314f;   /* fond header */
+  --navy-700: #163a5f;   /* bandeaux de sections (comme le tarif) */
+  --navy-600: #1d4e7a;
+
+  /* ---- Acier / aluminium (swooshs, matière produit) ---- */
+  --steel-600: #2e6c98;  /* swoosh bleu, accents interactifs */
+  --steel-400: #6f93ad;
+  --alu-400:   #8b97a3;  /* swoosh gris */
+  --alu-200:   #c7ccd1;
+
+  /* ---- Surfaces & texte ---- */
+  --bg:       #eef2f5;
+  --surface:  #ffffff;
+  --surface-2:#f6f8fa;
+  --ink:      #14222e;
+  --muted:    #5d6e7c;
+  --line:     #dde3e9;
+
+  /* ---- Statuts & marque partenaire ---- */
+  --somfy:    #ffcb05;   /* "Powered by Somfy" — accent rare */
+  --success:  #1f7a52;   /* en stock / franco */
+  --rupture:  #c0392b;   /* rupture / promo */
+
+  /* ---- Typographie ---- */
+  /* Display : grotesque technique, large (évoque le lettrage du logo).
+     Body : grotesque neutre lisible.
+     Mono  : pour les RÉFÉRENCES (MOTLT50010…), omniprésentes sur ce catalogue. */
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body:    "Inter", system-ui, sans-serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, Menlo, monospace;
+
+  --fs-300: 12px; --fs-400: 14px; --fs-500: 16px;
+  --fs-700: 20px; --fs-900: 28px; --fs-1000: 40px;
+  --tracking-wide: .22em;  /* lettrage "FERMETURES" */
+
+  /* ---- Échelle d'espacement (base 4) ---- */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-6:24px; --sp-8:32px; --sp-12:48px;
+
+  /* ---- Rayons & ombres ---- */
+  --r-sm:8px; --r-md:10px; --r-lg:14px;
+  --shadow: 0 1px 2px rgba(16,49,79,.06), 0 8px 24px rgba(16,49,79,.08);
+
+  --maxw: 1160px;
+}
+
+/* Reset minimal & bases */
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--font-body); font-size:var(--fs-400); line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-family:var(--font-display); color:var(--navy-700); letter-spacing:-.01em; margin:.2em 0}
+.eyebrow{font-size:var(--fs-300); letter-spacing:.18em; text-transform:uppercase; color:var(--steel-600); font-weight:700}
+.ref{font-family:var(--font-mono); font-size:var(--fs-300); color:var(--alu-400); letter-spacing:.02em}
+:focus-visible{outline:3px solid var(--somfy); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; scroll-behavior:auto}}

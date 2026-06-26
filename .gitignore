@@ -1,0 +1,14 @@
+node_modules/
+.next/
+*.tsbuildinfo
+next-env.d.ts
+
+# Variables d'environnement (ne jamais commiter les clés)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Garder le template
+!.env.local.example
