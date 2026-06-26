@@ -8,6 +8,7 @@ import { KitConfigurator } from '@/components/product/KitConfigurator';
 import { UnitProductPanel } from '@/components/product/UnitProductPanel';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { ProductJsonLd, BreadcrumbJsonLd } from '@/components/seo/JsonLd';
+import { ZoomableImage } from '@/components/ui/ZoomableImage';
 import Link from 'next/link';
 
 interface Props { params: { slug: string } }
@@ -64,7 +65,15 @@ export default async function ProductPage({ params }: Props) {
           <div className="prod-thumb">
             <span className={`pill ${pill.cls}`}>{pill.label}</span>
             {brand && <span className="brandchip">{brand.name.toUpperCase()}</span>}
-            <span className="prod-glyph">{GLYPHS[product.categorySlug] ?? '▣'}</span>
+            {product.imageUrl ? (
+              <ZoomableImage
+                src={product.imageUrl}
+                alt={product.name}
+                sizes="(max-width:768px) 100vw, 560px"
+              />
+            ) : (
+              <span className="prod-glyph">{GLYPHS[product.categorySlug] ?? '▣'}</span>
+            )}
           </div>
 
           {isUnit(product) && product.variants.length > 1 && product.variants.some((v) => v.color) && (
