@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getProductBySlug, getBrand, categories } from '@/lib/catalog/mock';
+import { getProductBySlugDB, getAllBrands, getAllCategories } from '@/lib/catalog/db';
 import { isUnit, isMatrix, isKit } from '@/lib/catalog/types';
 import { priceFrom } from '@/lib/catalog/resolvePrice';
 import { TablierConfigurator } from '@/components/product/TablierConfigurator';
@@ -13,7 +13,7 @@ import Link from 'next/link';
 interface Props { params: { slug: string } }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const product = getProductBySlug(params.slug);
+  const product = await getProductBySlugDB(params.slug);
   if (!product) return { title: 'Produit introuvable' };
   return {
     title: product.name,
@@ -32,18 +32,19 @@ const PILL: Record<string, { cls: string; label: string }> = {
   unit:   { cls: 'unit',   label: "À l'unité" },
 };
 
-export default function ProductPage({ params }: Props) {
-  const product = getProductBySlug(params.slug);
+export default async function ProductPage({ params }: Props) {
+  const [product, allBrands, allCategories] = await Promise.all([
+    getProductBySlugDB(params.slug),
+    getAllBrands(),
+    getAllCategories(),
+  ]);
   if (!product) notFound();
 
-  const brand = getBrand(product.brandSlug);
-  const category = categories.find((c) => c.slug === product.categorySlug);
-  const pill = PILL[product.pricingType] ?? PILL.unit;
+  const brand    = allBrands.find((b) => b.slug === product.brandSlug);
+  const category = allCategories.find((c) => c.slug === product.categorySlug);
+  const pill     = PILL[product.pricingType] ?? PILL.unit;
   const prixFrom = priceFrom(product);
-
-  const specs = product.specs
-    ? Object.entries(product.specs)
-    : [];
+  const specs    = product.specs ? Object.entries(product.specs) : [];
 
   const crumbs = [
     { label: 'Accueil', href: '/' },
@@ -135,7 +136,6 @@ export default function ProductPage({ params }: Props) {
         </div>
       </div>
 
-      {/* Produits liés */}
       <div className="prod-related">
         <h2>Produits de la même famille</h2>
         <Link className="link-all" href={`/catalogue/${product.categorySlug}`}>

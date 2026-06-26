@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { getAllProducts, getAllBrands, getAllCategories } from '@/lib/catalog/db';
 import { searchProducts } from '@/lib/catalog/search';
-import { categories, getBrand } from '@/lib/catalog/mock';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import type { Product } from '@/lib/catalog/types';
@@ -16,9 +16,16 @@ export function generateMetadata({ searchParams }: Props): Metadata {
   };
 }
 
-export default function SearchPage({ searchParams }: Props) {
+export default async function SearchPage({ searchParams }: Props) {
   const q = (searchParams.q ?? '').trim();
-  const results = q.length >= 2 ? searchProducts(q) : [];
+
+  const [allProducts, allBrands, allCategories] = await Promise.all([
+    getAllProducts(),
+    getAllBrands(),
+    getAllCategories(),
+  ]);
+
+  const results = q.length >= 2 ? searchProducts(q, allProducts, allBrands, allCategories) : [];
 
   const byCategory = results.reduce<Record<string, Product[]>>((acc, r) => {
     const slug = r.product.categorySlug;
@@ -56,7 +63,7 @@ export default function SearchPage({ searchParams }: Props) {
                   </ul>
                 </div>
                 <div className="search-cats">
-                  {categories.map((c) => (
+                  {allCategories.map((c) => (
                     <Link key={c.slug} href={`/catalogue/${c.slug}`} className="search-cat-pill">
                       {c.icon} {c.name}
                     </Link>
@@ -73,7 +80,7 @@ export default function SearchPage({ searchParams }: Props) {
       {results.length > 0 && (
         <div className="search-results">
           {catSlugs.map((slug) => {
-            const cat = categories.find((c) => c.slug === slug);
+            const cat = allCategories.find((c) => c.slug === slug);
             const catProds = byCategory[slug];
             return (
               <section key={slug} className="search-section">

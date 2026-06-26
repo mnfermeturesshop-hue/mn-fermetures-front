@@ -3,15 +3,15 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { suggest } from '@/lib/catalog/search';
-import type { SearchResult } from '@/lib/catalog/search';
-import { isUnit, isKit } from '@/lib/catalog/types';
 
-function firstRef(r: SearchResult): string | undefined {
-  const p = r.product;
-  if (isUnit(p)) return p.variants[0]?.reference;
-  if (isKit(p)) return p.configs[0]?.reference;
-  return undefined;
+interface SuggestItem {
+  slug: string;
+  name: string;
+  categorySlug: string;
+  brandSlug?: string;
+  pricingType: string;
+  matchedField: string;
+  reference?: string;
 }
 
 const FIELD_LABELS: Record<string, string> = {
@@ -24,17 +24,19 @@ const FIELD_LABELS: Record<string, string> = {
 
 export function SearchBar() {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [results, setResults] = useState<SuggestItem[]>([]);
   const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(-1);
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const search = useCallback((q: string) => {
+  const search = useCallback(async (q: string) => {
     setQuery(q);
     if (q.trim().length >= 2) {
-      setResults(suggest(q));
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}`);
+      const data: SuggestItem[] = await res.json();
+      setResults(data);
       setOpen(true);
       setFocused(-1);
     } else {
@@ -63,7 +65,7 @@ export function SearchBar() {
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (focused >= 0) {
-        router.push(`/produit/${results[focused].product.slug}`);
+        router.push(`/produit/${results[focused].slug}`);
         setOpen(false);
       } else {
         submit();
@@ -104,24 +106,23 @@ export function SearchBar() {
       {open && results.length > 0 && (
         <div className="suggest-panel" role="listbox">
           {results.map((r, i) => {
-            const ref = firstRef(r);
             const fieldLabel = FIELD_LABELS[r.matchedField];
             return (
               <Link
-                key={r.product.slug}
-                href={`/produit/${r.product.slug}`}
+                key={r.slug}
+                href={`/produit/${r.slug}`}
                 className={`suggest-item ${i === focused ? 'focused' : ''}`}
                 role="option"
                 onClick={() => setOpen(false)}
               >
                 <div className="suggest-left">
-                  {ref && <span className="ref suggest-ref">{ref}</span>}
-                  <span className="suggest-name">{r.product.name}</span>
+                  {r.reference && <span className="ref suggest-ref">{r.reference}</span>}
+                  <span className="suggest-name">{r.name}</span>
                 </div>
                 <div className="suggest-right">
                   {fieldLabel && <span className="suggest-field">{fieldLabel}</span>}
                   <span className="suggest-cat">
-                    {r.product.categorySlug.replace(/-/g, ' ')}
+                    {r.categorySlug.replace(/-/g, ' ')}
                   </span>
                 </div>
               </Link>

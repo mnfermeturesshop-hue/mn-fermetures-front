@@ -1,10 +1,9 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { products, brands } from '@/lib/catalog/mock';
+import { getAllProducts, getAllBrands } from '@/lib/catalog/db';
 import { resolveMenuPath } from '@/lib/catalog/menuResolve';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { CatalogueClient } from '@/components/catalogue/CatalogueClient';
-import type { Brand } from '@/lib/catalog/types';
 
 interface Props { params: { slug: string[] } }
 
@@ -17,11 +16,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function CataloguePage({ params }: Props) {
+export default async function CataloguePage({ params }: Props) {
   const resolved = resolveMenuPath(params.slug);
   if (!resolved) notFound();
 
-  const catProducts = products.filter((p) =>
+  const [allProducts, allBrands] = await Promise.all([getAllProducts(), getAllBrands()]);
+
+  const catProducts = allProducts.filter((p) =>
     p.menuPath
       ? p.menuPath.startsWith(resolved.href)
       : params.slug.some((s) => p.categorySlug === s)
@@ -30,7 +31,7 @@ export default function CataloguePage({ params }: Props) {
   const brandSlugsInCat = new Set(
     catProducts.map((p) => p.brandSlug).filter(Boolean) as string[]
   );
-  const brandsInCat: Brand[] = brands.filter((b) => brandSlugsInCat.has(b.slug));
+  const brandsInCat = allBrands.filter((b) => brandSlugsInCat.has(b.slug));
 
   return (
     <div className="wrap cat-page">

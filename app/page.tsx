@@ -1,12 +1,17 @@
 import Link from 'next/link';
-import { categories, getFeatured, getProductBySlug } from '@/lib/catalog/mock';
+import { getAllProducts, getAllCategories, getProductBySlugDB } from '@/lib/catalog/db';
 import { isMatrix } from '@/lib/catalog/types';
 import { ProductCard } from '@/components/product/ProductCard';
 import { TablierConfigurator } from '@/components/product/TablierConfigurator';
 
-export default function HomePage() {
-  const tablier = getProductBySlug('tablier-pvc-40');
-  const featured = getFeatured();
+export default async function HomePage() {
+  const [allProducts, allCategories, tablier] = await Promise.all([
+    getAllProducts(),
+    getAllCategories(),
+    getProductBySlugDB('tablier-pvc-40'),
+  ]);
+
+  const featured = allProducts.slice(0, 6);
 
   return (
     <>
@@ -41,7 +46,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="catgrid">
-            {categories.map((c) => (
+            {allCategories.map((c) => (
               <Link className="cat" href={`/catalogue/${c.slug}`} key={c.slug}>
                 <div className="ic">{c.icon}</div>
                 <b>{c.name}</b>
@@ -53,22 +58,24 @@ export default function HomePage() {
       </section>
 
       {/* À LA UNE */}
-      <section className="block alt">
-        <div className="wrap">
-          <div className="sec-head">
-            <div>
-              <span className="eyebrow">2026</span>
-              <h2>Les références à la une</h2>
+      {featured.length > 0 && (
+        <section className="block alt">
+          <div className="wrap">
+            <div className="sec-head">
+              <div>
+                <span className="eyebrow">2026</span>
+                <h2>Les références à la une</h2>
+              </div>
+              <Link className="link-all" href="/catalogue/tabliers">Tout le catalogue →</Link>
             </div>
-            <Link className="link-all" href="/catalogue/tabliers">Tout le catalogue →</Link>
+            <div className="prods">
+              {featured.map((p) => (
+                <ProductCard product={p} key={p.slug} />
+              ))}
+            </div>
           </div>
-          <div className="prods">
-            {featured.map((p) => (
-              <ProductCard product={p} key={p.slug} />
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* DOCUMENTATION */}
       <section className="block">
