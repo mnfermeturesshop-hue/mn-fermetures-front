@@ -19,26 +19,14 @@ export default function AdminLoginPage() {
       const { createClient } = await import('@/lib/supabase/client');
       const supabase = createClient();
 
-      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) {
         setError('Email ou mot de passe incorrect.');
         setLoading(false);
         return;
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', data.user.id)
-        .single();
-
-      if (profile?.role !== 'admin') {
-        await supabase.auth.signOut();
-        setError('Accès refusé. Ce compte n\'a pas les droits administrateur.');
-        setLoading(false);
-        return;
-      }
-
+      // Le middleware vérifie le rôle admin côté serveur
       router.push('/admin');
     } catch {
       setError('Erreur de connexion. Veuillez réessayer.');
