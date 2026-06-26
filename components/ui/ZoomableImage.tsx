@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 
 interface Props {
@@ -11,6 +12,10 @@ interface Props {
 
 export function ZoomableImage({ src, alt, sizes = '220px' }: Props) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // createPortal nécessite que le DOM soit disponible (client uniquement)
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -23,11 +28,17 @@ export function ZoomableImage({ src, alt, sizes = '220px' }: Props) {
     };
   }, [open]);
 
+  const handleThumbClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setOpen(true);
+  };
+
   return (
     <>
       <div
         className="zoom-thumb"
-        onClick={() => setOpen(true)}
+        onClick={handleThumbClick}
         title="Cliquer pour agrandir"
       >
         <Image
@@ -40,13 +51,20 @@ export function ZoomableImage({ src, alt, sizes = '220px' }: Props) {
         <span className="zoom-hint">🔍</span>
       </div>
 
-      {open && (
+      {mounted && open && createPortal(
         <div className="zoom-overlay" onClick={() => setOpen(false)}>
           <div className="zoom-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="zoom-close" onClick={() => setOpen(false)} aria-label="Fermer">✕</button>
+            <button
+              className="zoom-close"
+              onClick={() => setOpen(false)}
+              aria-label="Fermer"
+            >
+              ✕
+            </button>
             <img src={src} alt={alt} className="zoom-img" />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
