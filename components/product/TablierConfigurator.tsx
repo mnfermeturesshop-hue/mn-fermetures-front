@@ -25,7 +25,8 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
   const [width, setWidth]   = useState(initW);
   const [opts, setOpts]     = useState<string[]>([]);
   const [color, setColor]   = useState(product.colors?.[0]?.code ?? '');
-  const { addLine, openCart } = useCartStore();
+  const { addLine, openCart, showTTC } = useCartStore();
+  const TVA = 0.20;
 
   // Encoder les dimensions dans l'URL pour partage/devis
   useEffect(() => {
@@ -131,7 +132,10 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
           <div>
             <div className="eyebrow">Prix indicatif</div>
             <div className="big">
-              {price === null ? '—' : euro(price)} <small>HT</small>
+              {price === null
+                ? '—'
+                : showTTC ? <>{euro(price * (1 + TVA))} <small>TTC</small></> : <>{euro(price)} <small>HT</small></>
+              }
             </div>
             <div className="cfg-dims">{width} × {height} mm</div>
           </div>

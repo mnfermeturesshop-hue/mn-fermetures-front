@@ -8,6 +8,7 @@ import { useAuthStore } from '@/lib/store/auth';
 import { MegaMenu } from './MegaMenu';
 import { SearchBar } from './SearchBar';
 import { MobileMenu } from './MobileMenu';
+import { PriceToggle } from '@/components/ui/PriceToggle';
 
 function SearchIcon() {
   return (
@@ -57,6 +58,8 @@ export function Header() {
           <Link href="/recherche" className="mob-search-icon" aria-label="Rechercher">
             <SearchIcon />
           </Link>
+
+          <PriceToggle />
 
           <div className="acts">
             {user ? (

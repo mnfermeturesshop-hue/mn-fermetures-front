@@ -214,6 +214,16 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
   border-radius: 6px; padding: 5px 10px; font-size: 12px; font-weight: 700; cursor: pointer; letter-spacing: .08em; }
 .ttc-toggle:hover { background: rgba(255,255,255,.25); }
 
+/* Toggle HT/TTC global dans le header */
+.price-toggle { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2);
+  border-radius: 8px; padding: 5px 10px; color: rgba(255,255,255,.65); font-size: 11px;
+  font-weight: 700; cursor: pointer; display: flex; gap: 3px; align-items: center;
+  letter-spacing: .06em; flex-shrink: 0; transition: background .15s; }
+.price-toggle:hover { background: rgba(255,255,255,.2); }
+.price-toggle .active { color: #fff; }
+.price-toggle-sep { opacity: .4; }
+@media (max-width: 600px) { .price-toggle { display: none; } }
+
 /* =====================================================================
    QTY CONTROL
    ===================================================================== */

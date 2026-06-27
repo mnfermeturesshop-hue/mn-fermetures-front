@@ -15,7 +15,8 @@ const UOM_LABELS: Record<string, string> = {
 export function UnitProductPanel({ product }: { product: UnitProduct }) {
   const [selectedRef, setSelectedRef] = useState(product.variants[0]?.reference ?? '');
   const [qty, setQty] = useState(1);
-  const { addLine, openCart } = useCartStore();
+  const { addLine, openCart, showTTC } = useCartStore();
+  const TVA = 0.20;
 
   const variant: ProductVariant | undefined = product.variants.find((v) => v.reference === selectedRef);
 
@@ -109,10 +110,17 @@ export function UnitProductPanel({ product }: { product: UnitProduct }) {
             </div>
             <div>
               <div className="pr">
-                {euro(variant.priceHT * qty)}
-                <small> HT</small>
+                {showTTC
+                  ? <>{euro(variant.priceHT * qty * (1 + TVA))}<small> TTC</small></>
+                  : <>{euro(variant.priceHT * qty)}<small> HT</small></>
+                }
               </div>
-              <div className="unit-uprice">{euro(variant.priceHT)} / {uomLabel}</div>
+              <div className="unit-uprice">
+                {showTTC
+                  ? <>{euro(variant.priceHT * (1 + TVA))} TTC / {uomLabel}</>
+                  : <>{euro(variant.priceHT)} HT / {uomLabel}</>
+                }
+              </div>
             </div>
           </div>
 
