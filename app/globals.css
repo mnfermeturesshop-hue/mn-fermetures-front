@@ -30,8 +30,7 @@ nav.cats > .wrap { display: flex; flex-wrap: wrap; }
 .mi:hover > a, .mi:focus-within > a { background: var(--steel-600); }
 
 /* Panel méga (base commune) */
-.mega { display: none; position: absolute; left: 0; top: 100%; background: #fff; color: var(--ink); box-shadow: var(--shadow); border: 1px solid var(--line); border-radius: 0 0 10px 10px; z-index: 60; }
-.mi:hover .mega, .mi:focus-within .mega { display: flex; flex-direction: column; }
+.mega { display: flex; flex-direction: column; position: absolute; left: 0; top: 100%; background: #fff; color: var(--ink); box-shadow: var(--shadow); border: 1px solid var(--line); border-radius: 0 0 10px 10px; z-index: 60; }
 
 /* Panel simple — liste verticale (Tabliers) */
 .mega-simple { min-width: 240px; padding: 8px; }
