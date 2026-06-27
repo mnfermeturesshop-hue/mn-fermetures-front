@@ -9,6 +9,7 @@ import { TablierConfigurator } from '@/components/product/TablierConfigurator';
 import { KitConfigurator } from '@/components/product/KitConfigurator';
 import { UnitProductPanel } from '@/components/product/UnitProductPanel';
 import { StickyAddBar } from '@/components/product/StickyAddBar';
+import { ReassuranceStrip } from '@/components/ui/ReassuranceStrip';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { ProductJsonLd, BreadcrumbJsonLd } from '@/components/seo/JsonLd';
 import { ZoomableImage } from '@/components/ui/ZoomableImage';
@@ -146,6 +147,7 @@ export default async function ProductPage({ params }: Props) {
               )}
               {isMatrix(product) && <TablierConfigurator product={product} />}
               {isKit(product) && <KitConfigurator product={product} />}
+              {!product.proOnly && <ReassuranceStrip />}
             </>
           )}
         </div>

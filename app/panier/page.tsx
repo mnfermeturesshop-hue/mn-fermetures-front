@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCartStore, euro } from '@/lib/store/cart';
 import type { CartLine } from '@/lib/catalog/types';
+import { ReassuranceStrip } from '@/components/ui/ReassuranceStrip';
 
 function LineRow({ line }: { line: CartLine }) {
   const { updateQty, removeLine } = useCartStore();
@@ -106,9 +107,7 @@ export default function CartPage() {
             <div className="summary-row summary-ttc"><span>Total TTC</span><span>{euro(ttc + frais * 1.2)}</span></div>
           </div>
 
-          <div className="summary-note">
-            Prix HT · TVA 20% · Livraison franco Occitanie dès 400 € HT
-          </div>
+          <ReassuranceStrip compact />
 
           <Link className="btn checkout full" href="/checkout">
             Commander →
