@@ -8,6 +8,7 @@ import { priceFrom } from '@/lib/catalog/resolvePrice';
 import { TablierConfigurator } from '@/components/product/TablierConfigurator';
 import { KitConfigurator } from '@/components/product/KitConfigurator';
 import { UnitProductPanel } from '@/components/product/UnitProductPanel';
+import { StickyAddBar } from '@/components/product/StickyAddBar';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { ProductJsonLd, BreadcrumbJsonLd } from '@/components/seo/JsonLd';
 import { ZoomableImage } from '@/components/ui/ZoomableImage';
@@ -137,7 +138,10 @@ export default async function ProductPage({ params }: Props) {
                       {prixFrom.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €
                     </strong> HT
                   </div>
-                  <UnitProductPanel product={product} />
+                  <div id="unit-panel">
+                    <UnitProductPanel product={product} />
+                  </div>
+                  <StickyAddBar product={product} panelId="unit-panel" />
                 </>
               )}
               {isMatrix(product) && <TablierConfigurator product={product} />}
