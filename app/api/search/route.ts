@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllProducts, getAllBrands, getAllCategories } from '@/lib/catalog/db';
 import { searchProducts } from '@/lib/catalog/search';
+import { priceFrom } from '@/lib/catalog/resolvePrice';
+import { isUnit, isKit } from '@/lib/catalog/types';
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q') ?? '';
@@ -14,17 +16,16 @@ export async function GET(req: NextRequest) {
 
   const results = searchProducts(q, products, brands, categories, 6);
   return NextResponse.json(results.map((r) => ({
-    slug:          r.product.slug,
-    name:          r.product.name,
-    categorySlug:  r.product.categorySlug,
-    brandSlug:     r.product.brandSlug,
-    pricingType:   r.product.pricingType,
-    matchedField:  r.matchedField,
+    slug:         r.product.slug,
+    name:         r.product.name,
+    categorySlug: r.product.categorySlug,
+    brandSlug:    r.product.brandSlug,
+    pricingType:  r.product.pricingType,
+    matchedField: r.matchedField,
+    imageUrl:     r.product.imageUrl ?? null,
+    priceHT:      r.product.proOnly ? null : priceFrom(r.product),
     reference:
-      r.product.pricingType === 'unit'
-        ? (r.product as { variants: { reference: string }[] }).variants[0]?.reference
-        : r.product.pricingType === 'kit'
-        ? (r.product as { configs: { reference: string }[] }).configs[0]?.reference
-        : undefined,
+      isUnit(r.product)  ? r.product.variants[0]?.reference :
+      isKit(r.product)   ? r.product.configs[0]?.reference  : undefined,
   })));
 }

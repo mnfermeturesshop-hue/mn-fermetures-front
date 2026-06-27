@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface SuggestItem {
   slug: string;
@@ -12,7 +13,23 @@ interface SuggestItem {
   pricingType: string;
   matchedField: string;
   reference?: string;
+  imageUrl?: string | null;
+  priceHT?: number | null;
 }
+
+const euro = (n: number) =>
+  n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+
+const PRICE_PREFIX: Record<string, string> = {
+  matrix: 'à partir de ',
+  kit:    'à partir de ',
+  unit:   '',
+};
+
+const GLYPHS: Record<string, string> = {
+  tabliers: '▤', 'kits-axes': '⚙', motorisations: '⊙', commandes: '⎚',
+  profils: '▬', consoles: '◳', embouts: '◖', verrouillages: '⛓',
+};
 
 const FIELD_LABELS: Record<string, string> = {
   reference: 'Réf.',
@@ -107,6 +124,7 @@ export function SearchBar() {
         <div className="suggest-panel" role="listbox">
           {results.map((r, i) => {
             const fieldLabel = FIELD_LABELS[r.matchedField];
+            const prefix = PRICE_PREFIX[r.pricingType] ?? '';
             return (
               <Link
                 key={r.slug}
@@ -115,12 +133,33 @@ export function SearchBar() {
                 role="option"
                 onClick={() => setOpen(false)}
               >
+                <div className="suggest-thumb">
+                  {r.imageUrl ? (
+                    <Image
+                      src={r.imageUrl}
+                      alt={r.name}
+                      width={40}
+                      height={40}
+                      style={{ objectFit: 'contain' }}
+                      unoptimized
+                    />
+                  ) : (
+                    <span className="suggest-glyph">
+                      {GLYPHS[r.categorySlug] ?? '▣'}
+                    </span>
+                  )}
+                </div>
                 <div className="suggest-left">
                   {r.reference && <span className="ref suggest-ref">{r.reference}</span>}
                   <span className="suggest-name">{r.name}</span>
+                  {fieldLabel && <span className="suggest-field">{fieldLabel}</span>}
                 </div>
                 <div className="suggest-right">
-                  {fieldLabel && <span className="suggest-field">{fieldLabel}</span>}
+                  {r.priceHT != null ? (
+                    <span className="suggest-price">
+                      {prefix}{euro(r.priceHT)} <small>HT</small>
+                    </span>
+                  ) : null}
                   <span className="suggest-cat">
                     {r.categorySlug.replace(/-/g, ' ')}
                   </span>
