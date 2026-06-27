@@ -79,9 +79,13 @@ nav.cats > .wrap { display: flex; flex-wrap: wrap; }
 .field select { width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; background: #fff; color: var(--ink); }
 .opts { display: flex; gap: 16px; flex-wrap: wrap; margin: 4px 0 6px; }
 .opts label { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; }
-.price-out { display: flex; align-items: baseline; justify-content: space-between; margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--line); }
+.price-out { display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  margin-top: 14px; padding: 14px 16px; border-top: 1px dashed var(--line);
+  position: sticky; bottom: 0; background: #fff; z-index: 10;
+  box-shadow: 0 -4px 16px rgba(0,0,0,.06); border-radius: 0 0 12px 12px; }
 .price-out .big { font-family: var(--font-display); font-size: var(--fs-900); font-weight: 800; color: var(--navy-700); }
 .price-out .big small { font-size: 13px; font-weight: 600; color: var(--muted); }
+.cfg-dims { font-size: 11px; color: var(--muted); margin-top: 2px; font-family: var(--font-mono); }
 
 /* Sections */
 section.block { padding: 38px 0; }

@@ -1,17 +1,39 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { type MatrixProduct } from '@/lib/catalog/types';
 import { resolveMatrixPrice } from '@/lib/catalog/resolvePrice';
-import { useCartStore } from '@/lib/store/cart';
+import { useCartStore, euro } from '@/lib/store/cart';
 import { toast } from '@/components/ui/Toast';
 
 export function TablierConfigurator({ product }: { product: MatrixProduct }) {
-  const [height, setHeight] = useState(product.heights[0]);
-  const [width, setWidth] = useState(product.widths[0]);
-  const [opts, setOpts] = useState<string[]>([]);
-  const [color, setColor] = useState(product.colors?.[0]?.code ?? '');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Lire H/L depuis l'URL si présents (partage de devis)
+  const initH = (() => {
+    const v = Number(searchParams.get('h'));
+    return product.heights.includes(v) ? v : product.heights[0];
+  })();
+  const initW = (() => {
+    const v = Number(searchParams.get('w'));
+    return product.widths.includes(v) ? v : product.widths[0];
+  })();
+
+  const [height, setHeight] = useState(initH);
+  const [width, setWidth]   = useState(initW);
+  const [opts, setOpts]     = useState<string[]>([]);
+  const [color, setColor]   = useState(product.colors?.[0]?.code ?? '');
   const { addLine, openCart } = useCartStore();
+
+  // Encoder les dimensions dans l'URL pour partage/devis
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('h', String(height));
+    params.set('w', String(width));
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }, [height, width]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggle = (code: string) =>
     setOpts((cur) => (cur.includes(code) ? cur.filter((c) => c !== code) : [...cur, code]));
@@ -28,18 +50,12 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
       .filter(Boolean)
       .join(', ');
     const colorLabel = product.colors?.find((c) => c.code === color)?.label;
-    const detail = [
-      `${width} × ${height} mm`,
-      colorLabel,
-      optLabels || undefined,
-    ]
+    const detail = [`${width} × ${height} mm`, colorLabel, optLabels || undefined]
       .filter(Boolean)
       .join(' · ');
 
-    const key = `${product.slug}-${height}-${width}-${color}-${opts.sort().join('+')}`;
-
     addLine({
-      key,
+      key: `${product.slug}-${height}-${width}-${color}-${opts.sort().join('+')}`,
       name: product.name,
       detail,
       unitPriceHT: price,
@@ -93,27 +109,31 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
           </div>
         )}
 
-        <div className="field">
-          <label>Options</label>
-          <div className="opts">
-            {(product.options ?? []).map((o) => (
-              <label key={o.code}>
-                <input type="checkbox" checked={opts.includes(o.code)} onChange={() => toggle(o.code)} />
-                {o.label}
-                {opts.includes(o.code) && (
-                  <span className="opt-plus">+{o.valuesByWidth[width] ?? 0} €</span>
-                )}
-              </label>
-            ))}
+        {(product.options ?? []).length > 0 && (
+          <div className="field">
+            <label>Options</label>
+            <div className="opts">
+              {(product.options ?? []).map((o) => (
+                <label key={o.code}>
+                  <input type="checkbox" checked={opts.includes(o.code)} onChange={() => toggle(o.code)} />
+                  {o.label}
+                  {opts.includes(o.code) && (
+                    <span className="opt-plus">+{o.valuesByWidth[width] ?? 0} €</span>
+                  )}
+                </label>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
+        {/* Sticky : toujours visible sans scroller */}
         <div className="price-out">
           <div>
             <div className="eyebrow">Prix indicatif</div>
             <div className="big">
-              {price === null ? '—' : `${price},00`} <small>€ HT</small>
+              {price === null ? '—' : euro(price)} <small>HT</small>
             </div>
+            <div className="cfg-dims">{width} × {height} mm</div>
           </div>
           <button
             className="btn solid"
