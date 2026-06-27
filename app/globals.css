@@ -107,13 +107,13 @@ section.block { padding: 38px 0; }
 .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
 .card .thumb { height: 130px; background: linear-gradient(135deg, #f3f6f8, #e3e9ee); display: grid; place-items: center; position: relative; overflow: hidden; }
 .card .thumb .glyph { font-size: 36px; opacity: .5; }
-.pill { position: absolute; top: 10px; left: 10px; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 4px 8px; border-radius: 20px; color: #fff; }
+.pill { position: absolute; top: 10px; left: 10px; z-index: 1; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 4px 8px; border-radius: 20px; color: #fff; }
 .pill.matrix { background: #7a52b3; }
 .pill.kit { background: #2f8f6b; }
 .pill.ml { background: var(--steel-600); }
 .pill.unit { background: var(--navy-700); }
 .pill.paire { background: var(--alu-400); }
-.brandchip { position: absolute; top: 10px; right: 10px; background: #fff; border: 1px solid var(--line); border-radius: 6px; font-size: 10px; font-weight: 800; color: var(--navy-700); padding: 3px 7px; letter-spacing: .03em; }
+.brandchip { position: absolute; top: 10px; right: 10px; z-index: 1; background: #fff; border: 1px solid var(--line); border-radius: 6px; font-size: 10px; font-weight: 800; color: var(--navy-700); padding: 3px 7px; letter-spacing: .03em; }
 .card .info { padding: 13px 14px; display: flex; flex-direction: column; gap: 7px; flex: 1; }
 .card h4 { margin: 0; font-size: 14px; line-height: 1.25; font-family: var(--font-body); font-weight: 600; }
 .stock { font-size: 11.5px; font-weight: 700; }
