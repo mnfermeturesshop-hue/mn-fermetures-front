@@ -160,6 +160,24 @@ export function CatalogueClient({ products, categoryName, navChildren, currentHr
 
       {/* Contenu */}
       <div className="cat-content">
+        {/* Navigation sous-catégories — mobile uniquement */}
+        {navChildren.length > 0 && (
+          <div className="cat-mobile-nav">
+            {navChildren.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`cat-mobile-chip${currentHref === item.href || currentHref.startsWith(item.href + '/') ? ' active' : ''}`}
+              >
+                {item.name}
+                {item.children && item.children.length > 0 && (
+                  <span className="cat-mobile-count">{item.children.length}</span>
+                )}
+              </Link>
+            ))}
+          </div>
+        )}
+
         <div className="cat-header">
           <div>
             <h1>{categoryName}</h1>

@@ -370,6 +370,9 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 .cat-subnav-leaf:hover { background: var(--surface-2); color: var(--ink); }
 .cat-subnav-leaf.active { color: var(--navy-600); font-weight: 600; }
 
+/* Strip de navigation sous-catégories mobile (caché sur desktop) */
+.cat-mobile-nav { display: none; }
+
 /* Grille de sous-catégories (page landing sans produits) */
 .cat-subcategories { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-top: 8px; }
 .cat-subcat-card { display: flex; flex-direction: column; gap: 6px; padding: 20px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; transition: box-shadow .15s, border-color .15s; }
@@ -1087,6 +1090,23 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
   .prod-layout { grid-template-columns: 1fr; }
   .cat-layout { grid-template-columns: 1fr; }
   .cat-filters { display: none; }
+
+  /* Strip sous-catégories mobile */
+  .cat-mobile-nav {
+    display: flex; gap: 8px; overflow-x: auto; padding: 0 0 10px;
+    scrollbar-width: none; -ms-overflow-style: none; margin-bottom: 4px;
+  }
+  .cat-mobile-nav::-webkit-scrollbar { display: none; }
+  .cat-mobile-chip {
+    display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+    padding: 7px 14px; border-radius: 20px; font-size: 13px; font-weight: 600;
+    background: var(--surface-2); border: 1.5px solid var(--line); color: var(--ink);
+    flex-shrink: 0; transition: background .15s, border-color .15s;
+  }
+  .cat-mobile-chip:hover { border-color: var(--navy-600); }
+  .cat-mobile-chip.active { background: var(--navy-700); color: #fff; border-color: var(--navy-700); }
+  .cat-mobile-count { background: var(--steel-600); color: #fff; border-radius: 20px;
+    font-size: 10px; font-weight: 800; padding: 1px 5px; }
   .cart-layout { grid-template-columns: 1fr; }
   .checkout-layout { grid-template-columns: 1fr; }
   .confirm-layout { grid-template-columns: 1fr; }
