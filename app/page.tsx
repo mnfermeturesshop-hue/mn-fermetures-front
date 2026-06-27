@@ -29,7 +29,6 @@ export default async function HomePage() {
               </p>
               <div className="cta-row">
                 <Link className="btn solid" href="/catalogue/tabliers">Voir le catalogue</Link>
-                <Link className="btn ghost" href="/panier">Demander un devis</Link>
               </div>
             </div>
             {tablier && isMatrix(tablier) && <TablierConfigurator product={tablier} />}
