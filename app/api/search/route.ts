@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllProducts, getAllBrands, getAllCategories } from '@/lib/catalog/db';
 import { searchProducts } from '@/lib/catalog/search';

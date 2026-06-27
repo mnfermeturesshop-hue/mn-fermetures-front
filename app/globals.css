@@ -1371,6 +1371,16 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 /* =====================================================================
    ADMIN FORM
    ===================================================================== */
+.adm-saved-banner { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 12px; padding: 18px 20px; margin-bottom: 8px; flex-wrap: wrap; }
+.adm-saved-info { display: flex; align-items: flex-start; gap: 12px; }
+.adm-saved-icon { font-size: 22px; color: #16a34a; line-height: 1; }
+.adm-saved-info b { font-size: 15px; }
+.adm-saved-detail { font-size: 13px; color: var(--muted); margin-top: 3px; }
+.adm-saved-detail code { background: #e2e8f0; padding: 1px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 12px; }
+.adm-saved-ok { color: #16a34a; font-weight: 600; }
+.adm-saved-warn { color: #b45309; font-weight: 600; }
+.adm-saved-actions { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
 .adm-form { display: flex; flex-direction: column; gap: 20px; }
 .adm-card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 24px; }
 .adm-card-title { font-size: var(--fs-700); margin: 0 0 18px; }

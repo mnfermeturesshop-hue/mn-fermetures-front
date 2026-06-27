@@ -54,8 +54,8 @@ export async function getAllProducts(): Promise<Product[]> {
     const { products } = await import('./mock');
     return products;
   }
-  const { createClient } = await import('../supabase/client');
-  const supabase = createClient();
+  const { createServerDbClient } = await import('../supabase/server-db');
+  const supabase = createServerDbClient();
   const { data } = await supabase.from('products').select('*').eq('active', true).order('name');
   return (data ?? []).map(rowToProduct);
 }
@@ -65,8 +65,8 @@ export async function getProductBySlugDB(slug: string): Promise<Product | undefi
     const { getProductBySlug } = await import('./mock');
     return getProductBySlug(slug) ?? undefined;
   }
-  const { createClient } = await import('../supabase/client');
-  const supabase = createClient();
+  const { createServerDbClient } = await import('../supabase/server-db');
+  const supabase = createServerDbClient();
   const { data } = await supabase.from('products').select('*').eq('slug', slug).single();
   return data ? rowToProduct(data) : undefined;
 }
@@ -76,8 +76,8 @@ export async function getProductsByCategory(categorySlug: string): Promise<Produ
     const { products } = await import('./mock');
     return products.filter((p) => p.categorySlug === categorySlug);
   }
-  const { createClient } = await import('../supabase/client');
-  const supabase = createClient();
+  const { createServerDbClient } = await import('../supabase/server-db');
+  const supabase = createServerDbClient();
   const { data } = await supabase
     .from('products')
     .select('*')
@@ -95,8 +95,8 @@ export async function getAllCategories(): Promise<Category[]> {
     const { categories } = await import('./mock');
     return categories;
   }
-  const { createClient } = await import('../supabase/client');
-  const supabase = createClient();
+  const { createServerDbClient } = await import('../supabase/server-db');
+  const supabase = createServerDbClient();
   const { data } = await supabase.from('categories').select('*').order('sort');
   return (data ?? []).map((r) => ({ slug: r.slug, name: r.name, icon: r.icon ?? undefined }));
 }
@@ -106,8 +106,8 @@ export async function getAllBrands(): Promise<Brand[]> {
     const { brands } = await import('./mock');
     return brands;
   }
-  const { createClient } = await import('../supabase/client');
-  const supabase = createClient();
+  const { createServerDbClient } = await import('../supabase/server-db');
+  const supabase = createServerDbClient();
   const { data } = await supabase.from('brands').select('*').order('name');
   return (data ?? []).map((r) => ({ slug: r.slug, name: r.name, logoUrl: r.logo_url ?? undefined }));
 }
@@ -118,8 +118,8 @@ export async function getAllBrands(): Promise<Brand[]> {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function upsertProduct(payload: any): Promise<{ id: string } | null> {
   if (!isSupabaseConfigured()) return null;
-  const { createClient } = await import('../supabase/client');
-  const supabase = createClient();
+  const { createServerDbClient } = await import('../supabase/server-db');
+  const supabase = createServerDbClient();
   const { data, error } = await supabase
     .from('products')
     .upsert(payload, { onConflict: 'slug' })
@@ -131,8 +131,8 @@ export async function upsertProduct(payload: any): Promise<{ id: string } | null
 
 export async function deleteProduct(id: string): Promise<void> {
   if (!isSupabaseConfigured()) return;
-  const { createClient } = await import('../supabase/client');
-  const supabase = createClient();
+  const { createServerDbClient } = await import('../supabase/server-db');
+  const supabase = createServerDbClient();
   await supabase.from('products').update({ active: false }).eq('id', id);
 }
 
@@ -143,8 +143,8 @@ export async function updateVariantStock(
   stockQty?: number
 ): Promise<void> {
   if (!isSupabaseConfigured()) return;
-  const { createClient } = await import('../supabase/client');
-  const supabase = createClient();
+  const { createServerDbClient } = await import('../supabase/server-db');
+  const supabase = createServerDbClient();
 
   const { data } = await supabase.from('products').select('variants').eq('id', productId).single();
   if (!data) return;
@@ -160,7 +160,7 @@ export async function updateVariantStock(
 /* WRITE — Image upload                                                 */
 /* ------------------------------------------------------------------ */
 export async function uploadProductImage(file: File, productSlug: string): Promise<string> {
-  const { createClient } = await import('../supabase/client');
+  const { createClient } = await import('../supabase/client'); // browser client OK pour upload côté client
   const supabase = createClient();
   const ext = file.name.split('.').pop();
   const path = `${productSlug}/${Date.now()}.${ext}`;

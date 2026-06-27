@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { toast } from '@/components/ui/Toast';
-import { getAllBrands, getProductBySlugDB, upsertProduct, uploadProductImage } from '@/lib/catalog/db';
+import { getAllBrands, getProductBySlugDB } from '@/lib/catalog/db';
 import type { Brand } from '@/lib/catalog/types';
 import { flatMenuOptions, categorySlugFromHref } from '@/lib/catalog/menuResolve';
 import type { MenuOption } from '@/lib/catalog/menuResolve';
@@ -26,6 +26,7 @@ export default function ProduitForm() {
   const [menuOptions] = useState<MenuOption[]>(() => flatMenuOptions());
   const [brands, setBrands] = useState<Brand[]>([]);
   const [saving, setSaving] = useState(false);
+  const [savedInfo, setSavedInfo] = useState<{ slug: string; menuPath: string; hasImage: boolean } | null>(null);
   const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -132,7 +133,16 @@ export default function ProduitForm() {
       // Sinon on conserve l'URL déjà en base (existingImageUrl)
       let finalImageUrl: string | null = existingImageUrl;
       if (imageFile) {
-        finalImageUrl = await uploadProductImage(imageFile, slug);
+        const fd = new FormData();
+        fd.append('file', imageFile);
+        fd.append('slug', slug);
+        const uploadRes = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+        if (!uploadRes.ok) {
+          const { error } = await uploadRes.json();
+          throw new Error(error ?? 'Erreur upload image');
+        }
+        const { url } = await uploadRes.json();
+        finalImageUrl = url;
       }
 
       const payload: Record<string, unknown> = {
@@ -184,9 +194,17 @@ export default function ProduitForm() {
         }));
       }
 
-      await upsertProduct(payload);
-      toast.success(isNew ? 'Produit créé !' : 'Produit mis à jour !');
-      router.push('/admin/produits');
+      const saveRes = await fetch('/api/admin/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!saveRes.ok) {
+        const { error } = await saveRes.json();
+        throw new Error(error ?? 'Erreur sauvegarde produit');
+      }
+      setSavedInfo({ slug, menuPath, hasImage: !!finalImageUrl });
+      toast.success(`${isNew ? 'Créé' : 'Sauvegardé'} — menu : ${menuPath}${finalImageUrl ? ' | image ✓' : ' | sans image'}`);
     } catch (err) {
       console.error(err);
       const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? String(err);
@@ -201,6 +219,31 @@ export default function ProduitForm() {
       <div className="adm-page-head">
         <h1 className="adm-h1">{isNew ? 'Nouveau produit' : `Éditer — ${name || params.slug}`}</h1>
       </div>
+
+      {savedInfo && (
+        <div className="adm-saved-banner">
+          <div className="adm-saved-info">
+            <span className="adm-saved-icon">✓</span>
+            <div>
+              <b>Produit sauvegardé</b>
+              <div className="adm-saved-detail">
+                Menu&nbsp;: <code>{savedInfo.menuPath}</code>
+              </div>
+              <div className="adm-saved-detail">
+                Image&nbsp;: {savedInfo.hasImage ? <span className="adm-saved-ok">présente ✓</span> : <span className="adm-saved-warn">aucune image !</span>}
+              </div>
+            </div>
+          </div>
+          <div className="adm-saved-actions">
+            <a className="btn solid" href={`/produit/${savedInfo.slug}`} target="_blank" rel="noopener">
+              Voir le produit →
+            </a>
+            <button type="button" className="btn ghost" onClick={() => router.push('/admin/produits')}>
+              Retour à la liste
+            </button>
+          </div>
+        </div>
+      )}
 
       <form className="adm-form" onSubmit={handleSave}>
         {/* Informations générales */}
@@ -275,7 +318,7 @@ export default function ProduitForm() {
                 onDragLeave={() => setDragOver(false)}
                 onDrop={handleDrop}
               >
-                <Image src={imagePreview} alt="Aperçu" width={200} height={200} style={{ objectFit: 'contain' }} />
+                <Image src={imagePreview} alt="Aperçu" width={200} height={200} style={{ objectFit: 'contain' }} unoptimized />
                 {dragOver && <div className="adm-drop-overlay">Déposer pour remplacer</div>}
                 <div className="adm-image-actions">
                   <button type="button" className="adm-image-change" onClick={() => fileRef.current?.click()}>✎ Changer</button>
