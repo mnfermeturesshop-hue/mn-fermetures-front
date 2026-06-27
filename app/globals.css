@@ -981,6 +981,33 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 .pag-btn { transition: background .12s ease, color .12s ease, border-color .12s ease; }
 
 /* =====================================================================
+   GUIDE TROUVER MA PIÈCE
+   ===================================================================== */
+.findpart { max-width: 720px; margin: 0 auto; }
+.findpart-head { text-align: center; margin-bottom: 28px; }
+.findpart-head h2 { margin: 4px 0 8px; }
+.findpart-sub { color: var(--muted); font-size: 15px; }
+.findpart-step { }
+.findpart-q { font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 16px;
+  display: flex; align-items: center; gap: 12px; }
+.findpart-back { background: none; border: none; color: var(--steel-600); font-size: 13px;
+  font-weight: 600; cursor: pointer; padding: 0; }
+.findpart-back:hover { color: var(--navy-700); }
+.findpart-choices { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.findpart-choices--wide { grid-template-columns: repeat(3, 1fr); }
+.findpart-choice { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px;
+  padding: 20px 12px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer;
+  transition: border-color .15s, background .15s; text-align: center; }
+.findpart-choice:hover { border-color: var(--navy-700); background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.findpart-icon { font-size: 28px; line-height: 1; }
+@media (max-width: 600px) {
+  .findpart-choices { grid-template-columns: repeat(2, 1fr); }
+  .findpart-choices--wide { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* =====================================================================
    RÉASSURANCE
    ===================================================================== */
 .reassurance-strip { display: flex; flex-direction: column; gap: 10px;

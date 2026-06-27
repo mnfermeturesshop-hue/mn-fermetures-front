@@ -3,6 +3,7 @@ import { getAllProducts, getAllCategories, getProductBySlugDB } from '@/lib/cata
 import { isMatrix } from '@/lib/catalog/types';
 import { ProductCard } from '@/components/product/ProductCard';
 import { TablierConfigurator } from '@/components/product/TablierConfigurator';
+import { FindMyPart } from '@/components/ui/FindMyPart';
 
 export default async function HomePage() {
   const [allProducts, allCategories, tablier] = await Promise.all([
@@ -54,6 +55,13 @@ export default async function HomePage() {
               </Link>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* GUIDE "TROUVER MA PIÈCE" */}
+      <section className="block">
+        <div className="wrap">
+          <FindMyPart />
         </div>
       </section>
 
