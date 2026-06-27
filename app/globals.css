@@ -125,6 +125,15 @@ section.block { padding: 38px 0; }
 .add:hover { background: var(--navy-700); color: #fff; }
 .add.config { background: var(--navy-700); color: #fff; }
 .proonly { font-size: 11.5px; color: var(--steel-600); font-weight: 700; }
+/* Ajout direct depuis carte produit */
+.card-add-row { display: flex; align-items: center; gap: 6px; width: 100%; }
+.card-add-row .add { flex: 1; text-align: center; }
+.card-qty-ctrl { display: flex; align-items: center; gap: 0; border: 1px solid var(--line);
+  border-radius: 8px; overflow: hidden; }
+.card-qty-ctrl button { width: 28px; height: 32px; background: var(--surface-2); font-size: 15px;
+  font-weight: 700; color: var(--ink); display: flex; align-items: center; justify-content: center; }
+.card-qty-ctrl button:hover { background: var(--line); }
+.card-qty-ctrl span { width: 28px; text-align: center; font-size: 13px; font-weight: 600; }
 
 /* Documentation */
 .docs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }

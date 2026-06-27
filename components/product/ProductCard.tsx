@@ -3,6 +3,7 @@ import { type Product, isUnit, isMatrix, isKit } from '@/lib/catalog/types';
 import { ZoomableImage } from '@/components/ui/ZoomableImage';
 import { priceFrom } from '@/lib/catalog/resolvePrice';
 import { getBrand } from '@/lib/catalog/mock';
+import { CardAddButton } from './CardAddButton';
 
 const euro = (n: number) =>
   n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
@@ -38,6 +39,14 @@ export function ProductCard({ product }: { product: Product }) {
   const colors = isUnit(product)
     ? product.variants.filter((v) => v.color).map((v) => v.color!)
     : isMatrix(product) ? product.colors ?? [] : [];
+
+  // Ajout direct depuis la carte : uniquement unitaire, 1 seule variante, non-pro
+  const canAddDirect =
+    !product.proOnly &&
+    isUnit(product) &&
+    product.variants.length === 1 &&
+    product.variants[0].inStock;
+  const directVariant = canAddDirect && isUnit(product) ? product.variants[0] : undefined;
 
   return (
     <div className="card">
@@ -99,6 +108,15 @@ export function ProductCard({ product }: { product: Product }) {
 
           {product.proOnly ? (
             <Link className="add" href="/pro">Se connecter</Link>
+          ) : directVariant && isUnit(product) ? (
+            <CardAddButton
+              lineKey={directVariant.reference}
+              name={product.name}
+              reference={directVariant.reference}
+              unitPriceHT={directVariant.priceHT}
+              uom={product.uom}
+              label={directVariant.label}
+            />
           ) : (
             <Link className={`add ${isMade || (isUnit(product) && product.uom === 'ml') ? 'config' : ''}`} href={`/produit/${product.slug}`}>
               {cta(product)}
