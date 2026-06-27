@@ -105,7 +105,7 @@ section.block { padding: 38px 0; }
 /* Cartes produit */
 .prods { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
-.card .thumb { height: 130px; background: linear-gradient(135deg, #f3f6f8, #e3e9ee); display: grid; place-items: center; position: relative; overflow: hidden; }
+.card .thumb { height: 130px; background: linear-gradient(135deg, #f3f6f8, #e3e9ee); display: grid; place-items: center; position: relative; overflow: hidden; text-decoration: none; }
 .card .thumb .glyph { font-size: 36px; opacity: .5; }
 .pill { position: absolute; top: 10px; left: 10px; z-index: 1; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 4px 8px; border-radius: 20px; color: #fff; }
 .pill.matrix { background: #7a52b3; }

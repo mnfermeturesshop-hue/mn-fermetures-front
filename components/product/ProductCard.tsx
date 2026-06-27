@@ -50,7 +50,7 @@ export function ProductCard({ product }: { product: Product }) {
 
   return (
     <div className="card">
-      <div className="thumb">
+      <Link href={`/produit/${product.slug}`} className="thumb" aria-label={product.name} tabIndex={-1}>
         <span className={`pill ${cls}`}>{label}</span>
         {brand && <span className="brandchip">{brand.name.toUpperCase()}</span>}
         {product.imageUrl ? (
@@ -64,7 +64,7 @@ export function ProductCard({ product }: { product: Product }) {
         ) : (
           <span className="glyph">{GLYPHS[product.categorySlug] ?? '▣'}</span>
         )}
-      </div>
+      </Link>
       <div className="info">
         {ref && <div className="ref">{ref}</div>}
         <h4>{product.name}</h4>
