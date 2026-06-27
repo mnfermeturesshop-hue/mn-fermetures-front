@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import nodemailer from 'nodemailer';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 interface OrderLine {
@@ -160,19 +161,30 @@ function buildEmailHtml(payload: OrderPayload): string {
 }
 
 async function sendEmail(to: string, subject: string, html: string) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    console.warn('[orders] RESEND_API_KEY manquante — email non envoyé');
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailPass = process.env.GMAIL_APP_PASSWORD;
+
+  if (!gmailUser || !gmailPass) {
+    console.warn('[orders] GMAIL_USER ou GMAIL_APP_PASSWORD manquant — email non envoyé');
     return;
   }
-  const from = process.env.EMAIL_FROM ?? 'MN Fermetures <commandes@mnfermetures.com>';
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from, to: [to], subject, html }),
+
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    auth: { user: gmailUser, pass: gmailPass },
   });
-  if (!res.ok) {
-    console.error('[orders] Resend error:', await res.text());
+
+  try {
+    await transporter.sendMail({
+      from: `MN Fermetures <${gmailUser}>`,
+      to,
+      subject,
+      html,
+    });
+  } catch (err) {
+    console.error('[orders] Gmail SMTP error:', err);
   }
 }
 
