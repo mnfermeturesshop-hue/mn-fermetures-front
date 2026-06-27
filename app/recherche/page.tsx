@@ -1,120 +1,32 @@
+export const dynamic = 'force-dynamic';
+
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { getAllProducts, getAllBrands, getAllCategories } from '@/lib/catalog/db';
 import { searchProducts } from '@/lib/catalog/search';
-import { ProductCard } from '@/components/product/ProductCard';
-import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import type { Product } from '@/lib/catalog/types';
+import { RechercheClient } from './RechercheClient';
 
-interface Props { searchParams: { q?: string } }
+export const metadata: Metadata = {
+  title: 'Recherche — MN Fermetures',
+  description: 'Recherchez un produit par référence, nom ou marque.',
+};
 
-export function generateMetadata({ searchParams }: Props): Metadata {
-  const q = searchParams.q ?? '';
-  return {
-    title: q ? `Résultats pour « ${q} »` : 'Recherche',
-    robots: { index: false },
-  };
+interface Props {
+  searchParams: { q?: string };
 }
 
-export default async function SearchPage({ searchParams }: Props) {
+export default async function Page({ searchParams }: Props) {
   const q = (searchParams.q ?? '').trim();
+  let results: Product[] = [];
 
-  const [allProducts, allBrands, allCategories] = await Promise.all([
-    getAllProducts(),
-    getAllBrands(),
-    getAllCategories(),
-  ]);
+  if (q.length >= 2) {
+    const [products, brands, categories] = await Promise.all([
+      getAllProducts(),
+      getAllBrands(),
+      getAllCategories(),
+    ]);
+    results = searchProducts(q, products, brands, categories, 48).map((r) => r.product);
+  }
 
-  const results = q.length >= 2 ? searchProducts(q, allProducts, allBrands, allCategories) : [];
-
-  const byCategory = results.reduce<Record<string, Product[]>>((acc, r) => {
-    const slug = r.product.categorySlug;
-    if (!acc[slug]) acc[slug] = [];
-    acc[slug].push(r.product);
-    return acc;
-  }, {});
-
-  const catSlugs = Object.keys(byCategory);
-
-  return (
-    <div className="wrap search-page">
-      <Breadcrumb crumbs={[
-        { label: 'Accueil', href: '/' },
-        { label: 'Recherche' },
-      ]} />
-
-      <div className="search-header">
-        {q ? (
-          <>
-            <h1>
-              {results.length > 0
-                ? `${results.length} résultat${results.length > 1 ? 's' : ''} pour « ${q} »`
-                : `Aucun résultat pour « ${q} »`}
-            </h1>
-            {results.length === 0 && (
-              <div className="search-empty">
-                <p>Aucun résultat pour <strong>« {q} »</strong> dans notre catalogue.</p>
-
-                <div className="search-empty-ctas">
-                  <Link className="btn solid" href="/panier">
-                    Demander un devis
-                  </Link>
-                  <a
-                    className="btn ghost"
-                    href={`mailto:contact@mmfermetures.fr?subject=${encodeURIComponent(`Demande de référence : ${q}`)}&body=${encodeURIComponent(`Bonjour,\n\nJe recherche la référence ou le produit suivant : ${q}\n\nMerci de me contacter.\n\nCordialement`)}`}
-                  >
-                    Nous contacter par e-mail
-                  </a>
-                </div>
-
-                <div className="search-tips">
-                  <div className="search-tip-title">Suggestions :</div>
-                  <ul>
-                    <li>Vérifiez l&apos;orthographe de la référence</li>
-                    <li>Essayez des mots plus courts (ex. « moteur » plutôt que « moteur 10nm »)</li>
-                    <li>Parcourez le catalogue par famille de produits ci-dessous</li>
-                  </ul>
-                </div>
-                <div className="search-cats">
-                  {allCategories.map((c) => (
-                    <Link key={c.slug} href={`/catalogue/${c.slug}`} className="search-cat-pill">
-                      {c.icon} {c.name}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
-        ) : (
-          <h1>Recherche</h1>
-        )}
-      </div>
-
-      {results.length > 0 && (
-        <div className="search-results">
-          {catSlugs.map((slug) => {
-            const cat = allCategories.find((c) => c.slug === slug);
-            const catProds = byCategory[slug];
-            return (
-              <section key={slug} className="search-section">
-                <div className="search-section-head">
-                  <h2>
-                    {cat?.icon && <span>{cat.icon}</span>} {cat?.name ?? slug}
-                  </h2>
-                  <Link href={`/catalogue/${slug}`} className="link-all">
-                    Voir toute la famille →
-                  </Link>
-                </div>
-                <div className="prods">
-                  {catProds.map((p) => (
-                    <ProductCard key={p.slug} product={p} />
-                  ))}
-                </div>
-              </section>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
+  return <RechercheClient query={q} results={results} />;
 }

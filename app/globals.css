@@ -1199,6 +1199,18 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 }
 
 /* =====================================================================
+   PAGE RECHERCHE
+   ===================================================================== */
+.recherche-wrap { padding: 32px 20px 48px; }
+.recherche-title { font-size: var(--fs-900); margin: 0 0 20px; }
+.recherche-form { max-width: 600px; margin-bottom: 24px; }
+.recherche-form .search { max-width: 100%; }
+.recherche-count { font-size: 14px; color: var(--muted); margin-bottom: 20px; }
+.recherche-empty { padding: 40px 0; }
+.recherche-empty p { font-size: 16px; margin: 0 0 8px; }
+.recherche-hint { font-size: 13px; color: var(--muted); margin: 0; }
+
+/* =====================================================================
    ADMIN SHELL
    ===================================================================== */
 .adm-shell { display: flex; min-height: 100vh; background: #f0f4f8; }
