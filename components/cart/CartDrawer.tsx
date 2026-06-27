@@ -108,11 +108,14 @@ export function CartDrawer() {
             </div>
 
             <div className="drawer-ctas">
+              <Link className="btn checkout full" href="/checkout" onClick={closeCart}>
+                Commander →
+              </Link>
               <Link className="btn solid full" href="/panier" onClick={closeCart}>
                 Voir le panier
               </Link>
-              <Link className="btn checkout full" href="/checkout" onClick={closeCart}>
-                Commander →
+              <Link className="btn devis-link" href="/devis" onClick={closeCart}>
+                Générer un devis PDF
               </Link>
             </div>
           </div>

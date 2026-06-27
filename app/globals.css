@@ -434,6 +434,20 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 .btn.checkout:hover { background: #186641; }
 .btn.devis { background: transparent; color: var(--steel-600); border-color: var(--steel-600); }
 .btn.devis:hover { background: var(--steel-600); color: #fff; }
+/* Devis actions bloc */
+.devis-actions { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.devis-actions-label { font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--muted); margin-bottom: 8px; }
+.devis-actions-row { display: flex; gap: 8px; }
+.btn.devis-pdf, .btn.devis-mail { flex: 1; display: flex; align-items: center; justify-content: center;
+  gap: 6px; padding: 9px 10px; font-size: 12px; font-weight: 700; border-radius: 8px;
+  border: 1px solid var(--line); color: var(--steel-600); background: var(--surface-2); }
+.btn.devis-pdf:hover, .btn.devis-mail:hover { border-color: var(--navy-700); color: var(--navy-700);
+  background: #fff; }
+/* Lien devis dans le drawer */
+.btn.devis-link { display: block; text-align: center; font-size: 12px; font-weight: 600;
+  color: var(--muted); padding: 6px; text-decoration: underline; }
+.btn.devis-link:hover { color: var(--navy-700); }
 
 /* =====================================================================
    CHECKOUT — STEP BAR

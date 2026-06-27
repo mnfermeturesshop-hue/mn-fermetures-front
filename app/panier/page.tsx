@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCartStore, euro } from '@/lib/store/cart';
 import type { CartLine } from '@/lib/catalog/types';
 import { ReassuranceStrip } from '@/components/ui/ReassuranceStrip';
+import { DevisActions } from '@/components/cart/DevisActions';
 
 function LineRow({ line }: { line: CartLine }) {
   const { updateQty, removeLine } = useCartStore();
@@ -107,17 +108,16 @@ export default function CartPage() {
             <div className="summary-row summary-ttc"><span>Total TTC</span><span>{euro(ttc + frais * 1.2)}</span></div>
           </div>
 
-          <ReassuranceStrip compact />
-
           <Link className="btn checkout full" href="/checkout">
             Commander →
           </Link>
-          <Link className="btn ghost full" href="/catalogue/tabliers">
+          <Link className="btn ghost full" href="/">
             Continuer mes achats
           </Link>
-          <Link className="btn devis full" href="/devis">
-            Télécharger le devis PDF
-          </Link>
+
+          <DevisActions />
+
+          <ReassuranceStrip compact />
         </aside>
       </div>
     </div>
