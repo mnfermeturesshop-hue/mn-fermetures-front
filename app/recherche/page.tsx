@@ -53,13 +53,26 @@ export default async function SearchPage({ searchParams }: Props) {
             </h1>
             {results.length === 0 && (
               <div className="search-empty">
-                <p>Essayez avec une autre référence ou un terme différent.</p>
+                <p>Aucun résultat pour <strong>« {q} »</strong> dans notre catalogue.</p>
+
+                <div className="search-empty-ctas">
+                  <Link className="btn solid" href="/panier">
+                    Demander un devis
+                  </Link>
+                  <a
+                    className="btn ghost"
+                    href={`mailto:contact@mmfermetures.fr?subject=${encodeURIComponent(`Demande de référence : ${q}`)}&body=${encodeURIComponent(`Bonjour,\n\nJe recherche la référence ou le produit suivant : ${q}\n\nMerci de me contacter.\n\nCordialement`)}`}
+                  >
+                    Nous contacter par e-mail
+                  </a>
+                </div>
+
                 <div className="search-tips">
                   <div className="search-tip-title">Suggestions :</div>
                   <ul>
                     <li>Vérifiez l&apos;orthographe de la référence</li>
-                    <li>Utilisez des mots plus généraux (ex. « moteur » plutôt que « moteur 10nm »)</li>
-                    <li>Parcourez le catalogue par famille de produits</li>
+                    <li>Essayez des mots plus courts (ex. « moteur » plutôt que « moteur 10nm »)</li>
+                    <li>Parcourez le catalogue par famille de produits ci-dessous</li>
                   </ul>
                 </div>
                 <div className="search-cats">
