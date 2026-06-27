@@ -1100,6 +1100,7 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
   .hamburger { display: flex; }
   .searchbar { display: none; }
   .mob-search-icon { display: flex; }
+  nav.cats { display: none; }
   .brand .tag { display: none; }
   .acts .act:not(.primary) { display: none; }
   .acts .act-user { display: none; }
