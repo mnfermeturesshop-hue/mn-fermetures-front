@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getProductBySlugDB, getAllBrands, getAllCategories } from '@/lib/catalog/db';
+import { getProductBySlugDB, getAllBrands, getAllCategories, getProductsByCategory } from '@/lib/catalog/db';
 import { isUnit, isMatrix, isKit } from '@/lib/catalog/types';
 import { priceFrom } from '@/lib/catalog/resolvePrice';
 import { TablierConfigurator } from '@/components/product/TablierConfigurator';
@@ -10,6 +10,7 @@ import { KitConfigurator } from '@/components/product/KitConfigurator';
 import { UnitProductPanel } from '@/components/product/UnitProductPanel';
 import { StickyAddBar } from '@/components/product/StickyAddBar';
 import { ReassuranceStrip } from '@/components/ui/ReassuranceStrip';
+import { ProductCard } from '@/components/product/ProductCard';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { ProductJsonLd, BreadcrumbJsonLd } from '@/components/seo/JsonLd';
 import { ZoomableImage } from '@/components/ui/ZoomableImage';
@@ -44,6 +45,26 @@ export default async function ProductPage({ params }: Props) {
     getAllCategories(),
   ]);
   if (!product) notFound();
+
+  // Produits associés : composants du kit (référence croisée) OU même catégorie
+  const catProducts = await getProductsByCategory(product.categorySlug);
+
+  let related = catProducts.filter((p) => p.slug !== product.slug).slice(0, 4);
+
+  // Pour les kits : mettre en avant les composants vendus séparément
+  if (isKit(product)) {
+    const bomRefs = product.configs.flatMap((c) =>
+      c.bom.map((b) => b.componentReference).filter(Boolean)
+    ) as string[];
+
+    if (bomRefs.length > 0) {
+      const allCat = await getProductsByCategory(product.categorySlug);
+      const byRef = allCat.filter((p) =>
+        isUnit(p) && p.variants.some((v) => bomRefs.includes(v.reference))
+      );
+      if (byRef.length > 0) related = byRef.slice(0, 4);
+    }
+  }
 
   const brand    = allBrands.find((b) => b.slug === product.brandSlug);
   const category = allCategories.find((c) => c.slug === product.categorySlug);
@@ -147,18 +168,36 @@ export default async function ProductPage({ params }: Props) {
               )}
               {isMatrix(product) && <TablierConfigurator product={product} />}
               {isKit(product) && <KitConfigurator product={product} />}
-              {!product.proOnly && <ReassuranceStrip />}
+              <ReassuranceStrip />
             </>
           )}
         </div>
       </div>
 
-      <div className="prod-related">
-        <h2>Produits de la même famille</h2>
-        <Link className="link-all" href={`/catalogue/${product.categorySlug}`}>
-          Voir tout le catalogue {category?.name} →
-        </Link>
-      </div>
+      {/* Produits associés */}
+      {related.length > 0 && (
+        <section className="prod-related">
+          <div className="prod-related-head">
+            <h2>
+              {isKit(product) ? 'Composants & références associées' : 'Dans la même famille'}
+            </h2>
+            <Link className="link-all" href={`/catalogue/${product.categorySlug}`}>
+              Voir tout {category?.name} →
+            </Link>
+          </div>
+          <div className="prods">
+            {related.map((p) => <ProductCard key={p.slug} product={p} />)}
+          </div>
+        </section>
+      )}
+
+      {related.length === 0 && (
+        <div className="prod-related">
+          <Link className="link-all" href={`/catalogue/${product.categorySlug}`}>
+            Voir tout le catalogue {category?.name} →
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
