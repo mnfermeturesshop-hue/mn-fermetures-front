@@ -47,6 +47,8 @@ const BLANK_ADDR: Address = {
 
 interface CheckoutStore {
   step: 1 | 2 | 3;
+  guestEmail: string;
+  guestMode: boolean;
   shippingAddress: Address;
   billingAddress: Address;
   sameAsBilling: boolean;
@@ -55,6 +57,8 @@ interface CheckoutStore {
   placedOrder: PlacedOrder | null;
 
   setStep: (s: 1 | 2 | 3) => void;
+  setGuestEmail: (email: string) => void;
+  setGuestMode: (v: boolean) => void;
   setShippingAddress: (a: Address) => void;
   setBillingAddress: (a: Address) => void;
   setSameAsBilling: (v: boolean) => void;
@@ -81,6 +85,8 @@ export const useCheckoutStore = create<CheckoutStore>()(
   persist(
     (set, get) => ({
       step: 1,
+      guestEmail: '',
+      guestMode: false,
       shippingAddress: { ...BLANK_ADDR },
       billingAddress:  { ...BLANK_ADDR },
       sameAsBilling: true,
@@ -89,6 +95,8 @@ export const useCheckoutStore = create<CheckoutStore>()(
       placedOrder: null,
 
       setStep: (s) => set({ step: s }),
+      setGuestEmail: (email) => set({ guestEmail: email }),
+      setGuestMode: (v) => set({ guestMode: v }),
       setShippingAddress: (a) => set({ shippingAddress: a }),
       setBillingAddress: (a) => set({ billingAddress: a }),
       setSameAsBilling: (v) => set({ sameAsBilling: v }),
@@ -116,6 +124,8 @@ export const useCheckoutStore = create<CheckoutStore>()(
 
       reset: () => set({
         step: 1,
+        guestEmail: '',
+        guestMode: false,
         shippingAddress: { ...BLANK_ADDR },
         billingAddress: { ...BLANK_ADDR },
         sameAsBilling: true,

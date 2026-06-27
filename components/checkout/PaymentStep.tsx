@@ -142,10 +142,10 @@ function VirementForm({ onConfirm, paying }: { onConfirm: () => void; paying: bo
 }
 
 export function PaymentStep({ onBack }: Props) {
-  const { paymentMethod, setPaymentMethod, placeOrder } = useCheckoutStore();
-  const { isPro } = useAuthStore();
+  const { paymentMethod, setPaymentMethod, placeOrder, shippingAddress, billingAddress,
+    sameAsBilling, shippingMethod, guestEmail, guestMode } = useCheckoutStore();
+  const { user, isPro } = useAuthStore();
   const { lines, totalHT, totalTTC, isFranco, clearCart } = useCartStore();
-  const { shippingMethod } = useCheckoutStore();
   const router = useRouter();
   const [paying, setPaying] = useState(false);
 
@@ -156,8 +156,6 @@ export function PaymentStep({ onBack }: Props) {
 
   const handlePay = async () => {
     setPaying(true);
-    await new Promise((r) => setTimeout(r, 2000));
-
     const fraisHT = shippingCostHT(shippingMethod, isFranco());
     const orderId = placeOrder({
       lines,
@@ -165,6 +163,36 @@ export function PaymentStep({ onBack }: Props) {
       totalTTC: totalTTC() + fraisHT * 1.2,
       isFranco: isFranco(),
     });
+
+    const email = guestMode ? guestEmail : (user?.email ?? '');
+    const customerName = guestMode
+      ? `${shippingAddress.firstName} ${shippingAddress.lastName}`.trim()
+      : (user?.name ?? '');
+
+    try {
+      await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderNumber: orderId,
+          email,
+          customerName,
+          isGuest: guestMode || !user,
+          userId: user?.id,
+          paymentMethod,
+          shippingMethod,
+          lines,
+          totalHT: totalHT() + fraisHT,
+          totalTTC: totalTTC() + fraisHT * 1.2,
+          fraisHT,
+          shippingAddress,
+          billingAddress: sameAsBilling ? shippingAddress : billingAddress,
+        }),
+      });
+    } catch (e) {
+      console.error('[checkout] order API error:', e);
+    }
+
     clearCart();
     toast.success('Commande confirmée !');
     router.push(`/commande/${orderId}`);
