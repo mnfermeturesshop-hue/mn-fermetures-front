@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/lib/store/cart';
 import { useCheckoutStore } from '@/lib/store/checkout';
+import { trackBeginCheckout } from '@/lib/analytics';
 import { StepBar } from '@/components/checkout/StepBar';
 import { OrderSummary } from '@/components/checkout/OrderSummary';
 import { AddressStep } from '@/components/checkout/AddressStep';
@@ -17,8 +18,11 @@ export default function CheckoutPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (totalLines() === 0) router.replace('/panier');
-  }, [totalLines, router]);
+    if (totalLines() === 0) { router.replace('/panier'); return; }
+    trackBeginCheckout({ totalHT: useCartStore.getState().totalHT(), numItems: totalLines() });
+  // Une seule fois au montage
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (totalLines() === 0) return null;
 

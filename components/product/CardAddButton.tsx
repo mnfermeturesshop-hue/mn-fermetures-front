@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useCartStore } from '@/lib/store/cart';
 import { toast } from '@/components/ui/Toast';
+import { trackAddToCart } from '@/lib/analytics';
 import type { Uom } from '@/lib/catalog/types';
 
 interface Props {
@@ -22,6 +23,7 @@ export function CardAddButton({ lineKey, name, reference, unitPriceHT, uom, labe
     e.preventDefault();
     e.stopPropagation();
     addLine({ key: lineKey, name, detail: label, reference, unitPriceHT, quantity: qty, uom });
+    trackAddToCart({ key: lineKey, name, categorySlug: '', priceHT: unitPriceHT, quantity: qty });
     toast.success(`${name} ajouté au panier`);
     openCart();
   };

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import { trackSearch } from '@/lib/analytics';
 
 interface SuggestItem {
   slug: string;
@@ -65,6 +66,7 @@ export function SearchBar() {
   const submit = (q = query) => {
     if (!q.trim()) return;
     setOpen(false);
+    trackSearch({ query: q.trim(), numResults: results.length });
     router.push(`/recherche?q=${encodeURIComponent(q.trim())}`);
   };
 

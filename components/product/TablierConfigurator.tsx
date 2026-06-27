@@ -6,6 +6,7 @@ import { type MatrixProduct } from '@/lib/catalog/types';
 import { resolveMatrixPrice } from '@/lib/catalog/resolvePrice';
 import { useCartStore, euro } from '@/lib/store/cart';
 import { toast } from '@/components/ui/Toast';
+import { trackAddToCart } from '@/lib/analytics';
 
 export function TablierConfigurator({ product }: { product: MatrixProduct }) {
   const searchParams = useSearchParams();
@@ -63,6 +64,7 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
       quantity: 1,
       uom: 'unite',
     });
+    trackAddToCart({ key: `${product.slug}-${height}-${width}`, name: product.name, categorySlug: product.categorySlug, priceHT: price, quantity: 1 });
     toast.success('Tablier ajouté au panier');
     openCart();
   };

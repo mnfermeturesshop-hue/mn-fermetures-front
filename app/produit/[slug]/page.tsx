@@ -12,6 +12,7 @@ import { StickyAddBar } from '@/components/product/StickyAddBar';
 import { ReassuranceStrip } from '@/components/ui/ReassuranceStrip';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
+import { AnalyticsViewItem } from '@/components/analytics/AnalyticsViewItem';
 import { ProductJsonLd, BreadcrumbJsonLd } from '@/components/seo/JsonLd';
 import { ZoomableImage } from '@/components/ui/ZoomableImage';
 import Link from 'next/link';
@@ -82,6 +83,13 @@ export default async function ProductPage({ params }: Props) {
     <div className="wrap prod-page">
       <ProductJsonLd product={product} />
       <BreadcrumbJsonLd crumbs={crumbs} />
+      <AnalyticsViewItem
+        slug={product.slug}
+        name={product.name}
+        categorySlug={product.categorySlug}
+        priceHT={prixFrom}
+        brandSlug={product.brandSlug}
+      />
       <Breadcrumb crumbs={crumbs} />
 
       <div className="prod-layout">

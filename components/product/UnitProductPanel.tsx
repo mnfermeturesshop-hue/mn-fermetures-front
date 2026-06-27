@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { type UnitProduct, type ProductVariant } from '@/lib/catalog/types';
 import { useCartStore, euro } from '@/lib/store/cart';
 import { toast } from '@/components/ui/Toast';
+import { trackAddToCart } from '@/lib/analytics';
 
 const UOM_LABELS: Record<string, string> = {
   unite: 'unité',
@@ -31,6 +32,7 @@ export function UnitProductPanel({ product }: { product: UnitProduct }) {
       quantity: qty,
       uom: product.uom,
     });
+    trackAddToCart({ key: variant.reference, name: product.name, categorySlug: product.categorySlug, priceHT: variant.priceHT, quantity: qty });
     toast.success(`${product.name} ajouté au panier`);
     openCart();
   };

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { type KitProduct } from '@/lib/catalog/types';
 import { useCartStore, euro } from '@/lib/store/cart';
 import { toast } from '@/components/ui/Toast';
+import { trackAddToCart } from '@/lib/analytics';
 
 export function KitConfigurator({ product }: { product: KitProduct }) {
   const [selectedRef, setSelectedRef] = useState(product.configs[0].reference);
@@ -21,6 +22,7 @@ export function KitConfigurator({ product }: { product: KitProduct }) {
       quantity: 1,
       uom: 'unite',
     });
+    trackAddToCart({ key: config.reference, name: product.name, categorySlug: product.categorySlug, priceHT: config.priceHT, quantity: 1 });
     toast.success(`${product.name} ajouté au panier`);
     openCart();
   };
