@@ -13,6 +13,7 @@ import { ReassuranceStrip } from '@/components/ui/ReassuranceStrip';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { AnalyticsViewItem } from '@/components/analytics/AnalyticsViewItem';
+import { RecentlyViewed } from '@/components/ui/RecentlyViewed';
 import { ProductJsonLd, BreadcrumbJsonLd } from '@/components/seo/JsonLd';
 import { ZoomableImage } from '@/components/ui/ZoomableImage';
 import Link from 'next/link';
@@ -206,6 +207,15 @@ export default async function ProductPage({ params }: Props) {
           </Link>
         </div>
       )}
+
+      <RecentlyViewed current={{
+        slug: product.slug,
+        name: product.name,
+        categorySlug: product.categorySlug,
+        imageUrl: product.imageUrl,
+        priceHT: product.proOnly ? undefined : prixFrom,
+        pricingType: product.pricingType,
+      }} />
     </div>
   );
 }
