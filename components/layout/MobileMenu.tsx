@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { MENU, isNavGroup } from '@/lib/catalog/mock';
 import { useCartStore } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
@@ -11,13 +11,34 @@ import { toast } from '@/components/ui/Toast';
 
 interface Props { isOpen: boolean; onClose: () => void }
 
+interface SuggestItem {
+  slug: string;
+  name: string;
+  categorySlug: string;
+  pricingType: string;
+  reference?: string;
+  imageUrl?: string | null;
+  priceHT?: number | null;
+}
+
+const GLYPHS: Record<string, string> = {
+  tabliers: '▤', 'kits-axes': '⚙', motorisations: '⊙', commandes: '⎚',
+  profils: '▬', consoles: '◳', embouts: '◖', verrouillages: '⛓',
+};
+
+const euro = (n: number) =>
+  n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+
 export function MobileMenu({ isOpen, onClose }: Props) {
-  const [openTop, setOpenTop]     = useState<string | null>(null);
-  const [openGroup, setOpenGroup] = useState<string | null>(null);
-  const { totalLines, openCart }  = useCartStore();
-  const { user, isPro, logout }   = useAuthStore();
+  const [openTop, setOpenTop]       = useState<string | null>(null);
+  const [openGroup, setOpenGroup]   = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<SuggestItem[]>([]);
+  const { totalLines, openCart }    = useCartStore();
+  const { user, isPro, logout }     = useAuthStore();
   const router = useRouter();
   const count  = totalLines();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const toggleTop = (href: string) => {
     setOpenTop(openTop === href ? null : href);
@@ -33,6 +54,35 @@ export function MobileMenu({ isOpen, onClose }: Props) {
     router.push('/');
   };
 
+  const fetchSuggest = useCallback(async (q: string) => {
+    if (q.trim().length < 2) { setSuggestions([]); return; }
+    const res = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}`);
+    const data: SuggestItem[] = await res.json();
+    setSuggestions(data);
+  }, []);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value;
+    setSearchQuery(v);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => fetchSuggest(v), 200);
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    if (!q) return;
+    setSuggestions([]);
+    onClose();
+    router.push(`/recherche?q=${encodeURIComponent(q)}`);
+  };
+
+  const goToProduct = (slug: string) => {
+    setSuggestions([]);
+    onClose();
+    router.push(`/produit/${slug}`);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -45,6 +95,55 @@ export function MobileMenu({ isOpen, onClose }: Props) {
             <Image src="/logo.png" alt="MN Fermetures" width={120} height={46} className="logo-img" />
           </Link>
           <button className="mob-close" type="button" onClick={onClose} aria-label="Fermer">✕</button>
+        </div>
+
+        {/* Barre de recherche */}
+        <div className="mob-search-area">
+          <form className="search" onSubmit={handleSearchSubmit}>
+            <input
+              value={searchQuery}
+              onChange={handleSearchChange}
+              placeholder="Référence, produit, marque…"
+              autoComplete="off"
+              aria-label="Rechercher"
+            />
+            <button type="submit">OK</button>
+          </form>
+
+          {suggestions.length > 0 && (
+            <div className="mob-suggest">
+              {suggestions.map((r) => (
+                <button
+                  key={r.slug}
+                  type="button"
+                  className="mob-suggest-item"
+                  onClick={() => goToProduct(r.slug)}
+                >
+                  <div className="suggest-thumb">
+                    {r.imageUrl ? (
+                      <Image src={r.imageUrl} alt={r.name} width={36} height={36} style={{ objectFit: 'contain' }} unoptimized />
+                    ) : (
+                      <span className="suggest-glyph">{GLYPHS[r.categorySlug] ?? '▣'}</span>
+                    )}
+                  </div>
+                  <div className="suggest-left">
+                    {r.reference && <span className="suggest-ref">{r.reference}</span>}
+                    <span className="suggest-name">{r.name}</span>
+                  </div>
+                  {r.priceHT != null && (
+                    <span className="mob-suggest-price">{euro(r.priceHT)}&nbsp;<small>HT</small></span>
+                  )}
+                </button>
+              ))}
+              <button
+                type="button"
+                className="mob-suggest-all"
+                onClick={handleSearchSubmit}
+              >
+                Voir tous les résultats →
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Compte */}
@@ -78,7 +177,6 @@ export function MobileMenu({ isOpen, onClose }: Props) {
           <div className="mob-section-label">Catalogue</div>
 
           {MENU.map((top) => {
-            const hasGroups = top.children?.some(isNavGroup) ?? false;
             const isTopOpen = openTop === top.href;
 
             return (
@@ -142,7 +240,6 @@ export function MobileMenu({ isOpen, onClose }: Props) {
 
         {/* Liens bas */}
         <div className="mob-footer-links">
-          <Link href="/recherche" onClick={onClose}>🔍 Recherche avancée</Link>
           <a href="tel:0467780663">📞 04 67 78 06 63</a>
         </div>
       </nav>
