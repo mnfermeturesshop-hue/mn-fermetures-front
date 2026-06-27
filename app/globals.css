@@ -950,12 +950,19 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 /* Pagination */
 .pag-btn { transition: background .12s ease, color .12s ease, border-color .12s ease; }
 
+/* Icône recherche mobile (cachée sur desktop) */
+.mob-search-icon { display: none; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 8px; color: #fff;
+  flex-shrink: 0; transition: background .15s; }
+.mob-search-icon:hover { background: rgba(255,255,255,.12); }
+
 /* =====================================================================
    RESPONSIVE
    ===================================================================== */
 @media (max-width: 900px) {
   .hamburger { display: flex; }
   .searchbar { display: none; }
+  .mob-search-icon { display: flex; }
   .brand .tag { display: none; }
   .acts .act:not(.primary) { display: none; }
   .acts .act-user { display: none; }
@@ -977,12 +984,29 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
   .compte-kpis { grid-template-columns: 1fr 1fr; }
   .profil-grid { grid-template-columns: 1fr; }
   .devis-parties { grid-template-columns: 1fr; }
+
+  /* Admin — sidebar horizontale sur tablette */
+  .adm-shell { flex-direction: column; }
+  .adm-sidebar { width: 100%; height: auto; position: static; flex-direction: row;
+    align-items: center; padding: 0; overflow-x: auto; }
+  .adm-logo { border-bottom: none; border-right: 1px solid rgba(255,255,255,.1);
+    padding: 12px 16px; flex-shrink: 0; }
+  .adm-logo-tag { display: none; }
+  .adm-nav { flex-direction: row; gap: 2px; padding: 8px; flex: 1; overflow-x: auto;
+    scrollbar-width: none; }
+  .adm-nav::-webkit-scrollbar { display: none; }
+  .adm-nav-item { white-space: nowrap; padding: 8px 12px; }
+  .adm-sidebar-foot { display: none; }
+  .adm-kpis { grid-template-columns: repeat(3, 1fr); }
+  .adm-quick-actions { grid-template-columns: repeat(2, 1fr); }
+  .adm-page { padding: 20px 20px 48px; }
 }
 
 @media (max-width: 600px) {
   .wrap { padding: 0 14px; }
   .catgrid, .prods, .docs { grid-template-columns: 1fr; }
   .hero { padding: 28px 0 20px; }
+  .hero h1 { font-size: clamp(1.5rem, 6vw, var(--fs-900)); }
   .addr-row-2 { grid-template-columns: 1fr; }
   .card-row-2 { grid-template-columns: 1fr; }
   .confirm-hero { padding: 24px 14px; }
@@ -994,6 +1018,30 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
   .stepbar { gap: 0; }
   .step-line { width: 32px; }
   .step-label { display: none; }
+
+  /* Topbar mobile compact */
+  .topbar { gap: 8px; }
+  .brand.logo-pill { flex-shrink: 0; }
+
+  /* Admin — colonne unique sur mobile */
+  .adm-kpis { grid-template-columns: 1fr 1fr; }
+  .adm-quick-actions { grid-template-columns: 1fr 1fr; }
+  .adm-page { padding: 14px 14px 48px; }
+  .adm-page-head { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .adm-h1 { font-size: var(--fs-800); }
+  .adm-form-grid { grid-template-columns: 1fr; }
+  .adm-variants-head { display: none; }
+  .adm-variant-row { grid-template-columns: 1fr 1fr; row-gap: 6px; }
+  .adm-toolbar { flex-wrap: wrap; }
+  .adm-table-wrap { font-size: 12px; }
+  .adm-login-box { padding: 28px 20px; }
+
+  /* Catalogue — masquer sidebar sur très petit écran */
+  .cat-subnav { display: none; }
+
+  /* Produit */
+  .prod-thumb { height: 240px; }
+  .prod-info { padding: 0; }
 }
 
 /* Touch target safety */
