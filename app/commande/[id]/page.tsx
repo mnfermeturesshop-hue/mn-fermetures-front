@@ -141,7 +141,7 @@ export default function ConfirmationPage({ params }: Props) {
               type="button"
               onClick={() => window.open(`/devis?order=${placedOrder.id}`, '_blank')}
             >
-              Télécharger le devis PDF
+              Télécharger la facture
             </button>
             <Link className="btn ghost full" href="/catalogue/tabliers">
               Continuer mes achats
