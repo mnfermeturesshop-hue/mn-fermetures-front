@@ -26,9 +26,10 @@ export default function ProduitForm() {
   const [menuOptions] = useState<MenuOption[]>(() => flatMenuOptions());
   const [brands, setBrands] = useState<Brand[]>([]);
   const [saving, setSaving] = useState(false);
-  const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null); // URL enregistrée en base
-  const [imagePreview, setImagePreview] = useState<string | null>(null);         // URL d'affichage (blob ou supabase)
-  const [imageFile, setImageFile] = useState<File | null>(null);                 // Fichier à uploader
+  const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   // Champs communs
   const [slug, setSlug] = useState('');
@@ -94,12 +95,21 @@ export default function ProduitForm() {
     if (isNew) setSlug(autoSlug(v));
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const applyImageFile = (file: File) => {
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
-    // existingImageUrl reste inchangé : l'upload n'a pas encore eu lieu
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) applyImageFile(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) applyImageFile(file);
   };
 
   const updateVariant = (i: number, field: keyof VariantRow, value: string | number | boolean) => {
@@ -259,14 +269,29 @@ export default function ProduitForm() {
           <h2 className="adm-card-title">Visuel produit</h2>
           <div className="adm-image-upload">
             {imagePreview ? (
-              <div className="adm-image-preview">
+              <div
+                className={`adm-image-preview${dragOver ? ' adm-drop-over' : ''}`}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+              >
                 <Image src={imagePreview} alt="Aperçu" width={200} height={200} style={{ objectFit: 'contain' }} />
-                <button type="button" className="adm-image-remove" onClick={() => { setImagePreview(null); setImageFile(null); setExistingImageUrl(null); }}>✕ Supprimer</button>
+                {dragOver && <div className="adm-drop-overlay">Déposer pour remplacer</div>}
+                <div className="adm-image-actions">
+                  <button type="button" className="adm-image-change" onClick={() => fileRef.current?.click()}>✎ Changer</button>
+                  <button type="button" className="adm-image-remove" onClick={() => { setImagePreview(null); setImageFile(null); setExistingImageUrl(null); }}>✕ Supprimer</button>
+                </div>
               </div>
             ) : (
-              <div className="adm-image-drop" onClick={() => fileRef.current?.click()}>
-                <span className="adm-image-icon">🖼</span>
-                <span>Cliquer pour choisir une image</span>
+              <div
+                className={`adm-image-drop${dragOver ? ' adm-drop-over' : ''}`}
+                onClick={() => fileRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+              >
+                <span className="adm-image-icon">{dragOver ? '⬇' : '🖼'}</span>
+                <span>{dragOver ? 'Relâcher pour déposer' : 'Glisser une image ici ou cliquer pour parcourir'}</span>
                 <span className="adm-image-hint">PNG, JPG, WebP — max 5 Mo</span>
               </div>
             )}
