@@ -1,14 +1,14 @@
 import Link from 'next/link';
-import { getAllProducts, getAllCategories, getProductBySlugDB } from '@/lib/catalog/db';
+import { getAllProducts, getProductBySlugDB } from '@/lib/catalog/db';
+import { MENU } from '@/lib/catalog/mock';
 import { isMatrix } from '@/lib/catalog/types';
 import { ProductCard } from '@/components/product/ProductCard';
 import { TablierConfigurator } from '@/components/product/TablierConfigurator';
 import { FindMyPart } from '@/components/ui/FindMyPart';
 
 export default async function HomePage() {
-  const [allProducts, allCategories, tablier] = await Promise.all([
+  const [allProducts, tablier] = await Promise.all([
     getAllProducts(),
-    getAllCategories(),
     getProductBySlugDB('tablier-pvc-40'),
   ]);
 
@@ -47,10 +47,10 @@ export default async function HomePage() {
             </div>
           </div>
           <div className="catgrid">
-            {allCategories.map((c) => (
-              <Link className="cat" href={`/catalogue/${c.slug}`} key={c.slug}>
-                <div className="ic">{c.icon}</div>
-                <b>{c.name}</b>
+            {MENU.map((item) => (
+              <Link className="cat" href={item.href} key={item.href}>
+                <div className="ic">{item.icon}</div>
+                <b>{item.name}</b>
                 <span>Voir les références</span>
               </Link>
             ))}
