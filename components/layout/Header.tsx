@@ -71,8 +71,8 @@ export function Header() {
                 <button className="act" type="button" onClick={logout}>Déconnexion</button>
               </div>
             ) : (
-              <Link className="act" href="/pro">
-                Espace pro
+              <Link className="act" href="/connexion">
+                Connexion
               </Link>
             )}
 

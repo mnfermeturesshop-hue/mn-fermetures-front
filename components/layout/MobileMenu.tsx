@@ -160,8 +160,8 @@ export function MobileMenu({ isOpen, onClose }: Props) {
               </div>
             </div>
           ) : (
-            <Link className="btn solid full" href="/pro" onClick={onClose}>
-              Connexion / Espace pro
+            <Link className="btn solid full" href="/connexion" onClick={onClose}>
+              Connexion
             </Link>
           )}
         </div>

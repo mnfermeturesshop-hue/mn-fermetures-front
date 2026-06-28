@@ -29,9 +29,6 @@ export default async function HomePage() {
                 Tabliers, kits axes, motorisations Somfy &amp; MN, profilés et pièces détachées.
                 Un prix juste, calculé à la dimension.
               </p>
-              <div className="cta-row">
-                <Link className="btn solid" href="/catalogue/tabliers">Voir le catalogue</Link>
-              </div>
             </div>
             {tablier && isMatrix(tablier) && <TablierConfigurator product={tablier} />}
           </div>
