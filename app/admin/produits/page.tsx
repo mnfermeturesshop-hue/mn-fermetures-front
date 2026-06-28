@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import type { Product } from '@/lib/catalog/types';
-import { getAllProducts, deleteProduct } from '@/lib/catalog/db';
+import { getAllProducts } from '@/lib/catalog/db';
 import { priceFrom } from '@/lib/catalog/resolvePrice';
 import { toast } from '@/components/ui/Toast';
 
@@ -40,11 +40,21 @@ export default function AdminProduits() {
     if (!confirm(`Archiver "${product.name}" ? Il ne sera plus visible sur le site.`)) return;
     setDeleting(product.slug);
     try {
-      await deleteProduct((product as Product & { id?: string }).id ?? product.slug);
+      const id = (product as Product & { id?: string }).id;
+      const res = await fetch('/api/admin/products', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(id ? { id } : { slug: product.slug }),
+      });
+      if (!res.ok) {
+        const { error } = await res.json();
+        throw new Error(error ?? 'Erreur archivage');
+      }
       setProducts((prev) => prev.filter((p) => p.slug !== product.slug));
       toast.success('Produit archivé');
-    } catch {
-      toast.error('Erreur lors de l\'archivage');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Erreur : ${msg}`);
     } finally {
       setDeleting(null);
     }
