@@ -30,6 +30,7 @@ export const categories: Category[] = [
   { slug: 'consoles', name: 'Consoles & flasques', icon: '◳' },
   { slug: 'embouts', name: 'Embouts', icon: '◖' },
   { slug: 'verrouillages', name: 'Verrouillages', icon: '⛓' },
+  { slug: 'pieces-detachees', name: 'Pièces détachées', icon: '🔩' },
 ];
 
 /** Types du méga-menu (3 niveaux : NavTop > NavGroup > NavLeaf). */

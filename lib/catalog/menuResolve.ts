@@ -1,4 +1,4 @@
-import { MENU, isNavGroup } from './mock';
+import { MENU, isNavGroup, categories } from './mock';
 import type { NavLeaf, NavGroup, NavTop } from './mock';
 
 export interface NavItem { name: string; href: string; children?: NavItem[] }
@@ -102,19 +102,24 @@ export interface MenuOption {
   categorySlug: string;
 }
 
-/** Aplatit l'arbre MENU en liste pour un <select> admin. */
+/** Aplatit l'arbre MENU en liste pour un <select> admin.
+ *  N'inclut que les entrées dont le categorySlug existe en base. */
 export function flatMenuOptions(): MenuOption[] {
   const result: MenuOption[] = [];
   const indent = ['', '  └ ', '    └ '];
+  const validSlugs = new Set(categories.map((c) => c.slug));
 
   function traverse(items: NavItem[], depth: number) {
     for (const item of items) {
-      result.push({
-        label: (indent[depth] ?? '      ') + item.name,
-        href: item.href,
-        depth,
-        categorySlug: categorySlugFromHref(item.href),
-      });
+      const catSlug = categorySlugFromHref(item.href);
+      if (catSlug && validSlugs.has(catSlug)) {
+        result.push({
+          label: (indent[depth] ?? '      ') + item.name,
+          href: item.href,
+          depth,
+          categorySlug: catSlug,
+        });
+      }
       if (item.children?.length) traverse(item.children, depth + 1);
     }
   }
