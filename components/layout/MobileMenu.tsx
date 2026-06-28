@@ -178,17 +178,28 @@ export function MobileMenu({ isOpen, onClose }: Props) {
 
           {MENU.map((top) => {
             const isTopOpen = openTop === top.href;
+            const hasChildren = top.children && top.children.length > 0;
 
             return (
               <div key={top.href} className="mob-cat-group">
-                <button
-                  type="button"
-                  className={`mob-cat-btn ${isTopOpen ? 'open' : ''}`}
-                  onClick={() => toggleTop(top.href)}
-                >
-                  <span>{top.icon} {top.name}</span>
-                  <span className="mob-chevron">{isTopOpen ? '▲' : '▼'}</span>
-                </button>
+                {hasChildren ? (
+                  <button
+                    type="button"
+                    className={`mob-cat-btn ${isTopOpen ? 'open' : ''}`}
+                    onClick={() => toggleTop(top.href)}
+                  >
+                    <span>{top.icon} {top.name}</span>
+                    <span className="mob-chevron">{isTopOpen ? '▲' : '▼'}</span>
+                  </button>
+                ) : (
+                  <Link
+                    href={top.href}
+                    className="mob-cat-btn"
+                    onClick={onClose}
+                  >
+                    <span>{top.icon} {top.name}</span>
+                  </Link>
+                )}
 
                 {isTopOpen && top.children && (
                   <div className="mob-sub">
