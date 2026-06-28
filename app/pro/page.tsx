@@ -73,10 +73,27 @@ function RegisterForm() {
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/pro-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ company, siret, name, email, phone }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? 'Une erreur est survenue.'); }
+      else { setSubmitted(true); }
+    } catch {
+      setError('Erreur réseau. Vérifiez votre connexion et réessayez.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (submitted) {
@@ -175,9 +192,12 @@ function RegisterForm() {
               placeholder="06 xx xx xx xx"
             />
           </div>
+          {error && <div className="form-error">{error}</div>}
           <div className="auth-form-row">
             <button className="btn ghost" type="button" onClick={() => setStep(1)}>← Retour</button>
-            <button className="btn solid" type="submit">Envoyer la demande</button>
+            <button className="btn solid" type="submit" disabled={loading}>
+              {loading ? 'Envoi…' : 'Envoyer la demande'}
+            </button>
           </div>
         </>
       )}
@@ -215,11 +235,16 @@ export default function ProPage() {
               type="button"
               onClick={() => setTab('register')}
             >
-              Ouvrir un compte
+              Ouvrir un compte pro
             </button>
           </div>
 
           {tab === 'login' ? <LoginForm /> : <RegisterForm />}
+
+          <p className="auth-b2c-hint">
+            Vous êtes un particulier ?{' '}
+            <Link href="/inscription">Créer un compte particulier →</Link>
+          </p>
         </div>
 
         {/* Colonne droite — avantages pro */}
