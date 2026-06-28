@@ -5,6 +5,7 @@ import { isMatrix } from '@/lib/catalog/types';
 import { ProductCard } from '@/components/product/ProductCard';
 import { TablierConfigurator } from '@/components/product/TablierConfigurator';
 import { FindMyPart } from '@/components/ui/FindMyPart';
+import { HomeEspaces } from '@/components/home/HomeEspaces';
 
 export default async function HomePage() {
   const [allProducts, tablier] = await Promise.all([
@@ -83,6 +84,9 @@ export default async function HomePage() {
           </div>
         </section>
       )}
+
+      {/* ESPACES CLIENTS */}
+      <HomeEspaces />
 
       {/* DOCUMENTATION */}
       <section className="block">
