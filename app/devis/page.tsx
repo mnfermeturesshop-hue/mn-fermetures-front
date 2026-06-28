@@ -138,7 +138,7 @@ function DevisContent() {
         <div className="devis-conditions">
           <div className="devis-cond-block">
             <strong>Livraison</strong>
-            <p>Franco de port en Occitanie dès 400 € HT. Forfait 26 € HT en deçà. Express 24h : 42 € HT.</p>
+            <p>Livraison offerte en Occitanie dès 400 € HT. Forfait 26 € HT en deçà. Express 24h : 42 € HT.</p>
           </div>
           <div className="devis-cond-block">
             <strong>Paiement</strong>

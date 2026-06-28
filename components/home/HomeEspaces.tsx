@@ -52,7 +52,7 @@ export function HomeEspaces() {
               <ul className="espace-list">
                 <li>Prix HT &amp; remises volume</li>
                 <li>Paiement virement 30 jours</li>
-                <li>Franco dès 400 € HT</li>
+                <li>Livraison offerte dès 400 € HT</li>
               </ul>
             </div>
             <div className="espace-actions">

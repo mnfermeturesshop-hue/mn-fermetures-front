@@ -20,8 +20,8 @@ const ITEMS: Item[] = [
   },
   {
     icon: <Icon d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8zM5.5 21a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM18.5 21a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z" />,
-    label: 'Franco dès 400 € HT',
-    sub: 'Livraison offerte en Occitanie',
+    label: 'Livraison offerte dès 400 € HT',
+    sub: 'Livraison gratuite en Occitanie',
   },
   {
     icon: <Icon d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,

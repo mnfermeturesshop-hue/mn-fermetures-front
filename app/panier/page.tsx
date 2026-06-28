@@ -86,7 +86,7 @@ export default function CartPage() {
 
           {!franco && (
             <div className="franco-hint cart-franco">
-              <b>Franco de port à {euro(400)} HT</b>
+              <b>Livraison offerte à partir de {euro(400)} HT</b>
               <span>Il vous manque {euro(400 - ht)} HT</span>
               <span className="franco-bar">
                 <span style={{ width: `${Math.min(100, (ht / 400) * 100)}%` }} />
@@ -94,7 +94,7 @@ export default function CartPage() {
             </div>
           )}
           {franco && (
-            <div className="franco-badge">✓ Franco de port — Livraison offerte</div>
+            <div className="franco-badge">✓ Livraison offerte !</div>
           )}
 
           <div className="summary-rows">

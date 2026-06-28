@@ -15,7 +15,7 @@ export function DevisActions() {
     const body = encodeURIComponent(
       `Bonjour,\n\nVoici mon devis MN Fermetures :\n\n${lignes}\n\n` +
       `Sous-total HT : ${euro(ht)}\n` +
-      `Livraison HT : ${isFranco() ? 'Offerte (franco dès 400 € HT)' : euro(frais)}\n` +
+      `Livraison HT : ${isFranco() ? 'Offerte (dès 400 € HT)' : euro(frais)}\n` +
       `Total HT : ${euro(ht + frais)}\n` +
       `Total TTC : ${euro((ht + frais) * 1.2)}\n\n` +
       `Merci de confirmer la disponibilité et les délais.\n\nCordialement`

@@ -208,7 +208,7 @@ export default function ComptePage() {
                   <strong>{user.proDiscountPct ?? 0} %</strong>
                 </div>
                 <div className="tarif-row">
-                  <span>Franco de port</span>
+                  <span>Livraison offerte</span>
                   <strong>Dès 400 € HT</strong>
                 </div>
                 <div className="tarif-row">

@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     template: '%s | MN Fermetures',
   },
   description:
-    'Tabliers sur mesure, kits axes, motorisations Somfy & MN, profilés et pièces détachées. Prix HT, livraison franco Occitanie dès 400 € HT.',
+    'Tabliers sur mesure, kits axes, motorisations Somfy & MN, profilés et pièces détachées. Prix HT, livraison offerte dès 400 € HT en Occitanie.',
   keywords: ['volet roulant', 'tablier sur mesure', 'motorisation Somfy', 'accessoires fermeture', 'pièces détachées volet'],
   authors: [{ name: 'MN Fermetures' }],
   openGraph: {
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
     locale: 'fr_FR',
     type: 'website',
     title: 'MN Fermetures — Accessoires volets roulants',
-    description: 'Tabliers sur mesure, kits axes, motorisations Somfy & MN. Franco dès 400 € HT.',
+    description: 'Tabliers sur mesure, kits axes, motorisations Somfy & MN. Livraison offerte dès 400 € HT.',
   },
   twitter: { card: 'summary_large_image' },
   robots: { index: true, follow: true },

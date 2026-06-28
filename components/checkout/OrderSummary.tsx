@@ -42,7 +42,7 @@ export function OrderSummary() {
       </div>
 
       <div className="order-summary-note">
-        Prix HT · TVA 20 % · Livraison franco dès 400 € HT en Occitanie
+        Prix HT · TVA 20 % · Livraison offerte dès 400 € HT en Occitanie
       </div>
     </aside>
   );

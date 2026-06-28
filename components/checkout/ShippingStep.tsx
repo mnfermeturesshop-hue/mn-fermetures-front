@@ -17,7 +17,7 @@ const OPTIONS: Option[] = [
   {
     id: 'standard',
     label: 'Livraison standard',
-    desc: 'Franco de port dès 400 € HT · sinon 26 € HT',
+    desc: 'Livraison offerte dès 400 € HT · sinon 26 € HT',
     eta: '3 à 5 jours ouvrés',
   },
   {
@@ -71,7 +71,7 @@ export function ShippingStep({ onNext, onBack }: Props) {
 
         {franco && shippingMethod === 'standard' && (
           <div className="franco-badge" style={{ marginTop: 12 }}>
-            ✓ Votre commande bénéficie du franco de port — livraison offerte !
+            ✓ Livraison offerte pour cette commande !
           </div>
         )}
       </div>
