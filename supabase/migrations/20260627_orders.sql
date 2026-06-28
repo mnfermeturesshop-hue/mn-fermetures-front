@@ -1,7 +1,9 @@
 -- Table des commandes
 -- À exécuter dans Supabase Dashboard → SQL Editor
+-- Si une table orders existait déjà (ancienne tentative), on la recrée proprement
+drop table if exists public.orders cascade;
 
-create table if not exists public.orders (
+create table public.orders (
   id               uuid        default gen_random_uuid() primary key,
   order_number     text        not null unique,
   email            text        not null,
@@ -22,10 +24,10 @@ create table if not exists public.orders (
 );
 
 -- Index pour les lookups courants
-create index if not exists orders_email_idx         on public.orders (email);
-create index if not exists orders_user_id_idx       on public.orders (user_id);
-create index if not exists orders_order_number_idx  on public.orders (order_number);
-create index if not exists orders_created_at_idx    on public.orders (created_at desc);
+create index orders_email_idx         on public.orders (email);
+create index orders_user_id_idx       on public.orders (user_id);
+create index orders_order_number_idx  on public.orders (order_number);
+create index orders_created_at_idx    on public.orders (created_at desc);
 
 -- Mise à jour automatique de updated_at
 create or replace function public.set_updated_at()
