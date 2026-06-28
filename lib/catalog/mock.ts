@@ -41,16 +41,7 @@ export const isNavGroup = (item: NavLeaf | NavGroup): item is NavGroup =>
 
 export const MENU: NavTop[] = [
   {
-    name: 'Tabliers', href: '/catalogue/tabliers', icon: '▤',
-    children: [
-      { name: 'Tablier lames PVC 40',        href: '/catalogue/tabliers/pvc-40'  },
-      { name: 'Tablier lames PVC 55',        href: '/catalogue/tabliers/pvc-55'  },
-      { name: 'Tablier lames aluminium 37',  href: '/catalogue/tabliers/alu-37'  },
-      { name: 'Tablier lames aluminium 42',  href: '/catalogue/tabliers/alu-42'  },
-      { name: 'Tablier lames aluminium 56',  href: '/catalogue/tabliers/alu-56'  },
-      { name: 'Tablier lames aluminium 55',  href: '/catalogue/tabliers/alu-55'  },
-      { name: 'Tablier lames aluminium 77',  href: '/catalogue/tabliers/alu-77'  },
-    ],
+    name: 'Tabliers', href: '/configurateur', icon: '▤',
   },
   {
     name: 'Kits axes', href: '/catalogue/kits-axes', icon: '⚙',
