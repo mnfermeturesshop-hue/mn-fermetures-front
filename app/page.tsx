@@ -5,7 +5,6 @@ import { isMatrix } from '@/lib/catalog/types';
 import { ProductCard } from '@/components/product/ProductCard';
 import { TablierConfigurator } from '@/components/product/TablierConfigurator';
 import { FindMyPart } from '@/components/ui/FindMyPart';
-import { HomeEspaces } from '@/components/home/HomeEspaces';
 import { TablierGenerateur } from '@/components/tablier/TablierGenerateur';
 
 export default async function HomePage() {
@@ -100,8 +99,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ESPACES CLIENTS */}
-      <HomeEspaces />
 
       {/* DOCUMENTATION */}
       <section className="block">
