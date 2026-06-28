@@ -1681,3 +1681,193 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 .btn.outline { background: transparent; color: var(--navy-700);
   border: 1.5px solid var(--navy-700); }
 .btn.outline:hover { background: var(--navy-700); color: #fff; }
+
+/* =====================================================================
+   CONFIGURATEUR TABLIER
+   ===================================================================== */
+
+/* Page head */
+.cfg-page-head { padding: 32px 0 24px; }
+.cfg-page-head h1 { font-size: clamp(22px, 3vw, 32px); margin: 6px 0 10px; }
+.cfg-page-head .lead { font-size: 15px; color: var(--muted); max-width: 640px; }
+
+/* Catalogue inline head */
+.cfg-catalogue-block { padding: 48px 0 0; }
+.cfg-catalogue-head { margin-bottom: 24px; }
+.cfg-catalogue-head h2 { margin: 6px 0 8px; }
+.cfg-catalogue-head p { font-size: 14px; color: var(--muted); }
+
+/* Wrapper principal (2 colonnes) */
+.cfg-wrap {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 32px;
+  align-items: start;
+  padding-bottom: 64px;
+}
+
+/* Colonne gauche */
+.cfg-left { display: flex; flex-direction: column; gap: 0; }
+
+.cfg-section {
+  border-bottom: 1px solid var(--line);
+  padding: 24px 0;
+}
+.cfg-section:last-child { border-bottom: none; }
+
+.cfg-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+  margin: 0 0 14px;
+}
+
+/* Tabs matière */
+.cfg-tabs { display: flex; gap: 8px; }
+.cfg-tab {
+  padding: 8px 22px;
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all .15s;
+}
+.cfg-tab.active { border-color: var(--steel-600); background: var(--steel-600); color: #fff; }
+.cfg-tab:not(.active):hover { border-color: var(--steel-600); color: var(--steel-600); }
+
+/* Lame cards */
+.cfg-lames { display: flex; flex-direction: column; gap: 8px; }
+.cfg-lame-card {
+  text-align: left;
+  padding: 12px 16px;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  transition: all .15s;
+  width: 100%;
+}
+.cfg-lame-card:hover { border-color: var(--steel-600); }
+.cfg-lame-card.active { border-color: var(--steel-600); background: #f0f6ff; }
+.cfg-lame-nom { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 5px; }
+.cfg-lame-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.cfg-badge { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; letter-spacing: .04em; }
+.cfg-badge.pvc { background: #dbeafe; color: #1d4ed8; }
+.cfg-badge.alu { background: #f1f5f9; color: #475569; }
+.cfg-badge.agrafe { background: #f0fdf4; color: #15803d; }
+.cfg-lame-detail { font-size: 12px; color: var(--muted); }
+
+/* Coloris */
+.cfg-coloris-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cfg-swatch {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  cursor: pointer;
+  transition: transform .1s, border-color .1s;
+  flex-shrink: 0;
+}
+.cfg-swatch:hover { transform: scale(1.15); }
+.cfg-swatch.active { border-color: var(--steel-600); box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--steel-600); }
+.cfg-coloris-label { font-size: 13px; color: var(--ink); font-weight: 500; margin-left: 4px; }
+
+/* Dimensions */
+.cfg-dims { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.cfg-field { display: flex; flex-direction: column; gap: 5px; position: relative; }
+.cfg-field label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.cfg-field input {
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+  padding: 9px 36px 9px 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  outline: none;
+  transition: border-color .15s;
+  -moz-appearance: textfield;
+}
+.cfg-field input:focus { border-color: var(--steel-600); }
+.cfg-field input::-webkit-outer-spin-button,
+.cfg-field input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.cfg-unit { position: absolute; right: 10px; bottom: 11px; font-size: 12px; color: var(--muted); pointer-events: none; }
+.cfg-snap-note { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+.cfg-snap-note strong { color: var(--ink); }
+.cfg-error { margin: 10px 0 0; font-size: 13px; color: #b91c1c; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 6px; padding: 8px 12px; }
+
+/* Options */
+.cfg-options { display: flex; flex-direction: column; gap: 12px; }
+.cfg-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--ink);
+}
+.cfg-check input[type="checkbox"] { margin-top: 2px; accent-color: var(--steel-600); width: 16px; height: 16px; flex-shrink: 0; cursor: pointer; }
+.cfg-check em { color: var(--muted); font-style: normal; font-size: 12px; margin-left: 4px; }
+.cfg-default-badge { font-size: 11px; color: #15803d; background: #f0fdf4; border-radius: 3px; padding: 1px 5px; margin-left: 4px; font-weight: 600; }
+.cfg-fourniture-note { font-size: 13px; color: var(--muted); padding: 10px 12px; background: #f8fafc; border-radius: 6px; border-left: 3px solid var(--line); }
+
+/* ── Colonne droite (sticky) ── */
+.cfg-right { position: sticky; top: 100px; }
+.cfg-summary {
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0,0,0,.06);
+}
+
+.cfg-summary-head {
+  background: var(--navy-800);
+  color: #fff;
+  padding: 14px 20px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.cfg-summary-lame { padding: 16px 20px 0; display: flex; flex-direction: column; gap: 2px; }
+.cfg-summary-lame strong { font-size: 15px; color: var(--ink); }
+.cfg-summary-lame span { font-size: 13px; color: var(--muted); }
+.cfg-summary-dims { padding: 6px 20px 12px; font-size: 14px; color: var(--ink); font-weight: 600; border-bottom: 1px solid var(--line); }
+
+.cfg-price-breakdown { padding: 14px 20px 0; display: flex; flex-direction: column; gap: 8px; }
+.cfg-price-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
+.cfg-price-row span:last-child { font-weight: 600; color: var(--ink); }
+
+.cfg-total { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 20px 4px; }
+.cfg-total span { font-size: 13px; color: var(--muted); }
+.cfg-total strong { font-size: 24px; font-weight: 800; color: var(--navy-800); }
+.cfg-total-ttc { padding: 0 20px 16px; font-size: 12px; color: var(--muted); text-align: right; border-bottom: 1px solid var(--line); }
+
+.cfg-qty-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; }
+.cfg-qty-row label { font-size: 13px; color: var(--muted); font-weight: 600; }
+.cfg-qty-ctrl { display: flex; align-items: center; gap: 0; border: 1.5px solid var(--line); border-radius: 6px; overflow: hidden; }
+.cfg-qty-ctrl button { width: 34px; height: 34px; border: none; background: #f8fafc; font-size: 18px; font-weight: 700; color: var(--ink); cursor: pointer; }
+.cfg-qty-ctrl button:hover { background: var(--line); }
+.cfg-qty-ctrl input { width: 44px; height: 34px; border: none; border-left: 1px solid var(--line); border-right: 1px solid var(--line); text-align: center; font-size: 15px; font-weight: 700; color: var(--ink); -moz-appearance: textfield; }
+.cfg-qty-ctrl input::-webkit-outer-spin-button,
+.cfg-qty-ctrl input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+.cfg-cta { margin: 0 20px 16px; padding: 13px; font-size: 15px; font-weight: 700; }
+.cfg-ht-note { padding: 0 20px 14px; font-size: 11px; color: var(--muted); text-align: center; }
+
+.cfg-summary-empty { padding: 32px 20px; text-align: center; font-size: 13px; color: var(--muted); }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .cfg-wrap { grid-template-columns: 1fr; }
+  .cfg-right { position: static; }
+  .cfg-dims { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 500px) {
+  .cfg-dims { grid-template-columns: 1fr; }
+}

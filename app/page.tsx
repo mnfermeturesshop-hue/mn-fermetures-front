@@ -6,6 +6,7 @@ import { ProductCard } from '@/components/product/ProductCard';
 import { TablierConfigurator } from '@/components/product/TablierConfigurator';
 import { FindMyPart } from '@/components/ui/FindMyPart';
 import { HomeEspaces } from '@/components/home/HomeEspaces';
+import { TablierGenerateur } from '@/components/tablier/TablierGenerateur';
 
 export default async function HomePage() {
   const [allProducts, tablier] = await Promise.all([
@@ -84,6 +85,23 @@ export default async function HomePage() {
           </div>
         </section>
       )}
+
+      {/* CONFIGURATEUR TABLIER */}
+      <section className="block alt">
+        <div className="wrap">
+          <div className="sec-head">
+            <div>
+              <span className="eyebrow">Sur mesure — Tarif 2026</span>
+              <h2>Configurateur de tablier volet roulant</h2>
+            </div>
+            <Link className="link-all" href="/configurateur">Ouvrir en plein écran →</Link>
+          </div>
+          <p style={{ marginBottom: 32, color: 'var(--muted)', fontSize: 15 }}>
+            7 types de lames PVC &amp; aluminium, 10 coloris, calcul du prix HT instantané selon les dimensions saisies.
+          </p>
+          <TablierGenerateur />
+        </div>
+      </section>
 
       {/* ESPACES CLIENTS */}
       <HomeEspaces />
