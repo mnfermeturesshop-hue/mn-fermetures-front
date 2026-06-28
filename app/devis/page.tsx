@@ -25,13 +25,14 @@ function DevisContent() {
   const validUntil  = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR');
 
   useEffect(() => {
-    document.title = `${devisNum} — MN Fermetures`;
-  }, [devisNum]);
+    const label = isOrderMode ? 'Facture' : 'Devis';
+    document.title = `${label} ${devisNum} — MN Fermetures`;
+  }, [devisNum, isOrderMode]);
 
   return (
     <div className="devis-page">
       <div className="devis-print-bar no-print">
-        <span>Aperçu du devis — {devisNum}</span>
+        <span>{isOrderMode ? `Aperçu de la facture — ${devisNum}` : `Aperçu du devis — ${devisNum}`}</span>
         <button className="btn solid" type="button" onClick={() => window.print()}>
           Imprimer / Enregistrer PDF
         </button>
@@ -50,7 +51,7 @@ function DevisContent() {
             />
           </div>
           <div className="devis-meta">
-            <div className="devis-type">DEVIS / BON DE COMMANDE</div>
+            <div className="devis-type">{isOrderMode ? 'FACTURE' : 'DEVIS'}</div>
             <table className="devis-meta-table">
               <tbody>
                 <tr><td>N°</td><td><strong className="ref">{devisNum}</strong></td></tr>
@@ -143,10 +144,12 @@ function DevisContent() {
             <strong>Paiement</strong>
             <p>Comptes professionnels : virement 30 jours fin de mois. Particuliers : CB ou virement anticipé.</p>
           </div>
-          <div className="devis-cond-block">
-            <strong>Validité</strong>
-            <p>Ce devis est valable 30 jours à compter de sa date d&apos;émission. Prix HT — TVA 20 %.</p>
-          </div>
+          {!isOrderMode && (
+            <div className="devis-cond-block">
+              <strong>Validité</strong>
+              <p>Ce devis est valable 30 jours à compter de sa date d&apos;émission. Prix HT — TVA 20 %.</p>
+            </div>
+          )}
         </div>
 
         <div className="devis-footer">
@@ -159,7 +162,7 @@ function DevisContent() {
 
 export default function DevisPage() {
   return (
-    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Chargement du devis…</div>}>
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Chargement…</div>}>
       <DevisContent />
     </Suspense>
   );
