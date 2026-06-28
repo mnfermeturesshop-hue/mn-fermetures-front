@@ -89,6 +89,7 @@ export function topNavItems(): NavItem[] {
  *  /catalogue/pieces-detachees → 'pieces-detachees'
  */
 export function categorySlugFromHref(href: string): string {
+  if (href === '/configurateur') return 'tabliers';
   const parts = href.replace('/catalogue/', '').split('/');
   return parts[0] ?? '';
 }
