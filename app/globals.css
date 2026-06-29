@@ -1413,6 +1413,21 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 .adm-tr:hover { background: var(--surface-2); }
 .adm-tr-dirty { background: #fffbeb !important; }
 .adm-tr-dirty:hover { background: #fff8d6 !important; }
+
+.adm-tr--clickable { cursor: pointer; }
+.adm-tr--open td { background: #f0f4f8; border-bottom: none; }
+.adm-tr--open:hover td { background: #e8eef5 !important; }
+.adm-tr-detail > td { border-bottom: 1px solid var(--line); padding: 0; }
+.adm-order-detail { padding: 20px 24px 24px; background: #f8fafc; border-top: 2px solid #10314f22; }
+.adm-order-detail-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 10px; }
+.adm-order-detail-section { margin-bottom: 20px; }
+.adm-order-detail-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.adm-order-lines { width: 100%; border-collapse: collapse; font-size: 13px; }
+.adm-order-lines th { text-align: left; padding: 6px 10px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); border-bottom: 1px solid var(--line); background: #f1f5f9; }
+.adm-order-lines td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.adm-order-lines tfoot td { padding: 8px 10px; border-bottom: none; border-top: 1px solid var(--line); background: #f1f5f9; }
+.adm-order-addr { font-size: 13px; line-height: 1.7; color: #374151; }
+
 .adm-td-name { min-width: 200px; }
 .adm-prod-name { font-weight: 600; display: block; }
 .adm-prod-brand { font-size: 11px; color: var(--muted); }

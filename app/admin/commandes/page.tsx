@@ -20,49 +20,77 @@ const STATUS_CLASS: Record<string, string> = {
   cancelled:  'status-rupture',
 };
 
+interface OrderLine {
+  key: string;
+  name: string;
+  reference?: string;
+  detail?: string;
+  quantity: number;
+  unitPriceHT: number;
+}
+
+interface Address {
+  firstName: string;
+  lastName: string;
+  company?: string;
+  address1: string;
+  address2?: string;
+  postalCode: string;
+  city: string;
+  phone: string;
+}
+
 interface OrderRow {
   id: string;
+  order_number: string;
   created_at: string;
+  email: string;
+  customer_name: string;
+  is_guest: boolean;
   total_ht: number;
   total_ttc: number;
+  frais_ht: number;
   payment_method: string;
   shipping_method: string;
   status: string;
-  lines: { name: string; quantity: number }[];
-  shipping_address: { firstName: string; lastName: string; city: string };
+  lines: OrderLine[];
+  shipping_address: Address;
+  billing_address: Address;
 }
+
+const euro = (n: number) =>
+  n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 
 const MOCK_ORDERS: OrderRow[] = [
   {
     id: 'CMD-2026-0001',
+    order_number: 'CMD-2026-0001',
     created_at: '2026-06-20T10:14:00Z',
+    email: 'jean.dupont@example.com',
+    customer_name: 'Jean Dupont',
+    is_guest: false,
     total_ht: 847.50,
     total_ttc: 1017.00,
+    frais_ht: 0,
     payment_method: 'virement',
     shipping_method: 'standard',
     status: 'pending',
-    lines: [{ name: 'Tablier PVC 40', quantity: 3 }, { name: 'Motorisation Somfy', quantity: 1 }],
-    shipping_address: { firstName: 'Jean', lastName: 'Dupont', city: 'Montpellier' },
-  },
-  {
-    id: 'CMD-2026-0002',
-    created_at: '2026-06-22T14:32:00Z',
-    total_ht: 312.00,
-    total_ttc: 374.40,
-    payment_method: 'card',
-    shipping_method: 'express',
-    status: 'paid',
-    lines: [{ name: 'Kit axe 1500', quantity: 2 }],
-    shipping_address: { firstName: 'Marie', lastName: 'Martin', city: 'Béziers' },
+    lines: [
+      { key: '1', name: 'Tablier PVC 40', reference: 'TAB-PVC-40', quantity: 3, unitPriceHT: 245.00 },
+      { key: '2', name: 'Motorisation Somfy', reference: 'MOT-SOMFY', quantity: 1, unitPriceHT: 117.50 },
+    ],
+    shipping_address: { firstName: 'Jean', lastName: 'Dupont', address1: '12 rue des Lilas', postalCode: '34000', city: 'Montpellier', phone: '0600000001' },
+    billing_address: { firstName: 'Jean', lastName: 'Dupont', address1: '12 rue des Lilas', postalCode: '34000', city: 'Montpellier', phone: '0600000001' },
   },
 ];
 
 export default function AdminCommandes() {
-  const [orders, setOrders] = useState<OrderRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [orders, setOrders]       = useState<OrderRow[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [search, setSearch]       = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [updating, setUpdating] = useState<string | null>(null);
+  const [updating, setUpdating]   = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/admin/orders')
@@ -80,7 +108,8 @@ export default function AdminCommandes() {
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter((o) =>
-        o.id.toLowerCase().includes(q) ||
+        (o.order_number ?? o.id).toLowerCase().includes(q) ||
+        o.email?.toLowerCase().includes(q) ||
         `${o.shipping_address?.firstName ?? ''} ${o.shipping_address?.lastName ?? ''}`.toLowerCase().includes(q)
       );
     }
@@ -115,12 +144,11 @@ export default function AdminCommandes() {
         )}
       </div>
 
-      {/* Filtres */}
       <div className="adm-toolbar">
         <input
           className="adm-search"
           type="search"
-          placeholder="N° commande, client…"
+          placeholder="N° commande, client, email…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -138,6 +166,7 @@ export default function AdminCommandes() {
           <table className="adm-table">
             <thead>
               <tr>
+                <th style={{ width: 32 }} />
                 <th>N° commande</th>
                 <th>Date</th>
                 <th>Client</th>
@@ -149,38 +178,143 @@ export default function AdminCommandes() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((o) => (
-                <tr key={o.id} className="adm-tr">
-                  <td><span className="ref">{o.id}</span></td>
-                  <td>{new Date(o.created_at).toLocaleDateString('fr-FR')}</td>
-                  <td>{o.shipping_address?.firstName} {o.shipping_address?.lastName}<br /><span className="adm-muted">{o.shipping_address?.city}</span></td>
-                  <td>
-                    {o.lines.slice(0, 2).map((l, i) => (
-                      <div key={i} className="adm-muted" style={{ fontSize: 12 }}>{l.quantity}× {l.name}</div>
-                    ))}
-                    {o.lines.length > 2 && <span className="adm-muted" style={{ fontSize: 11 }}>+{o.lines.length - 2} autre{o.lines.length - 2 > 1 ? 's' : ''}</span>}
-                  </td>
-                  <td className="adm-td-price">{o.total_ttc.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €</td>
-                  <td>{o.payment_method === 'virement' ? '🏦 Virement' : '💳 Carte'}</td>
-                  <td>
-                    <span className={`order-status ${STATUS_CLASS[o.status] ?? ''}`}>
-                      {STATUS_LABELS[o.status] ?? o.status}
-                    </span>
-                  </td>
-                  <td>
-                    <select
-                      className="adm-select adm-select-sm"
-                      value={o.status}
-                      disabled={updating === o.id}
-                      onChange={(e) => updateStatus(o.id, e.target.value)}
+              {filtered.map((o) => {
+                const isOpen = expandedId === o.id;
+                return (
+                  <>
+                    <tr
+                      key={o.id}
+                      className={`adm-tr adm-tr--clickable${isOpen ? ' adm-tr--open' : ''}`}
+                      onClick={() => setExpandedId(isOpen ? null : o.id)}
                     >
-                      {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                    </select>
-                  </td>
-                </tr>
-              ))}
+                      <td style={{ textAlign: 'center', color: '#6b7280', fontSize: 11 }}>
+                        {isOpen ? '▲' : '▼'}
+                      </td>
+                      <td><span className="ref">{o.order_number ?? o.id}</span></td>
+                      <td>{new Date(o.created_at).toLocaleDateString('fr-FR')}</td>
+                      <td>
+                        {o.shipping_address?.firstName} {o.shipping_address?.lastName}
+                        <br /><span className="adm-muted" style={{ fontSize: 12 }}>{o.email}</span>
+                      </td>
+                      <td>
+                        {o.lines.slice(0, 2).map((l, i) => (
+                          <div key={i} className="adm-muted" style={{ fontSize: 12 }}>{l.quantity}× {l.name}</div>
+                        ))}
+                        {o.lines.length > 2 && (
+                          <span className="adm-muted" style={{ fontSize: 11 }}>+{o.lines.length - 2} autre{o.lines.length - 2 > 1 ? 's' : ''}</span>
+                        )}
+                      </td>
+                      <td className="adm-td-price">{euro(o.total_ttc)}</td>
+                      <td>{o.payment_method === 'virement' ? '🏦 Virement' : '💳 Carte'}</td>
+                      <td>
+                        <span className={`order-status ${STATUS_CLASS[o.status] ?? ''}`}>
+                          {STATUS_LABELS[o.status] ?? o.status}
+                        </span>
+                      </td>
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <select
+                          className="adm-select adm-select-sm"
+                          value={o.status}
+                          disabled={updating === o.id}
+                          onChange={(e) => updateStatus(o.id, e.target.value)}
+                        >
+                          {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                        </select>
+                      </td>
+                    </tr>
+
+                    {isOpen && (
+                      <tr key={`${o.id}-detail`} className="adm-tr-detail">
+                        <td colSpan={9} style={{ padding: 0 }}>
+                          <div className="adm-order-detail">
+
+                            {/* Articles */}
+                            <div className="adm-order-detail-section">
+                              <div className="adm-order-detail-title">Articles</div>
+                              <table className="adm-order-lines">
+                                <thead>
+                                  <tr>
+                                    <th>Désignation</th>
+                                    <th>Réf.</th>
+                                    <th style={{ textAlign: 'center' }}>Qté</th>
+                                    <th style={{ textAlign: 'right' }}>P.U. HT</th>
+                                    <th style={{ textAlign: 'right' }}>Total HT</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {o.lines.map((l, i) => (
+                                    <tr key={i}>
+                                      <td>
+                                        <div style={{ fontWeight: 600 }}>{l.name}</div>
+                                        {l.detail && <div className="adm-muted" style={{ fontSize: 12 }}>{l.detail}</div>}
+                                      </td>
+                                      <td><span className="adm-slug">{l.reference ?? '—'}</span></td>
+                                      <td style={{ textAlign: 'center' }}>{l.quantity}</td>
+                                      <td style={{ textAlign: 'right' }}>{euro(l.unitPriceHT)}</td>
+                                      <td style={{ textAlign: 'right', fontWeight: 600 }}>{euro(l.unitPriceHT * l.quantity)}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                                <tfoot>
+                                  <tr>
+                                    <td colSpan={4} style={{ textAlign: 'right', color: '#6b7280', fontSize: 13 }}>
+                                      Frais de livraison ({o.shipping_method === 'express' ? 'Express' : 'Standard'})
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}>
+                                      {o.frais_ht === 0
+                                        ? <span style={{ color: '#16a34a', fontWeight: 600 }}>Offerts</span>
+                                        : euro(o.frais_ht)}
+                                    </td>
+                                  </tr>
+                                  <tr>
+                                    <td colSpan={4} style={{ textAlign: 'right', fontWeight: 700 }}>Total HT</td>
+                                    <td style={{ textAlign: 'right', fontWeight: 700 }}>{euro(o.total_ht)}</td>
+                                  </tr>
+                                  <tr>
+                                    <td colSpan={4} style={{ textAlign: 'right', fontWeight: 700, fontSize: 15 }}>Total TTC</td>
+                                    <td style={{ textAlign: 'right', fontWeight: 800, fontSize: 15, color: '#10314f' }}>{euro(o.total_ttc)}</td>
+                                  </tr>
+                                </tfoot>
+                              </table>
+                            </div>
+
+                            {/* Adresses + infos */}
+                            <div className="adm-order-detail-cols">
+                              <div className="adm-order-detail-section">
+                                <div className="adm-order-detail-title">Livraison</div>
+                                <div className="adm-order-addr">
+                                  <strong>{o.shipping_address?.firstName} {o.shipping_address?.lastName}</strong>
+                                  {o.shipping_address?.company && <div>{o.shipping_address.company}</div>}
+                                  <div>{o.shipping_address?.address1}</div>
+                                  {o.shipping_address?.address2 && <div>{o.shipping_address.address2}</div>}
+                                  <div>{o.shipping_address?.postalCode} {o.shipping_address?.city}</div>
+                                  <div>{o.shipping_address?.phone}</div>
+                                </div>
+                              </div>
+
+                              <div className="adm-order-detail-section">
+                                <div className="adm-order-detail-title">Client</div>
+                                <div className="adm-order-addr">
+                                  <div>{o.email}</div>
+                                  <div className="adm-muted" style={{ fontSize: 12, marginTop: 4 }}>
+                                    {o.is_guest ? 'Commande invité' : 'Compte client'}
+                                  </div>
+                                  <div className="adm-muted" style={{ fontSize: 12, marginTop: 8 }}>
+                                    Paiement : {o.payment_method === 'virement' ? '🏦 Virement bancaire' : '💳 Carte bancaire'}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                );
+              })}
               {filtered.length === 0 && (
-                <tr><td colSpan={8} className="adm-empty">Aucune commande</td></tr>
+                <tr><td colSpan={9} className="adm-empty">Aucune commande</td></tr>
               )}
             </tbody>
           </table>
