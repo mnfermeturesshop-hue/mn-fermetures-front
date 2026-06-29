@@ -43,9 +43,14 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
 
-    // Rôle stocké dans app_metadata (JWT) — pas de requête DB
-    const role = (user.app_metadata as Record<string, string>)?.role;
-    if (role !== 'admin') {
+    // Vérifie le rôle dans la table profiles
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || profile.role !== 'admin') {
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
   }
