@@ -65,23 +65,13 @@ export default function AdminCommandes() {
   const [updating, setUpdating] = useState<string | null>(null);
 
   useEffect(() => {
-    const isSupabase = typeof process.env.NEXT_PUBLIC_SUPABASE_URL === 'string'
-      && process.env.NEXT_PUBLIC_SUPABASE_URL.length > 0;
-
-    if (!isSupabase) {
-      setOrders(MOCK_ORDERS);
-      setLoading(false);
-      return;
-    }
-
-    import('@/lib/supabase/client').then(({ createClient }) => {
-      const supabase = createClient();
-      supabase.from('orders').select('*').order('created_at', { ascending: false })
-        .then(({ data }) => {
-          setOrders((data ?? []) as OrderRow[]);
-          setLoading(false);
-        });
-    });
+    fetch('/api/admin/orders')
+      .then((r) => r.json())
+      .then((data) => {
+        setOrders(Array.isArray(data) ? data as OrderRow[] : MOCK_ORDERS);
+        setLoading(false);
+      })
+      .catch(() => { setOrders(MOCK_ORDERS); setLoading(false); });
   }, []);
 
   const filtered = useMemo(() => {
@@ -99,14 +89,15 @@ export default function AdminCommandes() {
 
   const updateStatus = async (id: string, status: string) => {
     setUpdating(id);
-    const isSupabase = typeof process.env.NEXT_PUBLIC_SUPABASE_URL === 'string'
-      && process.env.NEXT_PUBLIC_SUPABASE_URL.length > 0;
-
-    if (isSupabase) {
-      const { createClient } = await import('@/lib/supabase/client');
-      const supabase = createClient();
-      const { error } = await supabase.from('orders').update({ status }).eq('id', id);
-      if (error) { toast.error('Erreur mise à jour'); setUpdating(null); return; }
+    const res = await fetch('/api/admin/orders', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status }),
+    });
+    if (!res.ok) {
+      toast.error('Erreur mise à jour');
+      setUpdating(null);
+      return;
     }
     setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status } : o));
     toast.success(`Commande ${id} → ${STATUS_LABELS[status]}`);
