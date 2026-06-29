@@ -81,7 +81,7 @@ export default function AdminCommandes() {
       const q = search.toLowerCase();
       list = list.filter((o) =>
         o.id.toLowerCase().includes(q) ||
-        `${o.shipping_addr.firstName} ${o.shipping_addr.lastName}`.toLowerCase().includes(q)
+        `${o.shipping_address?.firstName ?? ''} ${o.shipping_address?.lastName ?? ''}`.toLowerCase().includes(q)
       );
     }
     return list;
