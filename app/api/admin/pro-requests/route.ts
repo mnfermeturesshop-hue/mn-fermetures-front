@@ -42,9 +42,13 @@ export async function PATCH(req: NextRequest) {
       if (fetchErr || !proReq) {
         return NextResponse.json({ error: 'Demande introuvable' }, { status: 404 });
       }
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://mn-fermetures-front.vercel.app';
       const { error: inviteErr } = await supabase.auth.admin.inviteUserByEmail(
         proReq.email,
-        { data: { role: 'b2b', name: proReq.name } }
+        {
+          data: { role: 'b2b', name: proReq.name },
+          redirectTo: `${siteUrl}/auth/callback?next=/pro/definir-mot-de-passe`,
+        }
       );
       if (inviteErr) {
         return NextResponse.json({ error: inviteErr.message }, { status: 400 });
@@ -63,9 +67,13 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Crée le compte Supabase Auth et envoie l'invitation par email
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://mn-fermetures-front.vercel.app';
     const { data: invited, error: inviteErr } = await supabase.auth.admin.inviteUserByEmail(
       proReq.email,
-      { data: { role: 'b2b', name: proReq.name } }
+      {
+        data: { role: 'b2b', name: proReq.name },
+        redirectTo: `${siteUrl}/auth/callback?next=/pro/definir-mot-de-passe`,
+      }
     );
     if (inviteErr) {
       return NextResponse.json({ error: inviteErr.message }, { status: 400 });
