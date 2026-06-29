@@ -113,7 +113,7 @@ export default function ComptePage() {
               <div className="kpi-label">Total HT {new Date().getFullYear()}</div>
             </div>
             <div className="kpi">
-              <div className="kpi-value">{isPro() ? `−${user.proDiscountPct ?? 0} %` : 'Standard'}</div>
+              <div className="kpi-value">{isPro() && user.proDiscounts && Object.keys(user.proDiscounts).length > 0 ? 'Remises pro' : 'Standard'}</div>
               <div className="kpi-label">Remise compte</div>
             </div>
           </div>
@@ -205,7 +205,7 @@ export default function ComptePage() {
               <div className="tarifs-box">
                 <div className="tarif-row">
                   <span>Remise négociée</span>
-                  <strong>{user.proDiscountPct ?? 0} %</strong>
+                  <strong>{user.proDiscounts && Object.keys(user.proDiscounts).length > 0 ? 'Par famille' : '—'}</strong>
                 </div>
                 <div className="tarif-row">
                   <span>Livraison offerte</span>

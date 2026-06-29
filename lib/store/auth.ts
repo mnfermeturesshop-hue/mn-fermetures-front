@@ -93,7 +93,7 @@ export const useAuthStore = create<AuthStore>()(
             name: 'Démo Pro',
             role: 'b2b',
             company: 'Pose & Déco SARL',
-            proDiscountPct: 0,
+            proDiscounts: {},
           },
         });
         return {};
