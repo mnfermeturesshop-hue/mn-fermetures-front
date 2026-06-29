@@ -1,118 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useCheckoutStore, shippingCostHT } from '@/lib/store/checkout';
-import { useCartStore, euro } from '@/lib/store/cart';
+import { useCartStore } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
-import { toast } from '@/components/ui/Toast';
+import { StripeCardForm } from '@/components/checkout/StripeCardForm';
 import type { PaymentMethod } from '@/lib/store/checkout';
 
 interface Props { onBack: () => void }
 
-function fmtCard(v: string) {
-  return v.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
-}
-function fmtExpiry(v: string) {
-  const d = v.replace(/\D/g, '').slice(0, 4);
-  return d.length > 2 ? d.slice(0, 2) + '/' + d.slice(2) : d;
-}
-
-function CardForm({ onPay, paying }: { onPay: () => void; paying: boolean }) {
-  const [cardNum, setCardNum] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [cvc, setCvc] = useState('');
-  const [holder, setHolder] = useState('');
-  const { totalTTC, isFranco } = useCartStore();
-  const { shippingMethod } = useCheckoutStore();
-  const frais = shippingCostHT(shippingMethod, isFranco()) * 1.2;
-  const grand = totalTTC() + frais;
-
-  const valid = cardNum.replace(/\s/g, '').length === 16 && expiry.length === 5 && cvc.length >= 3 && holder.trim().length > 0;
-
-  return (
-    <div className="card-form">
-      <div className="stripe-badge">
-        <span>Paiement sécurisé</span>
-        <span className="stripe-logo">🔒 SSL</span>
-      </div>
-
-      <div className="field">
-        <label>Numéro de carte</label>
-        <div className="card-input-wrap">
-          <input
-            type="text"
-            inputMode="numeric"
-            placeholder="1234 5678 9012 3456"
-            value={cardNum}
-            maxLength={19}
-            onChange={(e) => setCardNum(fmtCard(e.target.value))}
-            autoComplete="cc-number"
-          />
-          <span className="card-icons">💳</span>
-        </div>
-      </div>
-
-      <div className="card-row-2">
-        <div className="field">
-          <label>Date d&apos;expiration</label>
-          <input
-            type="text"
-            inputMode="numeric"
-            placeholder="MM/AA"
-            value={expiry}
-            maxLength={5}
-            onChange={(e) => setExpiry(fmtExpiry(e.target.value))}
-            autoComplete="cc-exp"
-          />
-        </div>
-        <div className="field">
-          <label>CVC</label>
-          <input
-            type="text"
-            inputMode="numeric"
-            placeholder="123"
-            value={cvc}
-            maxLength={4}
-            onChange={(e) => setCvc(e.target.value.replace(/\D/g, '').slice(0, 4))}
-            autoComplete="cc-csc"
-          />
-        </div>
-      </div>
-
-      <div className="field">
-        <label>Titulaire de la carte</label>
-        <input
-          type="text"
-          placeholder="Jean Dupont"
-          value={holder}
-          onChange={(e) => setHolder(e.target.value)}
-          autoComplete="cc-name"
-        />
-      </div>
-
-      <button
-        className={`btn pay-btn full ${paying ? 'paying' : ''}`}
-        type="button"
-        disabled={!valid || paying}
-        onClick={onPay}
-      >
-        {paying ? (
-          <span className="pay-loading"><span className="spinner" /> Traitement en cours…</span>
-        ) : (
-          `Payer ${euro(grand)} TTC`
-        )}
-      </button>
-
-      <p className="pay-notice">
-        Vos données bancaires sont chiffrées et ne sont jamais stockées sur nos serveurs.
-      </p>
-    </div>
-  );
-}
-
 function VirementForm({ onConfirm, paying }: { onConfirm: () => void; paying: boolean }) {
-  const { placedOrder } = useCheckoutStore();
   const tempRef = `CMD-${new Date().getFullYear()}-XXXX`;
   return (
     <div className="virement-form">
@@ -142,11 +39,14 @@ function VirementForm({ onConfirm, paying }: { onConfirm: () => void; paying: bo
 }
 
 export function PaymentStep({ onBack }: Props) {
-  const { paymentMethod, setPaymentMethod, placeOrder, shippingAddress, billingAddress,
-    sameAsBilling, shippingMethod, guestEmail, guestMode } = useCheckoutStore();
+  const {
+    paymentMethod, setPaymentMethod, placeOrder,
+    shippingAddress, billingAddress, sameAsBilling,
+    shippingMethod, guestEmail, guestMode,
+    setPendingOrderPayload,
+  } = useCheckoutStore();
   const { user, isPro } = useAuthStore();
   const { lines, totalHT, totalTTC, isFranco, clearCart } = useCartStore();
-  const router = useRouter();
   const [paying, setPaying] = useState(false);
 
   const defaultMethod: PaymentMethod = isPro() ? 'virement' : 'card';
@@ -154,53 +54,62 @@ export function PaymentStep({ onBack }: Props) {
     setPaymentMethod(defaultMethod);
   }
 
-  const handlePay = async () => {
+  const fraisHT  = shippingCostHT(shippingMethod, isFranco());
+  const grandHT  = totalHT() + fraisHT;
+  const grandTTC = totalTTC() + fraisHT * 1.2;
+
+  const email        = guestMode ? guestEmail : (user?.email ?? '');
+  const customerName = guestMode
+    ? `${shippingAddress.firstName} ${shippingAddress.lastName}`.trim()
+    : (user?.name ?? '');
+
+  // Génère le numéro de commande une seule fois dès que ce composant est monté
+  const [orderNumber] = useState(() => placeOrder({ lines, totalHT: grandHT, totalTTC: grandTTC, isFranco: isFranco() }));
+
+  const buildPayload = () => ({
+    orderNumber,
+    email,
+    customerName,
+    isGuest: guestMode || !user,
+    userId: user?.id,
+    paymentMethod,
+    shippingMethod,
+    lines,
+    totalHT: grandHT,
+    totalTTC: grandTTC,
+    fraisHT,
+    shippingAddress,
+    billingAddress: sameAsBilling ? shippingAddress : billingAddress,
+  });
+
+  // Paiement carte : Stripe gère la redirection vers /commande/confirmation
+  const handleStripeConfirm = async (confirmStripe: () => Promise<{ error?: string }>) => {
+    setPendingOrderPayload(buildPayload());
+    const result = await confirmStripe();
+    if (result.error) setPaying(false);
+    // En cas de succès, Stripe redirige — pas besoin d'action supplémentaire
+  };
+
+  // Paiement virement : on sauvegarde directement et on redirige
+  const handleVirement = async () => {
     setPaying(true);
-    const fraisHT = shippingCostHT(shippingMethod, isFranco());
-    const orderId = placeOrder({
-      lines,
-      totalHT: totalHT() + fraisHT,
-      totalTTC: totalTTC() + fraisHT * 1.2,
-      isFranco: isFranco(),
-    });
-
-    const email = guestMode ? guestEmail : (user?.email ?? '');
-    const customerName = guestMode
-      ? `${shippingAddress.firstName} ${shippingAddress.lastName}`.trim()
-      : (user?.name ?? '');
-
+    const payload = buildPayload();
     try {
       await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderNumber: orderId,
-          email,
-          customerName,
-          isGuest: guestMode || !user,
-          userId: user?.id,
-          paymentMethod,
-          shippingMethod,
-          lines,
-          totalHT: totalHT() + fraisHT,
-          totalTTC: totalTTC() + fraisHT * 1.2,
-          fraisHT,
-          shippingAddress,
-          billingAddress: sameAsBilling ? shippingAddress : billingAddress,
-        }),
+        body: JSON.stringify(payload),
       });
     } catch (e) {
       console.error('[checkout] order API error:', e);
     }
-
     clearCart();
-    toast.success('Commande confirmée !');
-    router.push(`/commande/${orderId}`);
+    window.location.href = `/commande/${orderNumber}`;
   };
 
   const methods: { id: PaymentMethod; label: string; icon: string }[] = [
-    { id: 'card',     label: 'Carte bancaire',     icon: '💳' },
-    { id: 'virement', label: 'Virement bancaire',   icon: '🏦' },
+    { id: 'card',     label: 'Carte bancaire',   icon: '💳' },
+    { id: 'virement', label: 'Virement bancaire', icon: '🏦' },
   ];
 
   return (
@@ -215,6 +124,7 @@ export function PaymentStep({ onBack }: Props) {
               type="button"
               className={`payment-tab ${paymentMethod === m.id ? 'active' : ''}`}
               onClick={() => setPaymentMethod(m.id)}
+              disabled={paying}
             >
               <span>{m.icon}</span> {m.label}
               {m.id === 'virement' && isPro() && (
@@ -224,9 +134,18 @@ export function PaymentStep({ onBack }: Props) {
           ))}
         </div>
 
-        {paymentMethod === 'card'
-          ? <CardForm onPay={handlePay} paying={paying} />
-          : <VirementForm onConfirm={handlePay} paying={paying} />}
+        {paymentMethod === 'card' ? (
+          <StripeCardForm
+            amountTTC={grandTTC}
+            orderNumber={orderNumber}
+            email={email}
+            onPay={handleStripeConfirm}
+            paying={paying}
+            setExternalPaying={setPaying}
+          />
+        ) : (
+          <VirementForm onConfirm={handleVirement} paying={paying} />
+        )}
       </div>
 
       <div className="ck-actions">

@@ -30,6 +30,22 @@ export interface PlacedOrder {
   paymentMethod: PaymentMethod;
 }
 
+export interface PendingOrderPayload {
+  orderNumber: string;
+  email: string;
+  customerName: string;
+  isGuest: boolean;
+  userId?: string;
+  paymentMethod: PaymentMethod;
+  shippingMethod: ShippingMethod;
+  lines: CartLine[];
+  totalHT: number;
+  totalTTC: number;
+  fraisHT: number;
+  shippingAddress: Address;
+  billingAddress: Address;
+}
+
 const SHIPPING_PRICE: Record<ShippingMethod, number> = {
   standard: 26,   // 0 si franco
   express: 42,
@@ -55,7 +71,9 @@ interface CheckoutStore {
   shippingMethod: ShippingMethod;
   paymentMethod: PaymentMethod;
   placedOrder: PlacedOrder | null;
+  pendingOrderPayload: PendingOrderPayload | null;
 
+  setPendingOrderPayload: (p: PendingOrderPayload | null) => void;
   setStep: (s: 1 | 2 | 3) => void;
   setGuestEmail: (email: string) => void;
   setGuestMode: (v: boolean) => void;
@@ -93,7 +111,9 @@ export const useCheckoutStore = create<CheckoutStore>()(
       shippingMethod: 'standard',
       paymentMethod: 'card',
       placedOrder: null,
+      pendingOrderPayload: null,
 
+      setPendingOrderPayload: (p) => set({ pendingOrderPayload: p }),
       setStep: (s) => set({ step: s }),
       setGuestEmail: (email) => set({ guestEmail: email }),
       setGuestMode: (v) => set({ guestMode: v }),
@@ -135,7 +155,7 @@ export const useCheckoutStore = create<CheckoutStore>()(
     }),
     {
       name: 'mm-checkout',
-      partialize: (s) => ({ placedOrder: s.placedOrder }),
+      partialize: (s) => ({ placedOrder: s.placedOrder, pendingOrderPayload: s.pendingOrderPayload }),
     }
   )
 );
