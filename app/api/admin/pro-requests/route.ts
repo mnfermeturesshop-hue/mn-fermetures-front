@@ -56,12 +56,14 @@ export async function PATCH(req: NextRequest) {
 
       const gmailUser = process.env.GMAIL_USER;
       const gmailPass = process.env.GMAIL_APP_PASSWORD;
-      if (gmailUser && gmailPass) {
-        const transporter = nodemailer.createTransport({
-          host: 'smtp.gmail.com', port: 465, secure: true,
-          auth: { user: gmailUser, pass: gmailPass },
-        });
-        await transporter.sendMail({
+      if (!gmailUser || !gmailPass) {
+        return NextResponse.json({ error: 'GMAIL_USER ou GMAIL_APP_PASSWORD manquant dans les variables d\'environnement' }, { status: 500 });
+      }
+      const transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com', port: 465, secure: true,
+        auth: { user: gmailUser, pass: gmailPass },
+      });
+      await transporter.sendMail({
           from: `MN Fermetures <${gmailUser}>`,
           to: proReq.email,
           subject: 'Votre accès espace professionnel MN Fermetures',
@@ -88,8 +90,7 @@ export async function PATCH(req: NextRequest) {
     </p>
   </div>
 </div>`,
-        });
-      }
+      });
 
       return NextResponse.json({ ok: true });
     }

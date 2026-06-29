@@ -49,7 +49,12 @@ export default function AdminProRequests() {
 
       setRequests((prev) =>
         prev.map((r) => r.id === id
-          ? { ...r, status: action === 'approve' ? 'approved' : 'rejected' }
+          ? {
+              ...r,
+              status: action === 'approve' ? 'approved'
+                    : action === 'reject'  ? 'rejected'
+                    : r.status,
+            }
           : r
         )
       );
