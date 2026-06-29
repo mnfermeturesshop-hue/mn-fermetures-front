@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useCheckoutStore, shippingCostHT } from '@/lib/store/checkout';
+import { useCheckoutStore, shippingCostHT, genOrderId } from '@/lib/store/checkout';
 import { useCartStore } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
 import { StripeCardForm } from '@/components/checkout/StripeCardForm';
@@ -40,7 +40,7 @@ function VirementForm({ onConfirm, paying }: { onConfirm: () => void; paying: bo
 
 export function PaymentStep({ onBack }: Props) {
   const {
-    paymentMethod, setPaymentMethod, placeOrder,
+    paymentMethod, setPaymentMethod,
     shippingAddress, billingAddress, sameAsBilling,
     shippingMethod, guestEmail, guestMode,
     setPendingOrderPayload,
@@ -64,7 +64,7 @@ export function PaymentStep({ onBack }: Props) {
     : (user?.name ?? '');
 
   // Génère le numéro de commande une seule fois dès que ce composant est monté
-  const [orderNumber] = useState(() => placeOrder({ lines, totalHT: grandHT, totalTTC: grandTTC, isFranco: isFranco() }));
+  const [orderNumber] = useState(() => genOrderId());
 
   const buildPayload = () => ({
     orderNumber,

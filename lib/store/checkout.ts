@@ -93,7 +93,7 @@ interface CheckoutStore {
   reset: () => void;
 }
 
-function genOrderId(): string {
+export function genOrderId(): string {
   const year = new Date().getFullYear();
   const num = String(Math.floor(Math.random() * 9000) + 1000);
   return `CMD-${year}-${num}`;
@@ -138,7 +138,7 @@ export const useCheckoutStore = create<CheckoutStore>()(
           shippingMethod,
           paymentMethod,
         };
-        set({ placedOrder: order, step: 1 });
+        set({ placedOrder: order });
         return id;
       },
 
