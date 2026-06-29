@@ -36,7 +36,7 @@ export default function AdminProRequests() {
       .then((data) => { setRequests(data); setLoading(false); });
   }, []);
 
-  const handle = async (id: string, action: 'approve' | 'reject') => {
+  const handle = async (id: string, action: 'approve' | 'reject' | 'resend') => {
     setActing(id + action);
     try {
       const res = await fetch('/api/admin/pro-requests', {
@@ -53,9 +53,10 @@ export default function AdminProRequests() {
           : r
         )
       );
-      toast.success(action === 'approve'
-        ? 'Compte créé — invitation envoyée par email au client'
-        : 'Demande refusée'
+      toast.success(
+        action === 'approve' ? 'Compte créé — invitation envoyée par email au client' :
+        action === 'resend'  ? 'Invitation renvoyée par email' :
+        'Demande refusée'
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -133,10 +134,18 @@ export default function AdminProRequests() {
                           {acting === r.id + 'reject' ? '…' : '✕ Refuser'}
                         </button>
                       </>
+                    ) : r.status === 'approved' ? (
+                      <button
+                        type="button"
+                        className="adm-action-btn"
+                        onClick={() => handle(r.id, 'resend')}
+                        disabled={!!acting}
+                        title="Renvoyer le mail d'invitation"
+                      >
+                        {acting === r.id + 'resend' ? '…' : '↩ Renvoyer'}
+                      </button>
                     ) : (
-                      <span className="adm-muted" style={{ fontSize: 13 }}>
-                        {r.status === 'approved' ? 'Invitation envoyée' : 'Demande refusée'}
-                      </span>
+                      <span className="adm-muted" style={{ fontSize: 13 }}>Demande refusée</span>
                     )}
                   </td>
                 </tr>

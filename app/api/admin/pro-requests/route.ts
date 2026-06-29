@@ -23,13 +23,32 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY manquante' }, { status: 500 });
   }
   try {
-    const { id, action } = await req.json() as { id: string; action: 'approve' | 'reject' };
+    const { id, action } = await req.json() as { id: string; action: 'approve' | 'reject' | 'resend' };
     if (!id || !action) return NextResponse.json({ error: 'id et action requis' }, { status: 400 });
 
     const supabase = createAdminClient();
 
     if (action === 'reject') {
       await supabase.from('pro_requests').update({ status: 'rejected' }).eq('id', id);
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === 'resend') {
+      const { data: proReq, error: fetchErr } = await supabase
+        .from('pro_requests')
+        .select('email, name')
+        .eq('id', id)
+        .single();
+      if (fetchErr || !proReq) {
+        return NextResponse.json({ error: 'Demande introuvable' }, { status: 404 });
+      }
+      const { error: inviteErr } = await supabase.auth.admin.inviteUserByEmail(
+        proReq.email,
+        { data: { role: 'b2b', name: proReq.name } }
+      );
+      if (inviteErr) {
+        return NextResponse.json({ error: inviteErr.message }, { status: 400 });
+      }
       return NextResponse.json({ ok: true });
     }
 
