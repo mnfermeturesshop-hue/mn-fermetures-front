@@ -29,7 +29,7 @@ interface OrderRow {
   shipping_method: string;
   status: string;
   lines: { name: string; quantity: number }[];
-  shipping_addr: { firstName: string; lastName: string; city: string };
+  shipping_address: { firstName: string; lastName: string; city: string };
 }
 
 const MOCK_ORDERS: OrderRow[] = [
@@ -42,7 +42,7 @@ const MOCK_ORDERS: OrderRow[] = [
     shipping_method: 'standard',
     status: 'pending',
     lines: [{ name: 'Tablier PVC 40', quantity: 3 }, { name: 'Motorisation Somfy', quantity: 1 }],
-    shipping_addr: { firstName: 'Jean', lastName: 'Dupont', city: 'Montpellier' },
+    shipping_address: { firstName: 'Jean', lastName: 'Dupont', city: 'Montpellier' },
   },
   {
     id: 'CMD-2026-0002',
@@ -53,7 +53,7 @@ const MOCK_ORDERS: OrderRow[] = [
     shipping_method: 'express',
     status: 'paid',
     lines: [{ name: 'Kit axe 1500', quantity: 2 }],
-    shipping_addr: { firstName: 'Marie', lastName: 'Martin', city: 'Béziers' },
+    shipping_address: { firstName: 'Marie', lastName: 'Martin', city: 'Béziers' },
   },
 ];
 
@@ -153,7 +153,7 @@ export default function AdminCommandes() {
                 <tr key={o.id} className="adm-tr">
                   <td><span className="ref">{o.id}</span></td>
                   <td>{new Date(o.created_at).toLocaleDateString('fr-FR')}</td>
-                  <td>{o.shipping_addr.firstName} {o.shipping_addr.lastName}<br /><span className="adm-muted">{o.shipping_addr.city}</span></td>
+                  <td>{o.shipping_address?.firstName} {o.shipping_address?.lastName}<br /><span className="adm-muted">{o.shipping_address?.city}</span></td>
                   <td>
                     {o.lines.slice(0, 2).map((l, i) => (
                       <div key={i} className="adm-muted" style={{ fontSize: 12 }}>{l.quantity}× {l.name}</div>
