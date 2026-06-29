@@ -6,9 +6,10 @@ import { usePathname } from 'next/navigation';
 const NAV = [
   { href: '/admin',            label: 'Dashboard',    icon: '◈' },
   { href: '/admin/produits',   label: 'Produits',     icon: '▣' },
+  { href: '/admin/clients',    label: 'Clients pro',  icon: '👥' },
+  { href: '/admin/commandes',  label: 'Commandes',    icon: '🧾' },
   { href: '/admin/inventaire', label: 'Inventaire',   icon: '📦' },
   { href: '/admin/import',     label: 'Import Excel', icon: '⬆' },
-  { href: '/admin/commandes',  label: 'Commandes',    icon: '🧾' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

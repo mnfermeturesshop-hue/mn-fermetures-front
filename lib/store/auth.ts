@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { DiscountMap } from '@/lib/familles';
 
 export type UserRole = 'guest' | 'b2c' | 'b2b' | 'admin';
 
@@ -11,7 +12,7 @@ export interface AuthUser {
   name: string;
   role: UserRole;
   company?: string;
-  proDiscountPct?: number;
+  proDiscounts?: DiscountMap;
 }
 
 interface AuthStore {
@@ -57,10 +58,10 @@ export const useAuthStore = create<AuthStore>()(
               return { error: error.message };
             }
 
-            // Récupère le profil étendu (rôle, entreprise, remise)
+            // Récupère le profil étendu (rôle, entreprise, remises)
             const { data: profile } = await supabase
               .from('profiles')
-              .select('name, role, company, pro_discount_pct')
+              .select('name, role, company, discounts')
               .eq('id', data.user.id)
               .single();
 
@@ -72,7 +73,7 @@ export const useAuthStore = create<AuthStore>()(
                 name: profile?.name ?? email.split('@')[0],
                 role: (profile?.role as UserRole) ?? 'b2c',
                 company: profile?.company ?? undefined,
-                proDiscountPct: profile?.pro_discount_pct ?? 0,
+                proDiscounts: (profile?.discounts as DiscountMap) ?? {},
               },
             });
             return {};
@@ -115,7 +116,7 @@ export const useAuthStore = create<AuthStore>()(
             name: 'Pro Test',
             role: 'b2b',
             company: 'Test SARL',
-            proDiscountPct: 5,
+            proDiscounts: { 'volet-roulant': 10, 'accessoires': 5 },
           },
         }),
 

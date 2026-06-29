@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { type UnitProduct, type ProductVariant } from '@/lib/catalog/types';
 import { useCartStore, euro } from '@/lib/store/cart';
+import { useAuthStore } from '@/lib/store/auth';
+import { getDiscount, applyDiscount } from '@/lib/familles';
 import { toast } from '@/components/ui/Toast';
 import { trackAddToCart } from '@/lib/analytics';
 
@@ -17,7 +19,10 @@ export function UnitProductPanel({ product }: { product: UnitProduct }) {
   const [selectedRef, setSelectedRef] = useState(product.variants[0]?.reference ?? '');
   const [qty, setQty] = useState(1);
   const { addLine, openCart, showTTC } = useCartStore();
+  const { user } = useAuthStore();
   const TVA = 0.20;
+
+  const discountPct = getDiscount(user?.proDiscounts, product.famille);
 
   const variant: ProductVariant | undefined = product.variants.find((v) => v.reference === selectedRef);
 
@@ -28,7 +33,7 @@ export function UnitProductPanel({ product }: { product: UnitProduct }) {
       name: product.name,
       detail: variant.label,
       reference: variant.reference,
-      unitPriceHT: variant.priceHT,
+      unitPriceHT: applyDiscount(variant.priceHT, discountPct),
       quantity: qty,
       uom: product.uom,
     });
@@ -111,16 +116,24 @@ export function UnitProductPanel({ product }: { product: UnitProduct }) {
               </div>
             </div>
             <div>
+              {discountPct > 0 && (
+                <div className="unit-discount-badge">−{discountPct}% pro</div>
+              )}
               <div className="pr">
                 {showTTC
-                  ? <>{euro(variant.priceHT * qty * (1 + TVA))}<small> TTC</small></>
-                  : <>{euro(variant.priceHT * qty)}<small> HT</small></>
+                  ? <>{euro(applyDiscount(variant.priceHT, discountPct) * qty * (1 + TVA))}<small> TTC</small></>
+                  : <>{euro(applyDiscount(variant.priceHT, discountPct) * qty)}<small> HT</small></>
                 }
               </div>
+              {discountPct > 0 && (
+                <div className="unit-uprice unit-uprice--crossed">
+                  {euro(variant.priceHT)} HT / {uomLabel}
+                </div>
+              )}
               <div className="unit-uprice">
                 {showTTC
-                  ? <>{euro(variant.priceHT * (1 + TVA))} TTC / {uomLabel}</>
-                  : <>{euro(variant.priceHT)} HT / {uomLabel}</>
+                  ? <>{euro(applyDiscount(variant.priceHT, discountPct) * (1 + TVA))} TTC / {uomLabel}</>
+                  : <>{euro(applyDiscount(variant.priceHT, discountPct))} HT / {uomLabel}</>
                 }
               </div>
             </div>

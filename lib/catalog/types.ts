@@ -5,6 +5,8 @@
    c'est ce qui permet de câbler la vraie base sans réécrire l'UI.
    ===================================================================== */
 
+import type { FamilleSlug } from '@/lib/familles';
+
 /** Prix en euros, toujours HT (audience pro). */
 export type MoneyHT = number;
 
@@ -29,6 +31,8 @@ interface ProductBase {
   slug: string;
   name: string;
   categorySlug: string;
+  /** Famille commerciale — détermine le taux de remise B2B applicable. */
+  famille?: FamilleSlug;
   /** Position exacte dans l'arbre menu — ex: /catalogue/motorisations/somfy-filaires */
   menuPath?: string;
   /** URL publique du visuel (Supabase Storage) */

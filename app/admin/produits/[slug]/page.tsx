@@ -8,6 +8,7 @@ import { getAllBrands, getProductBySlugDB } from '@/lib/catalog/db';
 import type { Brand } from '@/lib/catalog/types';
 import { flatMenuOptions, categorySlugFromHref } from '@/lib/catalog/menuResolve';
 import type { MenuOption } from '@/lib/catalog/menuResolve';
+import { FAMILLES, type FamilleSlug } from '@/lib/familles';
 
 type PricingType = 'unit' | 'matrix' | 'kit';
 
@@ -41,6 +42,7 @@ export default function ProduitForm() {
   const [brandSlug, setBrandSlug] = useState('');
   const [pricingType, setPricingType] = useState<PricingType>('unit');
   const [proOnly, setProOnly] = useState(false);
+  const [famille, setFamille] = useState<FamilleSlug>('volet-roulant');
   const [uom, setUom] = useState('unite');
 
   // Variants (unit)
@@ -67,6 +69,7 @@ export default function ProduitForm() {
         if (p.imageUrl) { setExistingImageUrl(p.imageUrl); setImagePreview(p.imageUrl); }
         setPricingType(p.pricingType);
         setProOnly(p.proOnly ?? false);
+        if (p.famille) setFamille(p.famille);
         if (p.pricingType === 'unit') {
           setUom(p.uom);
           setVariants(p.variants.map((v) => ({
@@ -153,6 +156,7 @@ export default function ProduitForm() {
         category_slug: categorySlugFromHref(menuPath),
         brand_slug: brandSlug || null,
         pricing_type: pricingType,
+        famille,
         pro_only: proOnly,
         active: true,
         image_url: finalImageUrl, // toujours explicite (null = suppression)
@@ -297,6 +301,15 @@ export default function ProduitForm() {
                 <option value="matrix">Sur mesure (grille H×L)</option>
                 <option value="kit">Kit (configs fixes)</option>
               </select>
+            </div>
+            <div className="adm-field">
+              <label>Famille commerciale *</label>
+              <select value={famille} onChange={(e) => setFamille(e.target.value as FamilleSlug)}>
+                {FAMILLES.map((f) => (
+                  <option key={f.slug} value={f.slug}>{f.label}</option>
+                ))}
+              </select>
+              <div className="adm-form-hint">Détermine le taux de remise B2B applicable.</div>
             </div>
             <div className="adm-field adm-field-check">
               <label>
