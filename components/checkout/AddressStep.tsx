@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Address } from '@/lib/store/checkout';
 import { useCheckoutStore } from '@/lib/store/checkout';
 import { useAuthStore } from '@/lib/store/auth';
+import { fetchCitiesByPostalCode, type CityOption } from '@/lib/geo';
 
 interface Props { onNext: () => void }
 
@@ -16,6 +17,23 @@ function AddressFields({
   value: Address;
   onChange: (a: Address) => void;
 }) {
+  const [cityOptions, setCityOptions] = useState<CityOption[]>([]);
+
+  useEffect(() => {
+    const cp = value.postalCode;
+    if (!/^\d{5}$/.test(cp)) { setCityOptions([]); return; }
+    let cancelled = false;
+    fetchCitiesByPostalCode(cp).then((cities) => {
+      if (cancelled) return;
+      setCityOptions(cities);
+      if (cities.length === 1) {
+        onChange({ ...value, city: cities[0].nom });
+      }
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value.postalCode]);
+
   const field = (key: keyof Address, label: string, type = 'text', required = true, pattern?: string) => (
     <div className="field">
       <label htmlFor={`${prefix}-${key}`}>{label}{required && ' *'}</label>
@@ -24,8 +42,13 @@ function AddressFields({
         type={type}
         required={required}
         pattern={pattern}
+        maxLength={key === 'postalCode' ? 5 : undefined}
+        inputMode={key === 'postalCode' ? 'numeric' : undefined}
         value={value[key]}
-        onChange={(e) => onChange({ ...value, [key]: e.target.value })}
+        onChange={(e) => {
+          const v = key === 'postalCode' ? e.target.value.replace(/\D/g, '') : e.target.value;
+          onChange({ ...value, [key]: v });
+        }}
         autoComplete={key === 'firstName' ? 'given-name' : key === 'lastName' ? 'family-name' : key}
       />
     </div>
@@ -42,7 +65,31 @@ function AddressFields({
       {field('address2', "Complément d'adresse", 'text', false)}
       <div className="addr-row-2">
         {field('postalCode', 'Code postal', 'text', true, '[0-9]{5}')}
-        {field('city', 'Ville')}
+        <div className="field">
+          <label htmlFor={`${prefix}-city`}>Ville *</label>
+          {cityOptions.length > 1 ? (
+            <select
+              id={`${prefix}-city`}
+              required
+              value={value.city}
+              onChange={(e) => onChange({ ...value, city: e.target.value })}
+            >
+              <option value="">Choisir une ville…</option>
+              {cityOptions.map((c) => (
+                <option key={c.code} value={c.nom}>{c.nom}</option>
+              ))}
+            </select>
+          ) : (
+            <input
+              id={`${prefix}-city`}
+              type="text"
+              required
+              value={value.city}
+              onChange={(e) => onChange({ ...value, city: e.target.value })}
+              autoComplete="address-level2"
+            />
+          )}
+        </div>
       </div>
       {field('phone', 'Téléphone', 'tel', true)}
     </div>

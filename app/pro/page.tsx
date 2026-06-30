@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store/auth';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { toast } from '@/components/ui/Toast';
+import { fetchCompanyBySiret } from '@/lib/siret';
 
 type Tab = 'login' | 'register';
 
@@ -75,6 +76,23 @@ function RegisterForm() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [siretLoading, setSiretLoading] = useState(false);
+  const [companyAutoFilled, setCompanyAutoFilled] = useState(false);
+
+  useEffect(() => {
+    if (siret.length !== 14) return;
+    let cancelled = false;
+    setSiretLoading(true);
+    fetchCompanyBySiret(siret).then((info) => {
+      if (cancelled) return;
+      setSiretLoading(false);
+      if (info?.nom) {
+        setCompany(info.nom);
+        setCompanyAutoFilled(true);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [siret]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,17 +142,6 @@ function RegisterForm() {
       {step === 1 && (
         <>
           <div className="field">
-            <label htmlFor="company">Raison sociale *</label>
-            <input
-              id="company"
-              type="text"
-              required
-              value={company}
-              onChange={(e) => setCompany(e.target.value)}
-              placeholder="Pose & Déco SARL"
-            />
-          </div>
-          <div className="field">
             <label htmlFor="siret">N° SIRET *</label>
             <input
               id="siret"
@@ -142,10 +149,26 @@ function RegisterForm() {
               required
               pattern="[0-9]{14}"
               maxLength={14}
+              inputMode="numeric"
               value={siret}
               onChange={(e) => setSiret(e.target.value.replace(/\D/g, ''))}
               placeholder="12345678900014"
             />
+            {siretLoading && <span className="field-hint">Recherche de l&apos;entreprise…</span>}
+          </div>
+          <div className="field">
+            <label htmlFor="company">Raison sociale *</label>
+            <input
+              id="company"
+              type="text"
+              required
+              value={company}
+              onChange={(e) => { setCompany(e.target.value); setCompanyAutoFilled(false); }}
+              placeholder="Pose & Déco SARL"
+            />
+            {companyAutoFilled && !siretLoading && (
+              <span className="field-hint" style={{ color: '#16a34a' }}>✓ Entreprise trouvée automatiquement</span>
+            )}
           </div>
           <button
             className="btn solid full"
