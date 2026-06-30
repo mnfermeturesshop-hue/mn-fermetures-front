@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { type MatrixProduct } from '@/lib/catalog/types';
 import { resolveMatrixPrice } from '@/lib/catalog/resolvePrice';
 import { useCartStore, euro } from '@/lib/store/cart';
+import { useAuthStore } from '@/lib/store/auth';
+import { getDiscount, applyDiscount } from '@/lib/familles';
 import { toast } from '@/components/ui/Toast';
 import { trackAddToCart } from '@/lib/analytics';
 
@@ -27,6 +29,7 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
   const [opts, setOpts]     = useState<string[]>([]);
   const [color, setColor]   = useState(product.colors?.[0]?.code ?? '');
   const { addLine, openCart, showTTC } = useCartStore();
+  const { user } = useAuthStore();
   const TVA = 0.20;
 
   // Encoder les dimensions dans l'URL pour partage/devis
@@ -44,9 +47,11 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
     () => resolveMatrixPrice(product, height, width, opts),
     [product, height, width, opts]
   );
+  const discountPct = getDiscount(user?.proDiscounts, product.famille);
+  const finalPrice = price === null ? null : applyDiscount(price, discountPct);
 
   const handleAdd = () => {
-    if (price === null) return;
+    if (finalPrice === null) return;
     const optLabels = opts
       .map((c) => product.options?.find((o) => o.code === c)?.label)
       .filter(Boolean)
@@ -60,11 +65,11 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
       key: `${product.slug}-${height}-${width}-${color}-${opts.sort().join('+')}`,
       name: product.name,
       detail,
-      unitPriceHT: price,
+      unitPriceHT: finalPrice,
       quantity: 1,
       uom: 'unite',
     });
-    trackAddToCart({ key: `${product.slug}-${height}-${width}`, name: product.name, categorySlug: product.categorySlug, priceHT: price, quantity: 1 });
+    trackAddToCart({ key: `${product.slug}-${height}-${width}`, name: product.name, categorySlug: product.categorySlug, priceHT: finalPrice, quantity: 1 });
     toast.success('Tablier ajouté au panier');
     openCart();
   };
@@ -133,19 +138,27 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
         <div className="price-out">
           <div>
             <div className="eyebrow">Prix indicatif</div>
+            {discountPct > 0 && finalPrice !== null && (
+              <div className="unit-discount-badge">−{discountPct}% pro</div>
+            )}
             <div className="big">
-              {price === null
+              {finalPrice === null
                 ? '—'
-                : showTTC ? <>{euro(price * (1 + TVA))} <small>TTC</small></> : <>{euro(price)} <small>HT</small></>
+                : showTTC ? <>{euro(finalPrice * (1 + TVA))} <small>TTC</small></> : <>{euro(finalPrice)} <small>HT</small></>
               }
             </div>
+            {discountPct > 0 && price !== null && (
+              <div className="unit-uprice unit-uprice--crossed">
+                {showTTC ? <>{euro(price * (1 + TVA))} TTC</> : <>{euro(price)} HT</>}
+              </div>
+            )}
             <div className="cfg-dims">{width} × {height} mm</div>
           </div>
           <button
             className="btn solid"
             type="button"
             onClick={handleAdd}
-            disabled={price === null}
+            disabled={finalPrice === null}
           >
             Ajouter au panier
           </button>
