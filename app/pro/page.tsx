@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store/auth';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
@@ -10,7 +10,7 @@ import { fetchCompanyBySiret } from '@/lib/siret';
 
 type Tab = 'login' | 'register';
 
-function LoginForm() {
+function LoginForm({ particulier }: { particulier: boolean }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,16 +32,16 @@ function LoginForm() {
 
   return (
     <form className="auth-form" onSubmit={handleSubmit}>
-      <h2>Se connecter</h2>
+      <h2>{particulier ? 'Se connecter à mon espace particulier' : 'Se connecter'}</h2>
       <div className="field">
-        <label htmlFor="email">Email professionnel</label>
+        <label htmlFor="email">{particulier ? 'Adresse email' : 'Email professionnel'}</label>
         <input
           id="email"
           type="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="contact@votre-entreprise.fr"
+          placeholder={particulier ? 'vous@email.fr' : 'contact@votre-entreprise.fr'}
           autoComplete="email"
         />
       </div>
@@ -228,7 +228,9 @@ function RegisterForm() {
   );
 }
 
-export default function ProPage() {
+function ProPageContent() {
+  const searchParams = useSearchParams();
+  const particulier = searchParams.get('type') === 'particulier';
   const [tab, setTab] = useState<Tab>('login');
   const { user, isPro } = useAuthStore();
   const router = useRouter();
@@ -240,66 +242,116 @@ export default function ProPage() {
 
   return (
     <div className="wrap pro-page">
-      <Breadcrumb crumbs={[{ label: 'Accueil', href: '/' }, { label: 'Espace pro' }]} />
+      <Breadcrumb crumbs={[{ label: 'Accueil', href: '/' }, { label: particulier ? 'Connexion' : 'Espace pro' }]} />
 
       <div className="pro-layout">
         {/* Colonne gauche — formulaire */}
         <div className="pro-form-col">
-          <div className="auth-tabs">
-            <button
-              className={`auth-tab ${tab === 'login' ? 'active' : ''}`}
-              type="button"
-              onClick={() => setTab('login')}
-            >
-              Se connecter
-            </button>
-            <button
-              className={`auth-tab ${tab === 'register' ? 'active' : ''}`}
-              type="button"
-              onClick={() => setTab('register')}
-            >
-              Ouvrir un compte pro
-            </button>
-          </div>
+          {particulier ? (
+            <LoginForm particulier />
+          ) : (
+            <>
+              <div className="auth-tabs">
+                <button
+                  className={`auth-tab ${tab === 'login' ? 'active' : ''}`}
+                  type="button"
+                  onClick={() => setTab('login')}
+                >
+                  Se connecter
+                </button>
+                <button
+                  className={`auth-tab ${tab === 'register' ? 'active' : ''}`}
+                  type="button"
+                  onClick={() => setTab('register')}
+                >
+                  Ouvrir un compte pro
+                </button>
+              </div>
 
-          {tab === 'login' ? <LoginForm /> : <RegisterForm />}
+              {tab === 'login' ? <LoginForm particulier={false} /> : <RegisterForm />}
+            </>
+          )}
 
-          <p className="auth-b2c-hint">
-            Vous êtes un particulier ?{' '}
-            <Link href="/inscription">Créer un compte particulier →</Link>
-          </p>
+          {particulier ? (
+            <p className="auth-b2c-hint">
+              Vous êtes un professionnel ?{' '}
+              <Link href="/pro">Ouvrir un compte pro →</Link>
+            </p>
+          ) : (
+            <p className="auth-b2c-hint">
+              Vous êtes un particulier ?{' '}
+              <Link href="/inscription">Créer un compte particulier →</Link>
+            </p>
+          )}
         </div>
 
-        {/* Colonne droite — avantages pro */}
-        <div className="pro-benefits">
-          <div className="pro-benefit-head">
-            <span className="eyebrow">Espace professionnel</span>
-            <h2>Les avantages du compte pro MN Fermetures</h2>
+        {/* Colonne droite — avantages */}
+        {particulier ? (
+          <div className="pro-benefits">
+            <div className="pro-benefit-head">
+              <span className="eyebrow">Espace particulier</span>
+              <h2>Votre espace personnel MN Fermetures</h2>
+            </div>
+            <ul className="pro-benefit-list">
+              {[
+                ['📦', 'Suivi des commandes', 'Historique complet, statuts en temps réel'],
+                ['🧾', 'Factures PDF', 'Téléchargez vos factures à tout moment'],
+                ['📍', 'Adresses enregistrées', 'Gagnez du temps à chaque commande'],
+                ['🔔', 'Notifications', 'Expédition et livraison confirmées par email'],
+              ].map(([icon, title, desc]) => (
+                <li key={title} className="pro-benefit-item">
+                  <span className="pro-benefit-icon">{icon}</span>
+                  <div>
+                    <strong>{title}</strong>
+                    <p>{desc}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="pro-contact-box">
+              <strong>Besoin d&apos;aide pour vous connecter ?</strong>
+              <p>04 67 78 06 63 · Du lundi au vendredi 8h–17h</p>
+            </div>
           </div>
-          <ul className="pro-benefit-list">
-            {[
-              ['💰', 'Tarifs préférentiels HT', 'Accès aux prix négociés et remises volume'],
-              ['📋', 'Devis PDF instantané', 'Générez et téléchargez vos devis en un clic'],
-              ['📦', 'Suivi des commandes', 'Historique complet, statuts en temps réel'],
-              ['🚚', 'Livraison offerte dès 400 € HT', 'En Occitanie — délai 24/48h'],
-              ['💳', 'Paiement différé', 'Règlement par virement à 30 jours fin de mois'],
-              ['🤝', 'Accès à votre commercial', 'Contact direct avec votre interlocuteur dédié'],
-            ].map(([icon, title, desc]) => (
-              <li key={title} className="pro-benefit-item">
-                <span className="pro-benefit-icon">{icon}</span>
-                <div>
-                  <strong>{title}</strong>
-                  <p>{desc}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-          <div className="pro-contact-box">
-            <strong>Besoin d&apos;aide pour créer votre compte ?</strong>
-            <p>04 67 78 06 63 · Du lundi au vendredi 8h–17h</p>
+        ) : (
+          <div className="pro-benefits">
+            <div className="pro-benefit-head">
+              <span className="eyebrow">Espace professionnel</span>
+              <h2>Les avantages du compte pro MN Fermetures</h2>
+            </div>
+            <ul className="pro-benefit-list">
+              {[
+                ['💰', 'Tarifs préférentiels HT', 'Accès aux prix négociés et remises volume'],
+                ['📋', 'Devis PDF instantané', 'Générez et téléchargez vos devis en un clic'],
+                ['📦', 'Suivi des commandes', 'Historique complet, statuts en temps réel'],
+                ['🚚', 'Livraison offerte dès 400 € HT', 'En Occitanie — délai 24/48h'],
+                ['💳', 'Paiement différé', 'Règlement par virement à 30 jours fin de mois'],
+                ['🤝', 'Accès à votre commercial', 'Contact direct avec votre interlocuteur dédié'],
+              ].map(([icon, title, desc]) => (
+                <li key={title} className="pro-benefit-item">
+                  <span className="pro-benefit-icon">{icon}</span>
+                  <div>
+                    <strong>{title}</strong>
+                    <p>{desc}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="pro-contact-box">
+              <strong>Besoin d&apos;aide pour créer votre compte ?</strong>
+              <p>04 67 78 06 63 · Du lundi au vendredi 8h–17h</p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
+  );
+}
+
+export default function ProPage() {
+  return (
+    <Suspense fallback={<div className="wrap pro-page" />}>
+      <ProPageContent />
+    </Suspense>
   );
 }

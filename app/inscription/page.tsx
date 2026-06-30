@@ -81,7 +81,7 @@ export default function InscriptionPage() {
           <p className="reg-success-note">
             Le lien expire dans 24h. Si vous ne le trouvez pas, vérifiez vos spams.
           </p>
-          <Link className="btn solid" href="/pro">
+          <Link className="btn solid" href="/pro?type=particulier">
             Se connecter une fois le compte activé
           </Link>
         </div>
@@ -212,7 +212,7 @@ export default function InscriptionPage() {
 
             <p className="inscription-switch">
               Déjà un compte ?{' '}
-              <Link className="inscription-link" href="/pro">Se connecter</Link>
+              <Link className="inscription-link" href="/pro?type=particulier">Se connecter</Link>
             </p>
 
             <p className="inscription-switch">

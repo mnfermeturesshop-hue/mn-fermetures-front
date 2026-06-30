@@ -27,7 +27,7 @@ export function HomeEspaces({ standalone = false }: { standalone?: boolean }) {
             <Link className="btn ghost full" href="/compte">Mon compte →</Link>
           ) : (
             <>
-              <Link className="btn solid full" href="/pro">Se connecter</Link>
+              <Link className="btn solid full" href="/pro?type=particulier">Se connecter</Link>
               <Link className="btn ghost full" href="/inscription">Créer un compte</Link>
             </>
           )}
