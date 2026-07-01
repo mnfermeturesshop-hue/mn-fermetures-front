@@ -249,6 +249,14 @@ export function MobileMenu({ isOpen, onClose }: Props) {
           })}
         </div>
 
+        {/* Documentation */}
+        <div className="mob-cats">
+          <div className="mob-section-label">Ressources</div>
+          <Link href="/documentation" className="mob-cat-btn" onClick={onClose}>
+            <span>📄 Documentation</span>
+          </Link>
+        </div>
+
         {/* Liens bas */}
         <div className="mob-footer-links">
           <a href="tel:0467780663">📞 04 67 78 06 63</a>
