@@ -2198,6 +2198,145 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
   font-family: monospace;
 }
 
+/* ============================================================
+   Documentation — Visuels télécommandes & store
+   ============================================================ */
+
+/* Somfy RS100 IO remote */
+.rs-remote {
+  display: flex; flex-direction: column; gap: 3px;
+  width: 48px; background: #1e293b; border-radius: 10px;
+  padding: 8px 5px; margin: 0 auto;
+}
+.rs-io { width: 14px; height: 4px; background: #0ea5e9; border-radius: 2px; margin: 0 auto 4px; }
+.rs-btn {
+  background: #334155; color: #94a3b8; border-radius: 5px;
+  padding: 5px 0; text-align: center; font-size: 12px; font-weight: 700;
+}
+.rs-my { font-size: 9px; letter-spacing: .05em; }
+.rs-on { background: #0ea5e9 !important; color: #fff !important; }
+
+/* Gaposa XQ50EX remote */
+.rg-remote { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 0 auto; }
+.rg-front {
+  display: flex; flex-direction: column; gap: 2px;
+  width: 44px; background: #1e293b; border-radius: 10px; padding: 6px 5px;
+}
+.rg-btn { text-align: center; padding: 4px 0; border-radius: 4px; font-size: 12px; color: #94a3b8; font-weight: 700; }
+.rg-sq { font-size: 10px; }
+.rg-back { display: flex; gap: 3px; }
+.rg-bk {
+  font-size: 8px; padding: 2px 5px; border-radius: 3px;
+  background: #334155; color: #64748b; font-weight: 800; letter-spacing: .04em;
+}
+.rg-on { background: #0ea5e9 !important; color: #fff !important; }
+
+/* Store/shutter visual */
+.stv { display: flex; flex-direction: column; align-items: center; gap: 2px; margin: 0 auto; }
+.stv-frame {
+  width: 44px; height: 54px; border: 2px solid #475569;
+  border-radius: 2px; background: #f8fafc; overflow: hidden; position: relative;
+}
+.stv-slats {
+  position: absolute; left: 0; right: 0; height: 20px;
+  background: repeating-linear-gradient(to bottom, #94a3b8 0, #94a3b8 3px, #e2e8f0 3px, #e2e8f0 6px);
+}
+.stv-up { top: 0; }
+.stv-mid { top: 17px; }
+.stv-dn { bottom: 0; }
+.stv-lbl { font-size: 9px; color: #64748b; text-align: center; white-space: nowrap; }
+
+/* Motor feedback badge */
+.mfb {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px;
+  padding: 5px 8px; font-size: 10.5px; color: #166534; text-align: center; width: 100%;
+  margin-top: auto;
+}
+.mfb-x2 { background: #fef9c3; border-color: #fde047; color: #854d0e; }
+.mfb-icon { font-size: 13px; line-height: 1; }
+
+/* Step card */
+.sc {
+  position: relative; background: #fff; border: 1.5px solid #e2e8f0;
+  border-radius: 10px; padding: 10px 10px 10px;
+  min-width: 110px; max-width: 155px; flex: 1 1 110px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 6px; text-align: center;
+}
+.sc-n {
+  position: absolute; top: 8px; left: 8px;
+  width: 22px; height: 22px; background: #1e293b; color: #fff;
+  border-radius: 5px; font-size: 11px; font-weight: 900;
+  display: flex; align-items: center; justify-content: center;
+}
+.sc-vis { display: flex; gap: 4px; align-items: flex-start; justify-content: center; padding-top: 14px; }
+.sc-lbl { font-size: 11px; font-weight: 600; color: #1e293b; line-height: 1.4; }
+.sc-sub { font-size: 10px; color: #64748b; line-height: 1.3; }
+.sc-or {
+  position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+  background: #f59e0b; color: #fff; font-size: 9px; font-weight: 800;
+  padding: 2px 7px; border-radius: 10px; white-space: nowrap;
+}
+
+/* Step grid */
+.sgrid { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+.sgrid-v { flex-direction: column; }
+.sgrid-v .sc { max-width: 100%; min-width: 0; flex: none; width: 100%; flex-direction: row; text-align: left; padding: 10px 12px 10px 40px; }
+.sgrid-v .sc-n { top: 50%; transform: translateY(-50%); left: 10px; }
+.sgrid-v .sc-vis { padding-top: 0; }
+.sgrid-v .mfb { flex-direction: row; margin-top: 0; width: auto; }
+
+/* Suite / section labels */
+.suite-note {
+  font-size: 12px; font-weight: 700; color: #64748b; text-align: center;
+  padding: 6px 0; border-top: 1px dashed #e2e8f0; border-bottom: 1px dashed #e2e8f0; margin: 4px 0;
+}
+.guide-section-lbl { font-size: 13px; font-weight: 700; color: var(--navy-700); margin: 16px 0 6px; }
+
+/* Somfy check cases */
+.check-cases { display: flex; flex-direction: column; gap: 10px; margin: 16px 0; }
+.check-case {
+  display: flex; gap: 12px; align-items: flex-start;
+  background: #f8fafc; border: 1.5px solid #e2e8f0;
+  border-left: 4px solid var(--navy-600); border-radius: 8px;
+  padding: 12px 14px; font-size: 13.5px;
+}
+.check-arrow { font-size: 18px; color: var(--navy-600); flex-shrink: 0; margin-top: 1px; }
+.check-case ul { padding-left: 16px; margin: 4px 0; }
+.check-case li { margin-bottom: 4px; }
+.check-case p { margin: 4px 0 0; }
+
+/* Gaposa legend */
+.gaposa-legend {
+  display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap;
+  background: #1e293b; color: #f1f5f9; border-radius: 10px;
+  padding: 16px 20px; margin-bottom: 24px;
+}
+.gaposa-legend-table { font-size: 12.5px; border-collapse: collapse; }
+.gaposa-legend-table td { padding: 3px 10px 3px 0; }
+.gl-key {
+  display: inline-block; background: #334155; border: 1px solid #475569;
+  border-radius: 4px; padding: 1px 7px; font-size: 11px; font-weight: 800;
+  color: #e2e8f0; font-family: monospace; white-space: nowrap;
+}
+.gl-tension { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; color: #94a3b8; }
+.gl-tension-icon { font-size: 26px; }
+
+/* Position intermédiaire grid */
+.inter-grid { display: flex; flex-direction: column; gap: 16px; }
+
+/* Obstacle columns */
+.obstacle-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 12px; }
+
+/* Reset columns */
+.reset-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 12px; }
+.reset-opt-lbl {
+  font-size: 12px; font-weight: 700; background: var(--navy-800); color: #fff;
+  padding: 6px 12px; border-radius: 6px; margin-bottom: 8px;
+}
+.power-cycle { font-size: 20px; text-align: center; color: #64748b; }
+
 /* Responsive */
 @media (max-width: 900px) {
   .doc-layout { grid-template-columns: 1fr; }
@@ -2210,4 +2349,6 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
   .doc-toggle-btn { font-size: 12.5px; padding: 6px 12px; }
   .doc-subtabs { gap: 5px; }
   .doc-subtab { font-size: 12px; padding: 5px 11px; }
+  .obstacle-cols, .reset-cols { grid-template-columns: 1fr; }
+  .gaposa-legend { flex-direction: column; }
 }

@@ -342,6 +342,92 @@ function AbaquesSection() {
 }
 
 /* ============================================================
+   VISUELS — Télécommandes & Store
+   ============================================================ */
+
+function SomfyRemote({ pressed = [] }: { pressed?: string[] }) {
+  const on = (k: string) => pressed.includes(k);
+  return (
+    <div className="rs-remote">
+      <div className="rs-io" />
+      <div className={`rs-btn ${on('up') ? 'rs-on' : ''}`}>∧</div>
+      <div className={`rs-btn rs-my ${on('my') ? 'rs-on' : ''}`}>my</div>
+      <div className={`rs-btn ${on('dn') ? 'rs-on' : ''}`}>∨</div>
+    </div>
+  );
+}
+
+function GaposaRemote({ front = [], back = [] }: { front?: string[]; back?: string[] }) {
+  const fp = (k: string) => front.includes(k);
+  const bp = (k: string) => back.includes(k);
+  return (
+    <div className="rg-remote">
+      <div className="rg-front">
+        <div className={`rg-btn ${fp('up') ? 'rg-on' : ''}`}>△</div>
+        <div className={`rg-btn rg-sq ${fp('stop') ? 'rg-on' : ''}`}>□</div>
+        <div className={`rg-btn ${fp('dn') ? 'rg-on' : ''}`}>▽</div>
+      </div>
+      <div className="rg-back">
+        <div className={`rg-bk ${bp('tx') ? 'rg-on' : ''}`}>TX</div>
+        <div className={`rg-bk ${bp('fc') ? 'rg-on' : ''}`}>FC</div>
+      </div>
+    </div>
+  );
+}
+
+function StoreVis({ pos }: { pos: 'up' | 'mid' | 'dn' }) {
+  return (
+    <div className="stv">
+      <div className="stv-frame">
+        <div className={`stv-slats stv-${pos}`} />
+      </div>
+      <div className="stv-lbl">
+        {pos === 'up' ? '↑ haute' : pos === 'dn' ? '↓ basse' : '— mi-course'}
+      </div>
+    </div>
+  );
+}
+
+function MFB({ text }: { text: string }) {
+  const x2 = /deux|2×/i.test(text);
+  return (
+    <div className={`mfb ${x2 ? 'mfb-x2' : ''}`}>
+      <div className="mfb-icon">{x2 ? '↕↕' : '↕'}</div>
+      <div>{text}</div>
+    </div>
+  );
+}
+
+function SC({
+  n, vis, label, sub, fb, or: showOr,
+}: {
+  n: number | string;
+  vis?: React.ReactNode;
+  label: string;
+  sub?: string;
+  fb?: string;
+  or?: boolean;
+}) {
+  return (
+    <div className="sc">
+      {showOr && <span className="sc-or">OU</span>}
+      <div className="sc-n">{n}</div>
+      {vis && <div className="sc-vis">{vis}</div>}
+      <div className="sc-lbl">{label}</div>
+      {sub && <div className="sc-sub">{sub}</div>}
+      {fb && <MFB text={fb} />}
+    </div>
+  );
+}
+
+const RWARN = (
+  <div className="doc-warning" style={{ marginTop: 16 }}>
+    <strong>NE CHERCHEZ PAS À CHANGER LE SENS DE ROTATION.</strong>{' '}
+    Le moteur détermine automatiquement en 2 cycles maximum son sens de rotation après le réglage des fins de course.
+  </div>
+);
+
+/* ============================================================
    SECTION — Somfy RS100 IO
    ============================================================ */
 type SomfyTab = 'check' | 'auto' | 'manual' | 'mod-auto' | 'mod-manual' | 'factory';
@@ -354,12 +440,6 @@ const SOMFY_TABS: { id: SomfyTab; label: string }[] = [
   { id: 'mod-manual',label: 'Modifier fins de course manuelle' },
   { id: 'factory',   label: 'Mode usine' },
 ];
-
-const ROTATION_WARNING = (
-  <div className="doc-warning">
-    ⚠ NE CHERCHEZ PAS À CHANGER LE SENS DE ROTATION. Le moteur détermine automatiquement en 2 cycles maximum son sens de rotation après le réglage des fins de course.
-  </div>
-);
 
 function SomfySection() {
   const [tab, setTab] = useState<SomfyTab>('check');
@@ -382,25 +462,31 @@ function SomfySection() {
       </div>
 
       {tab === 'check' && (
-        <div className="doc-steps">
+        <div>
           <h2 className="doc-subtitle">Vérifier si le moteur est réglé</h2>
           <p className="doc-step-intro">Mettre <strong>UN SEUL</strong> moteur sous tension, puis observer :</p>
-          <div className="doc-cases">
-            <div className="doc-case">
-              <div className="doc-case-num" style={{ background: '#3b82f6' }}>1</div>
-              <div className="doc-case-body">
-                <strong>Aucun mouvement</strong>
+          <div className="sgrid">
+            <SC n="⚡" vis={<SomfyRemote />}
+              label="Mise sous tension"
+              sub="UN SEUL moteur à la fois"
+            />
+          </div>
+          <div className="check-cases">
+            <div className="check-case">
+              <div className="check-arrow">→</div>
+              <div>
+                <strong>1 — Aucun mouvement</strong>
                 <ul>
                   <li><strong>A —</strong> Le moteur est déjà programmé sur le point de commande fourni → faire un test DESCENTE / MONTÉE</li>
-                  <li><strong>B —</strong> Le moteur n&apos;est pas encore réglé et programmé → voir procédure de mise en service</li>
+                  <li><strong>B —</strong> Le moteur n&apos;est pas encore réglé → voir &quot;Mise en service&quot;</li>
                 </ul>
               </div>
             </div>
-            <div className="doc-case">
-              <div className="doc-case-num" style={{ background: '#3b82f6' }}>2</div>
-              <div className="doc-case-body">
-                <strong>Va-et-vient du moteur</strong>
-                <p>Le moteur est réglé mais aucun point de commande n&apos;est enregistré → voir &quot;Mise en service&quot;.</p>
+            <div className="check-case">
+              <div className="check-arrow">→</div>
+              <div>
+                <strong>2 — Va-et-vient du moteur</strong>
+                <p>Le moteur est réglé mais aucun point de commande n&apos;est enregistré → voir &quot;Mise en service&quot;</p>
               </div>
             </div>
           </div>
@@ -408,79 +494,161 @@ function SomfySection() {
       )}
 
       {tab === 'auto' && (
-        <div className="doc-steps">
+        <div>
           <h2 className="doc-subtitle">Mise en service — Réglage automatique</h2>
           <div className="doc-info-box">
-            Le moteur se règle totalement de lui-même. Seul le point de commande doit être programmé.
-            Le moteur détermine automatiquement son sens de rotation après le réglage des fins de course (max 2 cycles).
+            Moteur qui se règle totalement de lui-même. Seul le point de commande doit être programmé.<br />
+            Mettre <strong>UN SEUL</strong> moteur sous tension.
           </div>
-          <p className="doc-step-intro">Mettre <strong>UN SEUL</strong> moteur sous tension.</p>
-          <ol className="doc-step-list">
-            <li className="doc-step"><span className="doc-step-num">1</span><div>Prendre en main le moteur → <strong>Le moteur réagit</strong></div></li>
-            <li className="doc-step"><span className="doc-step-num">2</span><div>Programmer le point de commande — appuyer sur <strong>PROG</strong> → <strong>Le moteur réagit</strong></div></li>
-            <li className="doc-step"><span className="doc-step-num">3</span><div>Vérifier le bon fonctionnement du volet en réalisant un cycle complet.</div></li>
-          </ol>
-          {ROTATION_WARNING}
+          <p className="guide-section-lbl">Programmer le point de commande</p>
+          <div className="sgrid">
+            <SC n={1} vis={<SomfyRemote />}
+              label="Prendre en main le moteur"
+              fb="Le moteur réagit"
+            />
+            <SC n={2} vis={<SomfyRemote pressed={['my']} />}
+              label="Programmer le point de commande"
+              sub="Appuyer sur PROG"
+              fb="Le moteur réagit"
+            />
+            <SC n={3} vis={<><SomfyRemote pressed={['up']} /><SomfyRemote pressed={['dn']} /></>}
+              label="Vérifier le bon fonctionnement"
+              sub="Réaliser un cycle complet"
+            />
+          </div>
+          {RWARN}
         </div>
       )}
 
       {tab === 'manual' && (
-        <div className="doc-steps">
+        <div>
           <h2 className="doc-subtitle">Mise en service — Réglage manuel des fins de course</h2>
           <p className="doc-step-intro">Mettre <strong>UN SEUL</strong> moteur sous tension.</p>
-          <ol className="doc-step-list">
-            <li className="doc-step"><span className="doc-step-num">1</span><div>Prendre en main le moteur → <strong>Le moteur réagit</strong></div></li>
-            <li className="doc-step"><span className="doc-step-num">2</span><div>Positionner le volet à <strong>mi-course</strong></div></li>
-            <li className="doc-step"><span className="doc-step-num">3</span><div>Rester appuyé jusqu&apos;au va-et-vient du moteur → <strong>Le moteur réagit</strong></div></li>
-            <li className="doc-step"><span className="doc-step-num">4</span><div>Placer le volet à la <strong>fin de course haute</strong> voulue</div></li>
-            <li className="doc-step"><span className="doc-step-num">5</span><div>Rester appuyé jusqu&apos;au va-et-vient du moteur → <strong>Le moteur réagit</strong></div></li>
-            <li className="doc-step"><span className="doc-step-num">6</span><div>Placer le volet à la <strong>fin de course basse</strong> voulue</div></li>
-            <li className="doc-step"><span className="doc-step-num">7</span><div>Rester appuyé jusqu&apos;au va-et-vient → <strong>Le moteur fait deux va-et-vient</strong></div></li>
-            <li className="doc-step"><span className="doc-step-num">8</span><div>Programmer le point de commande — appuyer sur <strong>PROG</strong> → <strong>Le moteur réagit</strong></div></li>
-            <li className="doc-step"><span className="doc-step-num">9</span><div>Vérifier le bon fonctionnement en réalisant un cycle complet.</div></li>
-          </ol>
-          {ROTATION_WARNING}
+          <div className="sgrid">
+            <SC n={1} vis={<SomfyRemote />}
+              label="Prendre en main le moteur"
+              fb="Le moteur réagit"
+            />
+            <SC n={2} vis={<StoreVis pos="mid" />}
+              label="Positionner le volet à mi-course"
+              or
+            />
+            <SC n={3} vis={<SomfyRemote pressed={['my']} />}
+              label="Rester appuyé jusqu'au va-et-vient"
+              fb="Le moteur réagit"
+            />
+            <SC n={4} vis={<><SomfyRemote pressed={['up']} /><StoreVis pos="up" /></>}
+              label="Placer à la fin de course haute"
+            />
+            <SC n={5} vis={<SomfyRemote pressed={['my']} />}
+              label="Rester appuyé jusqu'au va-et-vient"
+              fb="Le moteur réagit"
+            />
+            <SC n={6} vis={<><SomfyRemote pressed={['dn']} /><StoreVis pos="dn" /></>}
+              label="Placer à la fin de course basse"
+            />
+            <SC n={7} vis={<SomfyRemote pressed={['my']} />}
+              label="Rester appuyé jusqu'au va-et-vient"
+              fb="Le moteur fait deux va-et-vient"
+            />
+          </div>
+          <div className="suite-note">Suite →</div>
+          <div className="sgrid">
+            <SC n={8} vis={<SomfyRemote pressed={['my']} />}
+              label="Programmer le point de commande"
+              sub="Appuyer sur PROG"
+              fb="Le moteur réagit"
+            />
+            <SC n={9} vis={<><SomfyRemote pressed={['up']} /><SomfyRemote pressed={['dn']} /></>}
+              label="Vérifier le bon fonctionnement"
+              sub="Réaliser un cycle complet"
+            />
+          </div>
+          {RWARN}
         </div>
       )}
 
       {tab === 'mod-auto' && (
-        <div className="doc-steps">
+        <div>
           <h2 className="doc-subtitle">Modification automatique des fins de course</h2>
-          <ol className="doc-step-list">
-            <li className="doc-step"><span className="doc-step-num">1</span><div>Positionner le volet à <strong>mi-course</strong></div></li>
-            <li className="doc-step"><span className="doc-step-num">2</span><div>Rester appuyé jusqu&apos;au va-et-vient du moteur → <strong>Le moteur réagit</strong></div></li>
-            <li className="doc-step"><span className="doc-step-num">3</span><div>Rester appuyé jusqu&apos;au va-et-vient du moteur → <strong>Le moteur réagit</strong></div></li>
-            <li className="doc-step"><span className="doc-step-num">4</span><div>Vérifier le bon fonctionnement en réalisant un cycle complet.</div></li>
-          </ol>
-          {ROTATION_WARNING}
+          <div className="sgrid">
+            <SC n={1} vis={<StoreVis pos="mid" />}
+              label="Positionner le volet à mi-course"
+              or
+            />
+            <SC n={2} vis={<SomfyRemote pressed={['my']} />}
+              label="Rester appuyé jusqu'au va-et-vient"
+              fb="Le moteur réagit"
+            />
+            <SC n={3} vis={<SomfyRemote pressed={['my']} />}
+              label="Rester appuyé jusqu'au va-et-vient"
+              fb="Le moteur réagit"
+            />
+            <SC n={4} vis={<><SomfyRemote pressed={['up']} /><SomfyRemote pressed={['dn']} /></>}
+              label="Vérifier le bon fonctionnement"
+              sub="Réaliser un cycle complet"
+            />
+          </div>
+          {RWARN}
         </div>
       )}
 
       {tab === 'mod-manual' && (
-        <div className="doc-steps">
+        <div>
           <h2 className="doc-subtitle">Modification manuelle des fins de course</h2>
-          <ol className="doc-step-list">
-            <li className="doc-step"><span className="doc-step-num">1</span><div>Positionner le volet à <strong>mi-course</strong></div></li>
-            <li className="doc-step"><span className="doc-step-num">2</span><div>Rester appuyé jusqu&apos;au va-et-vient du moteur → <strong>Le moteur réagit</strong></div></li>
-            <li className="doc-step"><span className="doc-step-num">3</span><div>Placer le volet à la <strong>fin de course haute</strong> voulue</div></li>
-            <li className="doc-step"><span className="doc-step-num">4</span><div>Rester appuyé jusqu&apos;au va-et-vient du moteur → <strong>Le moteur réagit</strong></div></li>
-            <li className="doc-step"><span className="doc-step-num">5</span><div>Placer le volet à la <strong>fin de course basse</strong> voulue</div></li>
-            <li className="doc-step"><span className="doc-step-num">6</span><div>Rester appuyé jusqu&apos;au va-et-vient → <strong>Le moteur fait deux va-et-vient</strong></div></li>
-            <li className="doc-step"><span className="doc-step-num">7</span><div>Vérifier le bon fonctionnement en réalisant un cycle complet.</div></li>
-          </ol>
-          {ROTATION_WARNING}
+          <div className="sgrid">
+            <SC n={1} vis={<StoreVis pos="mid" />}
+              label="Positionner le volet à mi-course"
+              or
+            />
+            <SC n={2} vis={<SomfyRemote pressed={['my']} />}
+              label="Rester appuyé jusqu'au va-et-vient"
+              fb="Le moteur réagit"
+            />
+            <SC n={3} vis={<><SomfyRemote pressed={['up']} /><StoreVis pos="up" /></>}
+              label="Placer à la fin de course haute"
+            />
+            <SC n={4} vis={<SomfyRemote pressed={['my']} />}
+              label="Rester appuyé jusqu'au va-et-vient"
+              fb="Le moteur réagit"
+            />
+            <SC n={5} vis={<><SomfyRemote pressed={['dn']} /><StoreVis pos="dn" /></>}
+              label="Placer à la fin de course basse"
+            />
+            <SC n={6} vis={<SomfyRemote pressed={['my']} />}
+              label="Rester appuyé jusqu'au va-et-vient"
+              fb="Le moteur fait deux va-et-vient"
+            />
+            <SC n={7} vis={<><SomfyRemote pressed={['up']} /><SomfyRemote pressed={['dn']} /></>}
+              label="Vérifier le bon fonctionnement"
+              sub="Réaliser un cycle complet"
+            />
+          </div>
+          {RWARN}
         </div>
       )}
 
       {tab === 'factory' && (
-        <div className="doc-steps">
+        <div>
           <h2 className="doc-subtitle">Mettre le moteur RS100 IO en mode usine</h2>
-          <ol className="doc-step-list">
-            <li className="doc-step"><span className="doc-step-num">1</span><div>Positionner le volet à <strong>mi-course</strong></div></li>
-            <li className="doc-step"><span className="doc-step-num">2</span><div>Rester appuyé jusqu&apos;au va-et-vient du moteur → <strong>Le moteur fait un va-et-vient</strong></div></li>
-            <li className="doc-step"><span className="doc-step-num">3</span><div>Rester appuyé sur les <strong>3 touches</strong> jusqu&apos;au va-et-vient → <strong>Le moteur fait un va-et-vient</strong></div></li>
-            <li className="doc-step"><span className="doc-step-num">4</span><div>Rester appuyé sur <strong>PROG</strong> jusqu&apos;au 2ème va-et-vient → <strong>Le moteur fait deux va-et-vient</strong></div></li>
-          </ol>
+          <div className="sgrid">
+            <SC n={1} vis={<StoreVis pos="mid" />}
+              label="Positionner le volet à mi-course"
+              or
+            />
+            <SC n={2} vis={<SomfyRemote pressed={['my']} />}
+              label="Rester appuyé jusqu'au va-et-vient"
+              fb="Le moteur fait un va-et-vient"
+            />
+            <SC n={3} vis={<SomfyRemote pressed={['up', 'my', 'dn']} />}
+              label="Rester appuyé sur les 3 touches jusqu'au va-et-vient"
+              fb="Le moteur fait un va-et-vient"
+            />
+            <SC n={4} vis={<SomfyRemote pressed={['my']} />}
+              label="Rester appuyé sur PROG jusqu'au 2ème va-et-vient"
+              fb="Le moteur fait deux va-et-vient"
+            />
+          </div>
         </div>
       )}
     </div>
@@ -493,15 +661,15 @@ function SomfySection() {
 type GaposaTab = 'pair' | 'rotation' | 'limits' | 'mod-limits' | 'intermediate' | 'second' | 'obstacle' | 'erase' | 'reset';
 
 const GAPOSA_TABS: { id: GaposaTab; label: string }[] = [
-  { id: 'pair',         label: '1. Appairer émetteur' },
-  { id: 'rotation',     label: '2. Sens de rotation' },
-  { id: 'limits',       label: '3. Fins de course' },
-  { id: 'mod-limits',   label: '4. Modifier fins de course' },
-  { id: 'intermediate', label: '5. Position intermédiaire' },
-  { id: 'second',       label: '6. Second émetteur' },
-  { id: 'obstacle',     label: '7. Détection obstacle' },
-  { id: 'erase',        label: '8. Effacer canal/émetteur' },
-  { id: 'reset',        label: '9. Remise à zéro' },
+  { id: 'pair',         label: '2. Appairer émetteur' },
+  { id: 'rotation',     label: '3. Sens de rotation' },
+  { id: 'limits',       label: '4. Fins de course' },
+  { id: 'mod-limits',   label: '5. Modifier fins de course' },
+  { id: 'intermediate', label: '6. Position intermédiaire' },
+  { id: 'second',       label: '7. Second émetteur' },
+  { id: 'obstacle',     label: '8-9. Détection obstacle' },
+  { id: 'erase',        label: '10. Effacer canal' },
+  { id: 'reset',        label: '11. Remise à zéro' },
 ];
 
 function GaposaSection() {
@@ -511,14 +679,21 @@ function GaposaSection() {
     <div>
       <h1 className="doc-title">Guide de programmation — Moteur Gaposa XQ50EX Latente</h1>
 
-      <div className="doc-key-map">
-        <h3>Légende des touches</h3>
-        <div className="doc-key-grid">
-          <div><span className="doc-key">▲ HAUT</span> Montée</div>
-          <div><span className="doc-key">■ STOP</span> Arrêt</div>
-          <div><span className="doc-key">▼ BAS</span> Descente</div>
-          <div><span className="doc-key">PROG-TX</span> Appairage télécommande (bouton face arrière)</div>
-          <div><span className="doc-key">PROG-FC</span> Réglage fins de course (bouton face arrière)</div>
+      {/* Légende */}
+      <div className="gaposa-legend">
+        <GaposaRemote />
+        <table className="gaposa-legend-table">
+          <tbody>
+            <tr><td><span className="gl-key">△ 1</span></td><td>HAUT — montée</td></tr>
+            <tr><td><span className="gl-key">□ 2</span></td><td>STOP — arrêt</td></tr>
+            <tr><td><span className="gl-key">▽ 3</span></td><td>BAS — descente</td></tr>
+            <tr><td><span className="gl-key">TX 4</span></td><td>PROG-TX — appairage télécommande (face arrière)</td></tr>
+            <tr><td><span className="gl-key">FC 5</span></td><td>PROG-FC — réglage des fins de course (face arrière)</td></tr>
+          </tbody>
+        </table>
+        <div className="gl-tension">
+          <div className="gl-tension-icon">⚡</div>
+          <div><strong>1.</strong> Mettre le moteur sous tension</div>
         </div>
       </div>
 
@@ -532,90 +707,140 @@ function GaposaSection() {
       </div>
 
       {tab === 'pair' && (
-        <div className="doc-steps">
-          <h2 className="doc-subtitle">1. Appairer l&apos;émetteur</h2>
-          <p className="doc-step-intro">Mettre le moteur sous tension.</p>
-          <ol className="doc-step-list">
-            <li className="doc-step"><span className="doc-step-num">1</span><div>Appuyer sur la touche <strong>PROG-TX</strong> (face arrière de l&apos;émetteur) jusqu&apos;à ce que le moteur réagisse.</div></li>
-            <li className="doc-step"><span className="doc-step-num">2</span><div>Vérifier le sens de rotation, puis relâcher <strong>PROG-TX</strong> → le moteur s&apos;arrête.</div></li>
-            <li className="doc-step"><span className="doc-step-num">3</span><div>Dans les <strong>5 secondes</strong>, appuyer sur le bouton correspondant :<br />
-              — <strong>HAUT</strong> si le volet monte<br />
-              — <strong>BAS</strong> si le volet descend<br />
-              La télécommande est maintenant appairée.
-            </div></li>
-          </ol>
+        <div>
+          <h2 className="doc-subtitle">2. Appairer l&apos;émetteur</h2>
+          <div className="sgrid">
+            <SC n={1} vis={<GaposaRemote back={['tx']} />}
+              label="Appuyer sur PROG-TX (face arrière)"
+              sub="Jusqu'à ce que le moteur réagisse"
+              fb="Le moteur réagit"
+            />
+            <SC n={2} vis={<GaposaRemote />}
+              label="Vérifier le sens de rotation, relâcher PROG-TX"
+              fb="Le moteur s'arrête"
+            />
+            <SC n={3} vis={<GaposaRemote front={['up']} />}
+              label="Dans les 5 sec, appuyer sur le bouton correspondant"
+              sub="HAUT si monte · BAS si descend"
+              fb="Télécommande appairée ✓"
+            />
+          </div>
         </div>
       )}
 
       {tab === 'rotation' && (
-        <div className="doc-steps">
-          <h2 className="doc-subtitle">2. Changement du sens de rotation</h2>
+        <div>
+          <h2 className="doc-subtitle">3. Changement du sens de rotation</h2>
           <div className="doc-warning">
-            ⚠ Le changement du sens de rotation doit être fait <strong>AVANT</strong> de régler les fins de course, sinon il faut refaire le réglage des fins de course.
+            ⚠ Nécessaire uniquement si le moteur ne tourne pas dans le bon sens.<br />
+            Doit être fait <strong>AVANT</strong> de régler les fins de course, sinon il faut tout refaire.
           </div>
-          <p className="doc-step-intro">Nécessaire uniquement si le moteur ne tourne pas dans le bon sens.</p>
-          <ol className="doc-step-list">
-            <li className="doc-step"><span className="doc-step-num">1</span><div>Maintenir appuyé le bouton <strong>PROG-TX</strong> jusqu&apos;à ce que le moteur réagisse.</div></li>
-            <li className="doc-step"><span className="doc-step-num">2</span><div>Relâcher <strong>PROG-TX</strong> puis presser <strong>STOP</strong> → le moteur fait un bref aller-retour. Le sens est désormais changé.</div></li>
-          </ol>
+          <div className="sgrid">
+            <SC n={1} vis={<GaposaRemote back={['tx']} />}
+              label="Maintenir appuyé PROG-TX"
+              sub="Jusqu'à ce que le moteur réagisse"
+              fb="Le moteur réagit"
+            />
+            <SC n={2} vis={<GaposaRemote front={['stop']} />}
+              label="Relâcher PROG-TX puis presser STOP"
+              fb="Le moteur fait un bref aller-retour — sens changé ✓"
+            />
+          </div>
         </div>
       )}
 
       {tab === 'limits' && (
-        <div className="doc-steps">
-          <h2 className="doc-subtitle">3. Régler les fins de course</h2>
-          <div className="doc-info-box">Toujours régler la <strong>fin de course haute en premier</strong>. Les limites se règlent en homme mort.</div>
-          <ol className="doc-step-list">
-            <li className="doc-step"><span className="doc-step-num">1</span><div>Appuyer sur la touche <strong>PROG-FC</strong> (face arrière) jusqu&apos;à ce que le moteur réagisse.</div></li>
-            <li className="doc-step"><span className="doc-step-num">2</span><div>Presser <strong>HAUT</strong> jusqu&apos;à arriver en butée (maintien continu).</div></li>
-            <li className="doc-step"><span className="doc-step-num">3</span><div>À la hauteur souhaitée, appuyer sur <strong>STOP</strong>.</div></li>
-            <li className="doc-step"><span className="doc-step-num">4</span><div>Le moteur fait un aller-retour → <strong>fin de course haute réglée</strong>.</div></li>
-            <li className="doc-step"><span className="doc-step-num">5</span><div>Presser <strong>BAS</strong> jusqu&apos;à arriver en butée (maintien continu).</div></li>
-            <li className="doc-step"><span className="doc-step-num">6</span><div>À la hauteur souhaitée, appuyer sur <strong>STOP</strong>.</div></li>
-            <li className="doc-step"><span className="doc-step-num">7</span><div>Le moteur fait un aller-retour → <strong>fin de course basse réglée</strong>. Vérifier en faisant un cycle montée-descente complet.</div></li>
-          </ol>
+        <div>
+          <h2 className="doc-subtitle">4. Régler les fins de course</h2>
+          <div className="doc-info-box">
+            Toujours régler la <strong>fin de course haute en premier</strong>.<br />
+            Les limites se règlent en <strong>homme mort</strong> (maintien continu du bouton).
+          </div>
+          <div className="sgrid">
+            <SC n={1} vis={<GaposaRemote back={['fc']} />}
+              label="Appuyer sur PROG-FC (face arrière, 2 sec)"
+              fb="Le moteur réagit"
+            />
+            <SC n={2} vis={<><GaposaRemote front={['up']} /><StoreVis pos="up" /></>}
+              label="Presser HAUT jusqu'en butée"
+              sub="Maintien continu (homme mort)"
+            />
+            <SC n={3} vis={<GaposaRemote front={['stop']} />}
+              label="À la hauteur voulue, appuyer STOP"
+              fb="Le moteur fait un aller-retour — fin haute réglée ✓"
+            />
+            <SC n={4} vis={<><GaposaRemote front={['dn']} /><StoreVis pos="dn" /></>}
+              label="Presser BAS jusqu'en butée"
+              sub="Maintien continu (homme mort)"
+            />
+            <SC n={5} vis={<GaposaRemote front={['stop']} />}
+              label="À la hauteur voulue, appuyer STOP"
+              fb="Le moteur fait un aller-retour — fin basse réglée ✓"
+            />
+            <SC n={6} vis={<><GaposaRemote front={['up']} /><GaposaRemote front={['dn']} /></>}
+              label="Vérifier en faisant un cycle montée-descente complet"
+            />
+          </div>
         </div>
       )}
 
       {tab === 'mod-limits' && (
-        <div className="doc-steps">
-          <h2 className="doc-subtitle">4. Modification des fins de course</h2>
-          <p className="doc-step-intro"><strong>Fin de course haute :</strong></p>
-          <ol className="doc-step-list">
-            <li className="doc-step"><span className="doc-step-num">1</span><div>Appuyer simultanément sur <strong>PROG-FC + HAUT</strong> jusqu&apos;à ce que le moteur réagisse.</div></li>
-            <li className="doc-step"><span className="doc-step-num">2</span><div>Presser <strong>HAUT</strong> jusqu&apos;à arriver en butée (maintien continu).</div></li>
-            <li className="doc-step"><span className="doc-step-num">3</span><div>À la hauteur souhaitée, appuyer sur <strong>STOP</strong> → le moteur fait un aller-retour. Fin de course haute réglée.</div></li>
-          </ol>
-          <p className="doc-step-intro" style={{ marginTop: 20 }}><strong>Fin de course basse :</strong> Reproduire la même procédure en appuyant sur <strong>PROG-FC + BAS</strong>.</p>
+        <div>
+          <h2 className="doc-subtitle">5. Modification des fins de course</h2>
+          <p className="guide-section-lbl">Fin de course haute</p>
+          <div className="sgrid">
+            <SC n={1} vis={<GaposaRemote front={['up']} back={['fc']} />}
+              label="Appuyer simultanément PROG-FC + HAUT"
+              sub="Jusqu'à ce que le moteur réagisse"
+              fb="Le moteur réagit"
+            />
+            <SC n={2} vis={<><GaposaRemote front={['up']} /><StoreVis pos="up" /></>}
+              label="Presser HAUT jusqu'en butée"
+              sub="Maintien continu (homme mort)"
+            />
+            <SC n={3} vis={<GaposaRemote front={['stop']} />}
+              label="À la hauteur voulue, appuyer STOP"
+              fb="Le moteur fait un aller-retour — fin haute réglée ✓"
+            />
+          </div>
+          <p className="doc-step-intro" style={{ marginTop: 20 }}>
+            Pour la <strong>fin de course basse</strong> : même procédure avec <strong>PROG-FC + BAS</strong>.
+          </p>
         </div>
       )}
 
       {tab === 'intermediate' && (
-        <div className="doc-steps">
-          <h2 className="doc-subtitle">5. Position intermédiaire</h2>
-          <div className="doc-cases">
-            <div className="doc-case">
-              <div className="doc-case-num" style={{ background: '#10314f' }}>+</div>
-              <div className="doc-case-body">
-                <strong>Configurer</strong>
-                <ol style={{ paddingLeft: 16, marginTop: 6 }}>
-                  <li>Placer le volet à la position désirée.</li>
-                  <li>Presser simultanément <strong>HAUT + BAS</strong> jusqu&apos;à ce que le moteur fasse un bref aller-retour → position intermédiaire réglée.</li>
-                </ol>
+        <div>
+          <h2 className="doc-subtitle">6. Position intermédiaire</h2>
+          <div className="inter-grid">
+            <div>
+              <p className="guide-section-lbl">1. Configurer</p>
+              <div className="sgrid">
+                <SC n={1} vis={<StoreVis pos="mid" />}
+                  label="Placer le volet à la position désirée"
+                />
+                <SC n={2} vis={<GaposaRemote front={['up', 'dn']} />}
+                  label="Presser HAUT + BAS simultanément"
+                  fb="Le moteur fait un bref aller-retour — position réglée ✓"
+                />
               </div>
             </div>
-            <div className="doc-case">
-              <div className="doc-case-num" style={{ background: '#10314f' }}>→</div>
-              <div className="doc-case-body">
-                <strong>Activer</strong>
-                <p>Appuyer sur <strong>STOP pendant 3 secondes</strong> → le moteur tourne jusqu&apos;à la position intermédiaire.</p>
+            <div>
+              <p className="guide-section-lbl">2. Activer</p>
+              <div className="sgrid">
+                <SC n="3s" vis={<GaposaRemote front={['stop']} />}
+                  label="Appuyer sur STOP pendant 3 secondes"
+                  sub="Le moteur va en position intermédiaire"
+                />
               </div>
             </div>
-            <div className="doc-case">
-              <div className="doc-case-num" style={{ background: '#6b7280' }}>✕</div>
-              <div className="doc-case-body">
-                <strong>Effacer</strong>
-                <p>Maintenir appuyés <strong>HAUT + BAS</strong> jusqu&apos;à ce que le moteur fasse un bref aller-retour → position intermédiaire effacée.</p>
+            <div>
+              <p className="guide-section-lbl">3. Effacer</p>
+              <div className="sgrid">
+                <SC n="✕" vis={<GaposaRemote front={['up', 'dn']} />}
+                  label="Maintenir HAUT + BAS simultanément"
+                  fb="Le moteur fait un bref aller-retour — position effacée"
+                />
               </div>
             </div>
           </div>
@@ -623,71 +848,109 @@ function GaposaSection() {
       )}
 
       {tab === 'second' && (
-        <div className="doc-steps">
-          <h2 className="doc-subtitle">6. Appairer un second émetteur</h2>
-          <ol className="doc-step-list">
-            <li className="doc-step"><span className="doc-step-num">1</span><div>Sur un <strong>émetteur déjà appairé</strong>, appuyer sur <strong>PROG-TX</strong> jusqu&apos;à ce que le moteur réagisse.</div></li>
-            <li className="doc-step"><span className="doc-step-num">2</span><div>Vérifier le sens de rotation, puis relâcher <strong>PROG-TX</strong> → le moteur s&apos;arrête.</div></li>
-            <li className="doc-step"><span className="doc-step-num">3</span><div>Dans les <strong>5 secondes</strong>, appuyer sur le bouton correspondant du <strong>2e émetteur</strong> :<br />
-              — <strong>HAUT</strong> si le volet monte<br />
-              — <strong>BAS</strong> si le volet descend<br />
-              Le 2e émetteur est maintenant appairé.
-            </div></li>
-          </ol>
+        <div>
+          <h2 className="doc-subtitle">7. Appairer un second émetteur</h2>
+          <div className="sgrid">
+            <SC n={1} vis={<GaposaRemote back={['tx']} />}
+              label="Sur un émetteur déjà appairé, appuyer sur PROG-TX"
+              sub="Jusqu'à ce que le moteur réagisse"
+              fb="Le moteur réagit"
+            />
+            <SC n={2} vis={<GaposaRemote />}
+              label="Vérifier le sens de rotation, relâcher PROG-TX"
+              fb="Le moteur s'arrête"
+            />
+            <SC n={3} vis={<GaposaRemote front={['up']} />}
+              label="Dans les 5 sec, sur le 2ᵉ émetteur"
+              sub="HAUT si monte · BAS si descend"
+              fb="2ᵉ émetteur appairé ✓"
+            />
+          </div>
         </div>
       )}
 
       {tab === 'obstacle' && (
-        <div className="doc-steps">
-          <h2 className="doc-subtitle">7. Détection d&apos;obstacle</h2>
-          <div className="doc-info-box">La détection d&apos;obstacle est activée par défaut en sortie d&apos;usine.</div>
-
-          <h3 className="doc-step-sub">Désactiver la détection d&apos;obstacle</h3>
-          <ol className="doc-step-list">
-            <li className="doc-step"><span className="doc-step-num">1</span><div>Appuyer sur <strong>PROG-FC</strong> pendant <strong>2 secondes</strong> puis relâcher.</div></li>
-            <li className="doc-step"><span className="doc-step-num">2</span><div>Sans attendre de réaction, appuyer sur <strong>HAUT</strong>.</div></li>
-            <li className="doc-step"><span className="doc-step-num">3</span><div>Dès que le volet monte, appuyer sur <strong>BAS</strong>.</div></li>
-            <li className="doc-step"><span className="doc-step-num">4</span><div>Dès que le volet descend, appuyer sur <strong>HAUT</strong>.</div></li>
-            <li className="doc-step"><span className="doc-step-num">5</span><div>Dès que le volet monte, appuyer sur <strong>BAS</strong>.</div></li>
-            <li className="doc-step"><span className="doc-step-num">6</span><div>Dès que le volet descend, appuyer sur <strong>HAUT</strong>.</div></li>
-            <li className="doc-step"><span className="doc-step-num">7</span><div>Dès que le volet monte, appuyer sur <strong>BAS</strong> et maintenir jusqu&apos;à ce que le moteur fasse <strong>1 aller-retour</strong> de confirmation → détection désactivée.</div></li>
-          </ol>
-
-          <h3 className="doc-step-sub" style={{ marginTop: 24 }}>Activer la détection d&apos;obstacle</h3>
-          <p>Reproduire la même séquence. En étape 7, le moteur fait <strong>2 allers-retours</strong> pour confirmer l&apos;activation.</p>
+        <div>
+          <h2 className="doc-subtitle">8-9. Détection d&apos;obstacle</h2>
+          <div className="doc-info-box">
+            La détection d&apos;obstacle est <strong>activée par défaut</strong> en sortie d&apos;usine.
+          </div>
+          <div className="obstacle-cols">
+            <div>
+              <p className="guide-section-lbl">8. Désactiver</p>
+              <div className="sgrid sgrid-v">
+                <SC n={1} vis={<GaposaRemote back={['fc']} />}
+                  label="Appuyer sur PROG-FC pendant 2 sec, puis relâcher"
+                />
+                <SC n={2} vis={<GaposaRemote front={['up']} />}
+                  label="Sans attendre, appuyer sur HAUT"
+                />
+                <SC n={3} vis={<GaposaRemote front={['dn']} />}
+                  label="Dès que le volet monte, appuyer sur BAS"
+                />
+                <SC n={4} vis={<GaposaRemote front={['up']} />}
+                  label="Dès que le volet descend, appuyer sur HAUT"
+                />
+                <SC n={5} vis={<GaposaRemote front={['dn']} />}
+                  label="Dès que le volet monte, appuyer sur BAS"
+                />
+                <SC n={6} vis={<GaposaRemote front={['up']} />}
+                  label="Dès que le volet descend, appuyer sur HAUT"
+                />
+                <SC n={7} vis={<GaposaRemote front={['dn']} />}
+                  label="Dès que le volet monte, maintenir BAS"
+                  fb="Le moteur fait 1 aller-retour — désactivée ✓"
+                />
+              </div>
+            </div>
+            <div>
+              <p className="guide-section-lbl">9. Activer</p>
+              <div className="doc-info-box">
+                Reproduire exactement la même séquence (étapes 1-7).<br /><br />
+                En étape 7, le moteur fait <strong>2 allers-retours</strong> pour confirmer l&apos;activation.
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
       {tab === 'erase' && (
-        <div className="doc-steps">
-          <h2 className="doc-subtitle">8. Effacer un canal ou un émetteur</h2>
-          <div className="doc-step-item">
-            Sur <strong>l&apos;émetteur à effacer</strong>, presser et maintenir simultanément <strong>PROG-TX + STOP</strong> jusqu&apos;à ce que le moteur fasse un aller-retour.
+        <div>
+          <h2 className="doc-subtitle">10. Effacer un canal ou un émetteur</h2>
+          <div className="sgrid">
+            <SC n="✕" vis={<GaposaRemote front={['stop']} back={['tx']} />}
+              label="Sur l'émetteur à effacer, presser et maintenir PROG-TX + STOP"
+              fb="Le moteur fait un aller-retour ✓"
+            />
           </div>
         </div>
       )}
 
       {tab === 'reset' && (
-        <div className="doc-steps">
-          <h2 className="doc-subtitle">9. Remise à zéro de la mémoire</h2>
-          <p style={{ marginBottom: 16, color: '#6b7280', fontSize: 13 }}>Supprime tous les émetteurs, canaux et senseurs.</p>
-          <div className="doc-cases">
-            <div className="doc-case">
-              <div className="doc-case-num" style={{ background: '#10314f', fontSize: 11 }}>A</div>
-              <div className="doc-case-body">
-                <strong>Option 1 — Émetteur programmé</strong>
-                <p>Appuyer simultanément sur <strong>PROG-TX + STOP pendant 15 secondes</strong>.<br />Le moteur fait <strong>2 allers-retours à 5 secondes d&apos;intervalle</strong> pour confirmer.</p>
+        <div>
+          <h2 className="doc-subtitle">11. Remise à zéro de la mémoire</h2>
+          <p className="doc-step-intro">Supprime tous les émetteurs, canaux et senseurs.</p>
+          <div className="reset-cols">
+            <div className="reset-opt">
+              <div className="reset-opt-lbl">Option 1 — Émetteur programmé</div>
+              <div className="sgrid">
+                <SC n="15s" vis={<GaposaRemote front={['stop']} back={['tx']} />}
+                  label="Appuyer simultanément PROG-TX + STOP pendant 15 secondes"
+                  fb="Le moteur fait 2 allers-retours à 5 sec d'intervalle ✓"
+                />
               </div>
             </div>
-            <div className="doc-case">
-              <div className="doc-case-num" style={{ background: '#6b7280', fontSize: 11 }}>B</div>
-              <div className="doc-case-body">
-                <strong>Option 2 — Émetteur non programmé</strong>
-                <ol style={{ paddingLeft: 16, marginTop: 6 }}>
-                  <li>Couper le courant au moteur, puis le reconnecter.</li>
-                  <li>Dans les <strong>8 secondes</strong>, sur n&apos;importe quel émetteur Gaposa, appuyer simultanément sur <strong>PROG-TX + STOP pendant 15 secondes</strong>.</li>
-                  <li>Le moteur fait <strong>2 allers-retours à 5 secondes d&apos;intervalle</strong> pour confirmer.</li>
-                </ol>
+            <div className="reset-opt">
+              <div className="reset-opt-lbl">Option 2 — Émetteur non programmé</div>
+              <div className="sgrid">
+                <SC n={1} vis={<div className="power-cycle">⚡↓↑</div>}
+                  label="Couper le courant au moteur, puis le reconnecter"
+                />
+                <SC n={2} vis={<GaposaRemote front={['stop']} back={['tx']} />}
+                  label="Dans les 8 sec, sur n'importe quel émetteur Gaposa"
+                  sub="PROG-TX + STOP pendant 15 secondes"
+                  fb="Le moteur fait 2 allers-retours à 5 sec d'intervalle ✓"
+                />
               </div>
             </div>
           </div>
