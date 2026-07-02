@@ -40,10 +40,12 @@ function DevisContent() {
   const { lines, totalHT, totalTTC, isFranco, fraisLivraison }     = useCartStore();
   const { user, isPro }                                             = useAuthStore();
 
-  const [savedDevis, setSavedDevis]   = useState<SavedDevis | null>(null);
-  const [saving, setSaving]           = useState(false);
+  const [savedDevis, setSavedDevis]     = useState<SavedDevis | null>(null);
+  const [saving, setSaving]             = useState(false);
   const [alreadySaved, setAlreadySaved] = useState(false);
-  const [savingPdf, setSavingPdf]     = useState(false);
+  const [savingPdf, setSavingPdf]       = useState(false);
+  // Numéro de devis stable pour toute la durée de la page (ne se régénère pas)
+  const [cartDevisNum]                  = useState(genDevisNumber);
 
   // Mode order (facture commande existante)
   const isOrderMode  = !!orderId && !!placedOrder && placedOrder.id === orderId;
@@ -77,7 +79,7 @@ function DevisContent() {
   const devisTVA     = devisTotalHT * TVA;
   const devisNum     = isSavedMode ? savedDevis!.devis_number
                      : isOrderMode ? placedOrder.id
-                     : genDevisNumber();
+                     : cartDevisNum;
   const devisDate    = isSavedMode
                        ? new Date(savedDevis!.created_at).toLocaleDateString('fr-FR')
                        : isOrderMode ? placedOrder.date
@@ -98,23 +100,30 @@ function DevisContent() {
     if (!user || !isPro() || alreadySaved) return;
     setSaving(true);
     try {
-      const supabase = createClient();
-      const { error } = await supabase.from('devis').insert({
-        devis_number:  devisNum,
-        user_id:       user.id,
-        email:         user.email,
-        customer_name: user.name,
-        company:       user.company ?? null,
-        lines:         devisLines,
-        total_ht:      devisTotalHT,
-        total_ttc:     devisTotalTTC,
-        frais_ht:      devisFraisHT,
+      const res = await fetch('/api/devis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          devisNumber:  devisNum,
+          userId:       user.id,
+          email:        user.email,
+          customerName: user.name,
+          company:      user.company ?? null,
+          lines:        devisLines,
+          totalHT:      devisTotalHT,
+          totalTTC:     devisTotalTTC,
+          fraisHT:      devisFraisHT,
+        }),
       });
-      if (error) throw error;
+      if (!res.ok) {
+        const { error } = await res.json() as { error?: string };
+        throw new Error(error ?? 'Erreur inconnue');
+      }
       setAlreadySaved(true);
       toast.success('Devis sauvegardé dans votre espace compte');
-    } catch {
-      toast.error('Erreur lors de la sauvegarde');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erreur lors de la sauvegarde';
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
