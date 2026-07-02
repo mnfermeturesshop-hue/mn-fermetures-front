@@ -111,8 +111,8 @@ export default function CartPage() {
           </div>
 
           {isPro() ? (
-            <Link className="btn checkout full" href="/commande-pro">
-              Créer un bon de commande →
+            <Link className="btn checkout full" href="/devis">
+              Créer un devis →
             </Link>
           ) : (
             <Link className="btn checkout full" href="/checkout">

@@ -45,7 +45,7 @@ export function CartDrawer() {
   const { lines, isOpen, closeCart, totalHT, totalTTC, tva, fraisLivraison, isFranco, showTTC, toggleTTC } =
     useCartStore();
   const { isPro } = useAuthStore();
-  const checkoutHref = isPro() ? '/commande-pro' : '/checkout';
+  const checkoutHref = isPro() ? '/devis' : '/checkout';
 
   if (!isOpen) return null;
 
@@ -112,14 +112,16 @@ export function CartDrawer() {
 
             <div className="drawer-ctas">
               <Link className="btn checkout full" href={checkoutHref} onClick={closeCart}>
-                {isPro() ? 'Créer un bon de commande →' : 'Commander →'}
+                {isPro() ? 'Créer un devis →' : 'Commander →'}
               </Link>
               <Link className="btn solid full" href="/panier" onClick={closeCart}>
                 Voir le panier
               </Link>
-              <Link className="btn devis-link" href="/devis" onClick={closeCart}>
-                Générer un devis PDF
-              </Link>
+              {!isPro() && (
+                <Link className="btn devis-link" href="/devis" onClick={closeCart}>
+                  Générer un devis PDF
+                </Link>
+              )}
             </div>
           </div>
         )}
