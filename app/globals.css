@@ -1464,6 +1464,27 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 .adm-badge-warn { background: #fff8e1; color: #8a6200; border: 1px solid #ffe082;
   border-radius: 20px; padding: 4px 12px; font-size: 12px; font-weight: 700; }
 
+/* Clients — last login + blocked state */
+.adm-last-login { font-size: 12px; color: var(--muted); }
+.adm-tr--blocked td { opacity: .55; }
+.adm-badge-blocked { display: inline-block; background: #fee2e2; color: #991b1b;
+  border-radius: 4px; font-size: 10px; font-weight: 700; padding: 1px 6px;
+  margin-left: 6px; vertical-align: middle; letter-spacing: .4px; }
+.adm-action-btn.warn { color: #b45309; border-color: #b45309; background: #fff; }
+.adm-action-btn.warn:hover { background: #b45309; color: #fff; }
+
+/* Overlay de confirmation */
+.adm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45);
+  z-index: 9999; display: flex; align-items: center; justify-content: center; }
+.adm-confirm-box { background: #fff; border-radius: 14px; padding: 32px 28px;
+  max-width: 440px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+.adm-confirm-title { font-size: 18px; font-weight: 700; margin: 0 0 12px; color: var(--ink); }
+.adm-confirm-body { font-size: 14px; color: var(--muted); line-height: 1.6; margin: 0 0 24px; }
+.adm-confirm-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.btn.danger { background: #dc2626; color: #fff; border: none;
+  padding: 10px 18px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; }
+.btn.danger:hover { background: #b91c1c; }
+
 /* =====================================================================
    ADMIN FORM
    ===================================================================== */

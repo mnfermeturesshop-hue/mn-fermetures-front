@@ -10,6 +10,20 @@ interface Client {
   name: string;
   company: string;
   discounts: Partial<Record<FamilleSlug, number>>;
+  lastSignIn: string | null;
+  banned: boolean;
+}
+
+function formatDate(iso: string | null) {
+  if (!iso) return 'Jamais';
+  const d = new Date(iso);
+  const now = new Date();
+  const diffH = Math.floor((now.getTime() - d.getTime()) / 3600000);
+  if (diffH < 1)  return 'Il y a moins d\'1h';
+  if (diffH < 24) return `Il y a ${diffH}h`;
+  const diffD = Math.floor(diffH / 24);
+  if (diffD < 7)  return `Il y a ${diffD}j`;
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 export default function AdminClients() {
@@ -18,6 +32,8 @@ export default function AdminClients() {
   const [editing, setEditing] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, Partial<Record<FamilleSlug, number>>>>({});
   const [saving, setSaving] = useState<string | null>(null);
+  const [acting, setActing] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Client | null>(null);
 
   useEffect(() => {
     fetch('/api/admin/clients')
@@ -64,8 +80,73 @@ export default function AdminClients() {
     }
   };
 
+  const handleBlock = async (client: Client, action: 'block' | 'unblock') => {
+    setActing(client.id + action);
+    try {
+      const res = await fetch('/api/admin/clients', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: client.id, action }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      setClients((prev) =>
+        prev.map((c) => c.id === client.id ? { ...c, banned: action === 'block' } : c)
+      );
+      toast.success(action === 'block' ? 'Compte bloqué' : 'Compte débloqué');
+    } catch (err) {
+      toast.error(`Erreur : ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setActing(null);
+    }
+  };
+
+  const handleDelete = async (client: Client) => {
+    setConfirmDelete(null);
+    setActing(client.id + 'delete');
+    try {
+      const res = await fetch('/api/admin/clients', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: client.id }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      setClients((prev) => prev.filter((c) => c.id !== client.id));
+      toast.success('Compte supprimé');
+    } catch (err) {
+      toast.error(`Erreur : ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setActing(null);
+    }
+  };
+
   return (
     <div className="adm-page">
+      {/* Confirmation suppression */}
+      {confirmDelete && (
+        <div className="adm-overlay">
+          <div className="adm-confirm-box">
+            <h3 className="adm-confirm-title">Supprimer le compte ?</h3>
+            <p className="adm-confirm-body">
+              Le compte de <strong>{confirmDelete.name || confirmDelete.email}</strong>
+              {confirmDelete.company && ` (${confirmDelete.company})`} sera définitivement supprimé,
+              ainsi que toutes les données associées. Cette action est irréversible.
+            </p>
+            <div className="adm-confirm-actions">
+              <button className="btn ghost" type="button" onClick={() => setConfirmDelete(null)}>
+                Annuler
+              </button>
+              <button
+                className="btn danger"
+                type="button"
+                onClick={() => handleDelete(confirmDelete)}
+              >
+                Supprimer définitivement
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="adm-page-head">
         <h1 className="adm-h1">Clients professionnels</h1>
         <span className="adm-count">{clients.length} compte{clients.length > 1 ? 's' : ''} pro</span>
@@ -87,6 +168,7 @@ export default function AdminClients() {
               <tr>
                 <th>Client</th>
                 <th>Email</th>
+                <th>Dernière connexion</th>
                 {FAMILLES.map((f) => (
                   <th key={f.slug} style={{ textAlign: 'center', minWidth: 110 }}>
                     {f.label}<br /><small style={{ fontWeight: 400, color: 'var(--muted)' }}>remise %</small>
@@ -99,15 +181,25 @@ export default function AdminClients() {
               {clients.map((client) => {
                 const isEditing = editing === client.id;
                 const draft = drafts[client.id] ?? client.discounts;
+                const isActing = acting?.startsWith(client.id) ?? false;
 
                 return (
-                  <tr key={client.id} className={`adm-tr${isEditing ? ' adm-tr--editing' : ''}`}>
+                  <tr
+                    key={client.id}
+                    className={`adm-tr${isEditing ? ' adm-tr--editing' : ''}${client.banned ? ' adm-tr--blocked' : ''}`}
+                  >
                     <td>
-                      <div className="adm-prod-name">{client.name || '—'}</div>
+                      <div className="adm-prod-name">
+                        {client.name || '—'}
+                        {client.banned && <span className="adm-badge-blocked">Bloqué</span>}
+                      </div>
                       {client.company && <div className="adm-prod-brand">{client.company}</div>}
                     </td>
                     <td>
                       <span className="ref adm-slug">{client.email}</span>
+                    </td>
+                    <td>
+                      <span className="adm-last-login">{formatDate(client.lastSignIn)}</span>
                     </td>
                     {FAMILLES.map((f) => (
                       <td key={f.slug} style={{ textAlign: 'center' }}>
@@ -147,13 +239,46 @@ export default function AdminClients() {
                           </button>
                         </>
                       ) : (
-                        <button
-                          type="button"
-                          className="adm-action-btn edit"
-                          onClick={() => startEdit(client)}
-                        >
-                          Modifier
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            className="adm-action-btn edit"
+                            onClick={() => startEdit(client)}
+                            disabled={isActing}
+                          >
+                            Modifier
+                          </button>
+                          {client.banned ? (
+                            <button
+                              type="button"
+                              className="adm-action-btn"
+                              onClick={() => handleBlock(client, 'unblock')}
+                              disabled={isActing}
+                              title="Réactiver ce compte"
+                            >
+                              {acting === client.id + 'unblock' ? '…' : '✓ Débloquer'}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="adm-action-btn warn"
+                              onClick={() => handleBlock(client, 'block')}
+                              disabled={isActing}
+                              title="Bloquer ce compte"
+                            >
+                              {acting === client.id + 'block' ? '…' : '⊘ Bloquer'}
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="adm-action-btn del"
+                            onClick={() => setConfirmDelete(client)}
+                            disabled={isActing}
+                            title="Supprimer définitivement"
+                          >
+                            {acting === client.id + 'delete' ? '…' : 'Supprimer'}
+                          </button>
+                        </>
                       )}
                     </td>
                   </tr>

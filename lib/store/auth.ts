@@ -65,6 +65,12 @@ export const useAuthStore = create<AuthStore>()(
               .eq('id', data.user.id)
               .single();
 
+            if (profile?.role === 'pending') {
+              await supabase.auth.signOut();
+              set({ isLoading: false });
+              return { error: 'Votre compte est en attente d\'approbation par notre équipe. Vous recevrez un email dès que votre accès est activé.' };
+            }
+
             set({
               isLoading: false,
               user: {

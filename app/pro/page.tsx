@@ -66,6 +66,19 @@ function LoginForm({ particulier }: { particulier: boolean }) {
   );
 }
 
+function getPasswordStrength(pw: string): { level: number; label: string; color: string } {
+  if (!pw) return { level: 0, label: '', color: '' };
+  let score = 0;
+  if (pw.length >= 8)          score++;
+  if (/[A-Z]/.test(pw))        score++;
+  if (/[0-9]/.test(pw))        score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  if (score <= 1) return { level: 1, label: 'Faible',    color: '#ef4444' };
+  if (score === 2) return { level: 2, label: 'Moyen',    color: '#f59e0b' };
+  if (score === 3) return { level: 3, label: 'Fort',     color: '#22c55e' };
+  return              { level: 4, label: 'Très fort', color: '#16a34a' };
+}
+
 function RegisterForm() {
   const [step, setStep] = useState(1);
   const [company, setCompany] = useState('');
@@ -73,11 +86,14 @@ function RegisterForm() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [siretLoading, setSiretLoading] = useState(false);
   const [companyAutoFilled, setCompanyAutoFilled] = useState(false);
+  const strength = getPasswordStrength(password);
 
   useEffect(() => {
     if (siret.length !== 14) return;
@@ -96,13 +112,17 @@ function RegisterForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password !== confirm) { setError('Les mots de passe ne correspondent pas.'); return; }
+    if (password.length < 8)  { setError('Le mot de passe doit faire au moins 8 caractères.'); return; }
+    if (!/[A-Z]/.test(password)) { setError('Ajoutez au moins une majuscule.'); return; }
+    if (!/[0-9]/.test(password)) { setError('Ajoutez au moins un chiffre.'); return; }
     setLoading(true);
     setError('');
     try {
       const res = await fetch('/api/pro-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ company, siret, name, email, phone }),
+        body: JSON.stringify({ company, siret, name, email, phone, password }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? 'Une erreur est survenue.'); }
@@ -118,10 +138,10 @@ function RegisterForm() {
     return (
       <div className="auth-success">
         <div className="auth-success-icon">✓</div>
-        <h2>Demande envoyée !</h2>
+        <h2>Compte créé !</h2>
         <p>
-          Votre demande de compte professionnel a été transmise à notre équipe.
-          Vous recevrez un email de confirmation sous <strong>24h ouvrées</strong>.
+          Votre compte professionnel a été créé et est en attente de validation par notre équipe.
+          Vous recevrez un email dès que votre accès est activé, sous <strong>24h ouvrées</strong>.
         </p>
         <p className="auth-success-contact">
           Un doute ? Appelez-nous : <strong>04 67 78 06 63</strong>
@@ -136,7 +156,7 @@ function RegisterForm() {
       <div className="auth-steps">
         <span className={step >= 1 ? 'active' : ''}>1 · Entreprise</span>
         <span className="auth-step-sep">›</span>
-        <span className={step >= 2 ? 'active' : ''}>2 · Contact</span>
+        <span className={step >= 2 ? 'active' : ''}>2 · Contact & accès</span>
       </div>
 
       {step === 1 && (
@@ -215,11 +235,57 @@ function RegisterForm() {
               placeholder="06 xx xx xx xx"
             />
           </div>
+          <div className="field">
+            <label htmlFor="reg-pw">Mot de passe *</label>
+            <input
+              id="reg-pw"
+              type="password"
+              required
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Min. 8 car., 1 majuscule, 1 chiffre"
+            />
+            {password && (
+              <div className="pw-strength">
+                <div className="pw-strength-bars">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className="pw-strength-bar"
+                      style={{ background: strength.level >= i ? strength.color : '#e5e7eb' }}
+                    />
+                  ))}
+                </div>
+                <span className="pw-strength-label" style={{ color: strength.color }}>
+                  {strength.label}
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="field">
+            <label htmlFor="reg-pw2">Confirmer le mot de passe *</label>
+            <input
+              id="reg-pw2"
+              type="password"
+              required
+              autoComplete="new-password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+            />
+            {confirm && password !== confirm && (
+              <span className="field-hint error">Les mots de passe ne correspondent pas.</span>
+            )}
+          </div>
           {error && <div className="form-error">{error}</div>}
           <div className="auth-form-row">
             <button className="btn ghost" type="button" onClick={() => setStep(1)}>← Retour</button>
-            <button className="btn solid" type="submit" disabled={loading}>
-              {loading ? 'Envoi…' : 'Envoyer la demande'}
+            <button
+              className="btn solid"
+              type="submit"
+              disabled={loading || (!!confirm && password !== confirm)}
+            >
+              {loading ? 'Création…' : 'Créer mon compte'}
             </button>
           </div>
         </>

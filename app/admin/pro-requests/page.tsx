@@ -59,8 +59,8 @@ export default function AdminProRequests() {
         )
       );
       toast.success(
-        action === 'approve' ? 'Compte créé — invitation envoyée par email au client' :
-        action === 'resend'  ? 'Invitation renvoyée par email' :
+        action === 'approve' ? 'Compte activé — email de confirmation envoyé au client' :
+        action === 'resend'  ? 'Email de bienvenue renvoyé' :
         'Demande refusée'
       );
     } catch (err) {
