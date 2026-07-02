@@ -51,6 +51,11 @@ export default async function HomePage() {
                 <span>Voir les références</span>
               </Link>
             ))}
+            <Link className="cat" href="/documentation">
+              <div className="ic">📄</div>
+              <b>Documentation</b>
+              <span>Guides techniques</span>
+            </Link>
           </div>
         </div>
       </section>
