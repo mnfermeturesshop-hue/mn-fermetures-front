@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useCartStore, euro } from '@/lib/store/cart';
+import { useAuthStore } from '@/lib/store/auth';
 import type { CartLine } from '@/lib/catalog/types';
 import { ReassuranceStrip } from '@/components/ui/ReassuranceStrip';
 import { DevisActions } from '@/components/cart/DevisActions';
@@ -33,6 +34,7 @@ function LineRow({ line }: { line: CartLine }) {
 
 export default function CartPage() {
   const { lines, totalHT, totalTTC, tva, fraisLivraison, isFranco, clearCart, showTTC, toggleTTC } = useCartStore();
+  const { isPro } = useAuthStore();
 
   const ht = totalHT();
   const franco = isFranco();
@@ -108,9 +110,15 @@ export default function CartPage() {
             <div className="summary-row summary-ttc"><span>Total TTC</span><span>{euro(ttc + frais * 1.2)}</span></div>
           </div>
 
-          <Link className="btn checkout full" href="/checkout">
-            Commander →
-          </Link>
+          {isPro() ? (
+            <Link className="btn checkout full" href="/commande-pro">
+              Créer un bon de commande →
+            </Link>
+          ) : (
+            <Link className="btn checkout full" href="/checkout">
+              Commander →
+            </Link>
+          )}
           <Link className="btn ghost full" href="/">
             Continuer mes achats
           </Link>

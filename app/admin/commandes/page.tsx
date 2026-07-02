@@ -205,7 +205,11 @@ export default function AdminCommandes() {
                         )}
                       </td>
                       <td className="adm-td-price">{euro(o.total_ttc)}</td>
-                      <td>{o.payment_method === 'virement' ? '🏦 Virement' : '💳 Carte'}</td>
+                      <td>
+                        {o.payment_method === 'bon_de_commande' ? '📋 Bon de commande'
+                          : o.payment_method === 'virement' ? '🏦 Virement'
+                          : '💳 Carte'}
+                      </td>
                       <td>
                         <span className={`order-status ${STATUS_CLASS[o.status] ?? ''}`}>
                           {STATUS_LABELS[o.status] ?? o.status}
@@ -300,7 +304,9 @@ export default function AdminCommandes() {
                                     {o.is_guest ? 'Commande invité' : 'Compte client'}
                                   </div>
                                   <div className="adm-muted" style={{ fontSize: 12, marginTop: 8 }}>
-                                    Paiement : {o.payment_method === 'virement' ? '🏦 Virement bancaire' : '💳 Carte bancaire'}
+                                    {o.payment_method === 'bon_de_commande' ? '📋 Bon de commande pro'
+                                      : o.payment_method === 'virement' ? '🏦 Virement bancaire'
+                                      : '💳 Carte bancaire'}
                                   </div>
                                 </div>
                               </div>

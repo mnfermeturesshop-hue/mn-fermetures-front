@@ -16,7 +16,7 @@ export interface Address {
 }
 
 export type ShippingMethod = 'standard' | 'express';
-export type PaymentMethod  = 'card' | 'virement';
+export type PaymentMethod  = 'card' | 'virement' | 'bon_de_commande';
 
 export interface PlacedOrder {
   id: string;

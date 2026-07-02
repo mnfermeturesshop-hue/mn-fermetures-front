@@ -8,7 +8,7 @@ import { fetchCitiesByPostalCode, type CityOption } from '@/lib/geo';
 
 interface Props { onNext: () => void }
 
-function AddressFields({
+export function AddressFields({
   prefix,
   value,
   onChange,

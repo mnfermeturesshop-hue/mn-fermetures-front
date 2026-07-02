@@ -12,9 +12,10 @@ const SHIPPING_LABELS = {
   standard: 'Livraison standard (3-5 jours ouvrés)',
   express:  'Livraison express 24h',
 };
-const PAYMENT_LABELS = {
-  card:     'Carte bancaire',
-  virement: 'Virement bancaire (30 jours fin de mois)',
+const PAYMENT_LABELS: Record<string, string> = {
+  card:            'Carte bancaire',
+  virement:        'Virement bancaire (30 jours fin de mois)',
+  bon_de_commande: 'Bon de commande pro',
 };
 
 export default function ConfirmationPage({ params }: Props) {
@@ -30,7 +31,8 @@ export default function ConfirmationPage({ params }: Props) {
   if (!placedOrder || placedOrder.id !== params.id) return null;
 
   const addr = placedOrder.shippingAddress;
-  const isVirement = placedOrder.paymentMethod === 'virement';
+  const isVirement      = placedOrder.paymentMethod === 'virement';
+  const isBonDeCommande = placedOrder.paymentMethod === 'bon_de_commande';
 
   return (
     <div className="wrap confirm-page">
@@ -101,10 +103,19 @@ export default function ConfirmationPage({ params }: Props) {
             </address>
           </section>
 
-          {/* Paiement */}
+          {/* Paiement / Bon de commande */}
           <section className="confirm-section">
-            <h2>Paiement</h2>
-            <p className="confirm-payment">{PAYMENT_LABELS[placedOrder.paymentMethod]}</p>
+            <h2>{isBonDeCommande ? 'Bon de commande' : 'Paiement'}</h2>
+            <p className="confirm-payment">{PAYMENT_LABELS[placedOrder.paymentMethod] ?? placedOrder.paymentMethod}</p>
+            {isBonDeCommande && (
+              <div className="doc-info-box" style={{ marginTop: 12 }}>
+                <strong>Votre bon de commande a été transmis à notre équipe commerciale.</strong>
+                <p style={{ margin: '6px 0 0' }}>
+                  Nous vous contacterons sous 24h ouvrées pour confirmer la disponibilité
+                  et les modalités de livraison. Un email de confirmation vous a été envoyé.
+                </p>
+              </div>
+            )}
             {isVirement && (
               <div className="virement-reminder">
                 <strong>Rappel — virement à effectuer :</strong>
@@ -122,7 +133,9 @@ export default function ConfirmationPage({ params }: Props) {
         <aside className="confirm-sidebar">
           <div className="confirm-next">
             <h3>Et maintenant ?</h3>
-            {isVirement ? (
+            {isBonDeCommande ? (
+              <p>Notre équipe vous contactera sous 24h ouvrées pour valider et préparer votre commande.</p>
+            ) : isVirement ? (
               <p>Effectuez votre virement sous 5 jours ouvrés pour que nous lancions la préparation.</p>
             ) : (
               <p>Votre paiement a été accepté. Nous préparons votre commande.</p>
