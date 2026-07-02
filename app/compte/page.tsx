@@ -96,8 +96,15 @@ export default function ComptePage() {
     router.push('/');
   };
 
-  const convertDevisToBc = (d: DevisRow) => {
+  const convertDevisToBc = async (d: DevisRow) => {
     setLines(d.lines);
+    // Marquer le devis comme converti (masque le bouton immédiatement)
+    setDevis((prev) => prev.map((x) => x.id === d.id ? { ...x, status: 'converted' } : x));
+    fetch('/api/devis', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ devisNumber: d.devis_number, status: 'converted' }),
+    });
     toast.info('Panier chargé depuis le devis ' + d.devis_number);
     router.push('/commande-pro');
   };

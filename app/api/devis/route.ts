@@ -43,3 +43,17 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ ok: true });
 }
+
+export async function PATCH(req: NextRequest) {
+  const { devisNumber, status } = await req.json() as { devisNumber: string; status: string };
+  if (!devisNumber || !status) {
+    return NextResponse.json({ error: 'devisNumber et status requis' }, { status: 400 });
+  }
+  const adminClient = createAdminClient();
+  const { error } = await adminClient
+    .from('devis')
+    .update({ status })
+    .eq('devis_number', devisNumber);
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  return NextResponse.json({ ok: true });
+}
