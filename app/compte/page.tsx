@@ -10,6 +10,12 @@ import { createClient } from '@/lib/supabase/client';
 
 interface OrderLine { name: string; quantity: number; unitPriceHT: number }
 
+interface OrderDocuments {
+  arc?: string;
+  facture?: string;
+  suivi?: string;
+}
+
 interface Order {
   id: string;
   order_number: string;
@@ -20,6 +26,7 @@ interface Order {
   lines: OrderLine[];
   payment_method: string;
   shipping_method: string;
+  documents?: OrderDocuments;
 }
 
 const euro = (n: number) =>
@@ -49,7 +56,7 @@ export default function ComptePage() {
     const supabase = createClient();
     supabase
       .from('orders')
-      .select('id, order_number, created_at, total_ht, total_ttc, status, lines, payment_method, shipping_method')
+      .select('id, order_number, created_at, total_ht, total_ttc, status, lines, payment_method, shipping_method, documents')
       .order('created_at', { ascending: false })
       .then(({ data, error }) => {
         if (error) console.error('[compte] orders fetch:', error);
@@ -162,13 +169,34 @@ export default function ComptePage() {
                       <div className="order-card-foot">
                         <span className="order-total">{euro(Number(o.total_ht))} HT</span>
                         <div className="order-actions">
-                          <button
-                            className="btn ghost sm"
-                            type="button"
-                            onClick={() => window.open(`/devis?order=${o.order_number}`, '_blank')}
-                          >
-                            Facture PDF
-                          </button>
+                          {o.payment_method === 'bon_de_commande' ? (
+                            <div className="order-docs">
+                              {(['arc', 'facture', 'suivi'] as const).map((type) => {
+                                const LABELS = { arc: 'ARC', facture: 'Facture', suivi: 'Suivi' };
+                                return o.documents?.[type] ? (
+                                  <a
+                                    key={type}
+                                    className="btn ghost sm"
+                                    href={`/api/orders/${o.order_number}/documents/${type}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                  >
+                                    ↓ {LABELS[type]}
+                                  </a>
+                                ) : (
+                                  <span key={type} className="doc-pending">{LABELS[type]}</span>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <button
+                              className="btn ghost sm"
+                              type="button"
+                              onClick={() => window.open(`/devis?order=${o.order_number}`, '_blank')}
+                            >
+                              Facture PDF
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>

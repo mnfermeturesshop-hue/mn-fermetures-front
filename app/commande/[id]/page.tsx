@@ -149,13 +149,15 @@ export default function ConfirmationPage({ params }: Props) {
           </div>
 
           <div className="confirm-actions">
-            <button
-              className="btn devis full"
-              type="button"
-              onClick={() => window.open(`/devis?order=${placedOrder.id}`, '_blank')}
-            >
-              Télécharger la facture
-            </button>
+            {!isBonDeCommande && (
+              <button
+                className="btn devis full"
+                type="button"
+                onClick={() => window.open(`/devis?order=${placedOrder.id}`, '_blank')}
+              >
+                Télécharger la facture
+              </button>
+            )}
             <Link className="btn ghost full" href="/catalogue/tabliers">
               Continuer mes achats
             </Link>

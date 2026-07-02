@@ -40,6 +40,12 @@ interface Address {
   phone: string;
 }
 
+interface OrderDocuments {
+  arc?: string;
+  facture?: string;
+  suivi?: string;
+}
+
 interface OrderRow {
   id: string;
   order_number: string;
@@ -56,6 +62,7 @@ interface OrderRow {
   lines: OrderLine[];
   shipping_address: Address;
   billing_address: Address;
+  documents?: OrderDocuments;
 }
 
 const euro = (n: number) =>
@@ -90,7 +97,8 @@ export default function AdminCommandes() {
   const [search, setSearch]       = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [updating, setUpdating]   = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedId, setExpandedId]   = useState<string | null>(null);
+  const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/admin/orders')
@@ -131,6 +139,22 @@ export default function AdminCommandes() {
     setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status } : o));
     toast.success(`Commande ${id} → ${STATUS_LABELS[status]}`);
     setUpdating(null);
+  };
+
+  const handleUploadDoc = async (orderId: string, type: string, file: File) => {
+    setUploadingDoc(`${orderId}-${type}`);
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('type', type);
+    const res = await fetch(`/api/admin/orders/${orderId}/documents`, { method: 'POST', body: fd });
+    if (!res.ok) {
+      toast.error('Erreur upload document');
+    } else {
+      const { documents } = await res.json() as { documents: OrderDocuments };
+      setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, documents } : o));
+      toast.success(`Document ${type.toUpperCase()} uploadé`);
+    }
+    setUploadingDoc(null);
   };
 
   const totalPending = orders.filter((o) => o.status === 'pending').length;
@@ -311,6 +335,43 @@ export default function AdminCommandes() {
                                 </div>
                               </div>
                             </div>
+
+                            {/* Documents ERP — uniquement pour les bons de commande */}
+                            {o.payment_method === 'bon_de_commande' && (
+                              <div className="adm-order-detail-section">
+                                <div className="adm-order-detail-title">Documents ERP</div>
+                                <div className="adm-doc-slots">
+                                  {(['arc', 'facture', 'suivi'] as const).map((type) => {
+                                    const LABELS = { arc: 'ARC', facture: 'Facture', suivi: 'Suivi livraison' };
+                                    const docPath = o.documents?.[type];
+                                    const isUploading = uploadingDoc === `${o.id}-${type}`;
+                                    return (
+                                      <div key={type} className="adm-doc-slot">
+                                        <span className="adm-doc-slot-label">{LABELS[type]}</span>
+                                        {docPath
+                                          ? <span className="adm-doc-uploaded">✓ Uploadé</span>
+                                          : <span className="adm-doc-missing">—</span>
+                                        }
+                                        <label className="btn ghost sm adm-doc-upload-btn" style={{ cursor: 'pointer' }}>
+                                          {isUploading ? 'Upload…' : docPath ? 'Remplacer' : 'Uploader'}
+                                          <input
+                                            type="file"
+                                            accept=".pdf,application/pdf"
+                                            hidden
+                                            disabled={!!uploadingDoc}
+                                            onChange={(e) => {
+                                              const file = e.target.files?.[0];
+                                              if (file) handleUploadDoc(o.id, type, file);
+                                              e.target.value = '';
+                                            }}
+                                          />
+                                        </label>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
 
                           </div>
                         </td>

@@ -2360,3 +2360,21 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
   .bc-step-n { width: 22px; height: 22px; font-size: 11px; }
   .bc-lines { max-height: none; }
 }
+
+/* ── Documents ERP — Admin upload slots ── */
+.adm-doc-slots { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.adm-doc-slot {
+  display: flex; align-items: center; gap: 12px; font-size: 13px;
+  padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;
+}
+.adm-doc-slot-label { width: 130px; font-weight: 600; color: var(--ink); flex-shrink: 0; }
+.adm-doc-uploaded { color: #16a34a; font-size: 12px; font-weight: 600; flex: 1; }
+.adm-doc-missing  { color: var(--muted); font-size: 12px; flex: 1; }
+.adm-doc-upload-btn { margin-left: auto; flex-shrink: 0; }
+
+/* ── Documents ERP — Compte client ── */
+.order-docs { display: flex; flex-wrap: wrap; gap: 6px; }
+.doc-pending {
+  font-size: 11px; color: var(--muted); padding: 4px 8px;
+  background: #f1f5f9; border-radius: 4px; border: 1px solid #e2e8f0;
+}

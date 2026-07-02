@@ -2,8 +2,10 @@
 
 import { Suspense, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useCheckoutStore } from '@/lib/store/checkout';
 import { useCartStore, euro } from '@/lib/store/cart';
+import { useAuthStore } from '@/lib/store/auth';
 import { useSearchParams } from 'next/navigation';
 
 const TVA = 0.2;
@@ -13,6 +15,7 @@ function DevisContent() {
   const orderId = searchParams.get('order');
   const { placedOrder } = useCheckoutStore();
   const { lines, totalHT, totalTTC, tva, isFranco, fraisLivraison } = useCartStore();
+  const { isPro } = useAuthStore();
 
   const isOrderMode = !!orderId && !!placedOrder && placedOrder.id === orderId;
 
@@ -33,9 +36,16 @@ function DevisContent() {
     <div className="devis-page">
       <div className="devis-print-bar no-print">
         <span>{isOrderMode ? `Aperçu de la facture — ${devisNum}` : `Aperçu du devis — ${devisNum}`}</span>
-        <button className="btn solid" type="button" onClick={() => window.print()}>
-          Imprimer / Enregistrer PDF
-        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          {isPro() && !isOrderMode && (
+            <Link className="btn solid" href="/commande-pro">
+              Créer un bon de commande →
+            </Link>
+          )}
+          <button className="btn solid" type="button" onClick={() => window.print()}>
+            Imprimer / Enregistrer PDF
+          </button>
+        </div>
       </div>
 
       <div className="devis-doc">
