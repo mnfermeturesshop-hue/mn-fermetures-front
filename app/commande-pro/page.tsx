@@ -8,6 +8,7 @@ import { useCheckoutStore, shippingCostHT, genOrderId } from '@/lib/store/checko
 import type { Address } from '@/lib/store/checkout';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { AddressFields } from '@/components/checkout/AddressStep';
+import { createClient } from '@/lib/supabase/client';
 
 const BLANK: Address = {
   firstName: '', lastName: '', company: '',
@@ -37,6 +38,24 @@ export default function CommandeProPage() {
   useEffect(() => {
     if (!user || !isPro()) router.replace('/pro');
   }, [user, isPro, router]);
+
+  // Pré-remplir depuis le profil si l'adresse est vide
+  useEffect(() => {
+    if (!user || address.address1) return;
+    createClient()
+      .from('profiles')
+      .select('shipping_address, phone')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.shipping_address) {
+          setAddress((prev) => ({ ...prev, ...(data.shipping_address as Address) }));
+        } else if (data?.phone) {
+          setAddress((prev) => ({ ...prev, phone: data.phone as string }));
+        }
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   useEffect(() => {
     if (user && lines.length === 0) router.replace('/panier');

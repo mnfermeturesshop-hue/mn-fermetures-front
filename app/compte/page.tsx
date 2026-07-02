@@ -12,6 +12,22 @@ import type { CartLine } from '@/lib/catalog/types';
 
 interface OrderLine { name: string; quantity: number; unitPriceHT: number }
 
+interface ProfileAddress {
+  firstName: string;
+  lastName:  string;
+  company:   string;
+  address1:  string;
+  address2:  string;
+  postalCode: string;
+  city:      string;
+  phone:     string;
+}
+
+const BLANK_ADDR: ProfileAddress = {
+  firstName: '', lastName: '', company: '',
+  address1: '', address2: '', postalCode: '', city: '', phone: '',
+};
+
 interface OrderDocuments {
   arc?: string;
   facture?: string;
@@ -62,6 +78,13 @@ export default function ComptePage() {
   const [devis, setDevis]     = useState<DevisRow[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Profil éditable
+  const [profil, setProfil]       = useState({ name: '', company: '', phone: '' });
+  const [shipAddr, setShipAddr]   = useState<ProfileAddress>(BLANK_ADDR);
+  const [billAddr, setBillAddr]   = useState<ProfileAddress>(BLANK_ADDR);
+  const [sameAddr, setSameAddr]   = useState(true);
+  const [savingProfil, setSavingProfil] = useState(false);
+
   useEffect(() => {
     if (!user) router.replace('/pro');
   }, [user, router]);
@@ -86,9 +109,54 @@ export default function ComptePage() {
         .order('created_at', { ascending: false })
         .then(({ data }) => setDevis((data as DevisRow[]) ?? []));
     }
+
+    // Charger le profil étendu (adresses + téléphone)
+    supabase
+      .from('profiles')
+      .select('name, company, phone, shipping_address, billing_address')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (!data) return;
+        setProfil({
+          name:    data.name    ?? user.name,
+          company: data.company ?? user.company ?? '',
+          phone:   data.phone   ?? '',
+        });
+        if (data.shipping_address) {
+          setShipAddr(data.shipping_address as ProfileAddress);
+        } else {
+          setShipAddr((prev) => ({
+            ...prev,
+            firstName: user.name.split(' ')[0] ?? '',
+            lastName:  user.name.split(' ').slice(1).join(' ') ?? '',
+            company:   user.company ?? '',
+          }));
+        }
+        if (data.billing_address) {
+          setBillAddr(data.billing_address as ProfileAddress);
+          setSameAddr(false);
+        }
+      });
   }, [user]);
 
   if (!user) return null;
+
+  const handleSaveProfil = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingProfil(true);
+    const supabase = createClient();
+    const { error } = await supabase.from('profiles').update({
+      name:             profil.name,
+      company:          profil.company || null,
+      phone:            profil.phone   || null,
+      shipping_address: shipAddr,
+      billing_address:  sameAddr ? shipAddr : billAddr,
+    }).eq('id', user!.id);
+    setSavingProfil(false);
+    if (error) { toast.error('Erreur sauvegarde : ' + error.message); }
+    else        { toast.success('Profil mis à jour'); }
+  };
 
   const handleLogout = () => {
     logout();
@@ -319,17 +387,116 @@ export default function ComptePage() {
             <div className="compte-section-head">
               <h2>Mon profil</h2>
             </div>
-            <div className="profil-grid">
-              <div className="profil-field"><span>Nom</span><strong>{user.name}</strong></div>
-              <div className="profil-field"><span>Email</span><strong>{user.email}</strong></div>
-              {user.company && (
-                <div className="profil-field"><span>Entreprise</span><strong>{user.company}</strong></div>
-              )}
-              <div className="profil-field">
-                <span>Type de compte</span>
-                <strong>{isPro() ? 'Professionnel (B2B)' : 'Particulier (B2C)'}</strong>
+            <form className="profil-form" onSubmit={handleSaveProfil}>
+
+              {/* Informations personnelles */}
+              <div className="profil-form-block">
+                <div className="profil-form-title">Informations personnelles</div>
+                <div className="profil-grid-2">
+                  <label className="profil-label">
+                    Nom complet
+                    <input className="profil-input" value={profil.name}
+                      onChange={(e) => setProfil((p) => ({ ...p, name: e.target.value }))} />
+                  </label>
+                  <label className="profil-label">
+                    Téléphone
+                    <input className="profil-input" type="tel" value={profil.phone}
+                      onChange={(e) => setProfil((p) => ({ ...p, phone: e.target.value }))} />
+                  </label>
+                  <label className="profil-label">
+                    Entreprise
+                    <input className="profil-input" value={profil.company}
+                      onChange={(e) => setProfil((p) => ({ ...p, company: e.target.value }))} />
+                  </label>
+                  <div className="profil-label">
+                    Email
+                    <div className="profil-input profil-input--ro">{user.email}</div>
+                  </div>
+                </div>
               </div>
-            </div>
+
+              {/* Adresse de livraison */}
+              <div className="profil-form-block">
+                <div className="profil-form-title">Adresse de livraison par défaut</div>
+                <div className="profil-grid-2">
+                  <label className="profil-label">Prénom
+                    <input className="profil-input" value={shipAddr.firstName}
+                      onChange={(e) => setShipAddr((a) => ({ ...a, firstName: e.target.value }))} />
+                  </label>
+                  <label className="profil-label">Nom
+                    <input className="profil-input" value={shipAddr.lastName}
+                      onChange={(e) => setShipAddr((a) => ({ ...a, lastName: e.target.value }))} />
+                  </label>
+                  <label className="profil-label" style={{ gridColumn: '1 / -1' }}>Adresse
+                    <input className="profil-input" value={shipAddr.address1} placeholder="N° et rue"
+                      onChange={(e) => setShipAddr((a) => ({ ...a, address1: e.target.value }))} />
+                  </label>
+                  <label className="profil-label" style={{ gridColumn: '1 / -1' }}>Complément
+                    <input className="profil-input" value={shipAddr.address2} placeholder="Bâtiment, étage…"
+                      onChange={(e) => setShipAddr((a) => ({ ...a, address2: e.target.value }))} />
+                  </label>
+                  <label className="profil-label">Code postal
+                    <input className="profil-input" value={shipAddr.postalCode}
+                      onChange={(e) => setShipAddr((a) => ({ ...a, postalCode: e.target.value }))} />
+                  </label>
+                  <label className="profil-label">Ville
+                    <input className="profil-input" value={shipAddr.city}
+                      onChange={(e) => setShipAddr((a) => ({ ...a, city: e.target.value }))} />
+                  </label>
+                  <label className="profil-label">Téléphone livraison
+                    <input className="profil-input" type="tel" value={shipAddr.phone}
+                      onChange={(e) => setShipAddr((a) => ({ ...a, phone: e.target.value }))} />
+                  </label>
+                </div>
+              </div>
+
+              {/* Adresse de facturation */}
+              <div className="profil-form-block">
+                <div className="profil-form-title">Adresse de facturation</div>
+                <label className="profil-same-addr">
+                  <input type="checkbox" checked={sameAddr}
+                    onChange={(e) => setSameAddr(e.target.checked)} />
+                  Identique à l&apos;adresse de livraison
+                </label>
+                {!sameAddr && (
+                  <div className="profil-grid-2" style={{ marginTop: 12 }}>
+                    <label className="profil-label">Prénom
+                      <input className="profil-input" value={billAddr.firstName}
+                        onChange={(e) => setBillAddr((a) => ({ ...a, firstName: e.target.value }))} />
+                    </label>
+                    <label className="profil-label">Nom
+                      <input className="profil-input" value={billAddr.lastName}
+                        onChange={(e) => setBillAddr((a) => ({ ...a, lastName: e.target.value }))} />
+                    </label>
+                    <label className="profil-label" style={{ gridColumn: '1 / -1' }}>Adresse
+                      <input className="profil-input" value={billAddr.address1} placeholder="N° et rue"
+                        onChange={(e) => setBillAddr((a) => ({ ...a, address1: e.target.value }))} />
+                    </label>
+                    <label className="profil-label" style={{ gridColumn: '1 / -1' }}>Complément
+                      <input className="profil-input" value={billAddr.address2}
+                        onChange={(e) => setBillAddr((a) => ({ ...a, address2: e.target.value }))} />
+                    </label>
+                    <label className="profil-label">Code postal
+                      <input className="profil-input" value={billAddr.postalCode}
+                        onChange={(e) => setBillAddr((a) => ({ ...a, postalCode: e.target.value }))} />
+                    </label>
+                    <label className="profil-label">Ville
+                      <input className="profil-input" value={billAddr.city}
+                        onChange={(e) => setBillAddr((a) => ({ ...a, city: e.target.value }))} />
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              <div className="profil-form-foot">
+                <div className="profil-label" style={{ margin: 0 }}>
+                  Type de compte : <strong>{isPro() ? 'Professionnel (B2B)' : 'Particulier (B2C)'}</strong>
+                </div>
+                <button className="btn solid" type="submit" disabled={savingProfil}>
+                  {savingProfil ? 'Sauvegarde…' : 'Sauvegarder le profil'}
+                </button>
+              </div>
+            </form>
           </section>
 
           {/* Tarifs pro */}
