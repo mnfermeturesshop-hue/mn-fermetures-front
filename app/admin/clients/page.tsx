@@ -190,10 +190,10 @@ export default function AdminClients() {
                   >
                     <td>
                       <div className="adm-prod-name">
-                        {client.name || '—'}
+                        {client.company || client.name || '—'}
                         {client.banned && <span className="adm-badge-blocked">Bloqué</span>}
                       </div>
-                      {client.company && <div className="adm-prod-brand">{client.company}</div>}
+                      {client.name && <div className="adm-prod-brand">{client.name}</div>}
                     </td>
                     <td>
                       <span className="ref adm-slug">{client.email}</span>
