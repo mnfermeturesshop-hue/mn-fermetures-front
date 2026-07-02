@@ -17,6 +17,7 @@ interface CartStore {
   updateQty: (key: string, qty: number) => void;
   removeLine: (key: string) => void;
   clearCart: () => void;
+  setLines: (lines: CartLine[]) => void;
   openCart: () => void;
   closeCart: () => void;
   toggleTTC: () => void;
@@ -65,6 +66,7 @@ export const useCartStore = create<CartStore>()(
         set((state) => ({ lines: state.lines.filter((l) => l.key !== key) })),
 
       clearCart: () => set({ lines: [] }),
+      setLines: (lines) => set({ lines }),
 
       openCart: () => set({ isOpen: true }),
       closeCart: () => set({ isOpen: false }),

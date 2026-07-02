@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store/auth';
+import { useCartStore } from '@/lib/store/cart';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { toast } from '@/components/ui/Toast';
 import { createClient } from '@/lib/supabase/client';
+import type { CartLine } from '@/lib/catalog/types';
 
 interface OrderLine { name: string; quantity: number; unitPriceHT: number }
 
@@ -14,6 +16,17 @@ interface OrderDocuments {
   arc?: string;
   facture?: string;
   suivi?: string;
+}
+
+interface DevisRow {
+  id: string;
+  devis_number: string;
+  created_at: string;
+  valid_until: string;
+  total_ht: number;
+  total_ttc: number;
+  lines: CartLine[];
+  status: string;
 }
 
 interface Order {
@@ -43,8 +56,10 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 
 export default function ComptePage() {
   const { user, isPro, logout } = useAuthStore();
+  const { setLines, clearCart }  = useCartStore();
   const router = useRouter();
   const [orders, setOrders]   = useState<Order[]>([]);
+  const [devis, setDevis]     = useState<DevisRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -63,6 +78,14 @@ export default function ComptePage() {
         setOrders((data as Order[]) ?? []);
         setLoading(false);
       });
+
+    if (isPro()) {
+      supabase
+        .from('devis')
+        .select('id, devis_number, created_at, valid_until, total_ht, total_ttc, lines, status')
+        .order('created_at', { ascending: false })
+        .then(({ data }) => setDevis((data as DevisRow[]) ?? []));
+    }
   }, [user]);
 
   if (!user) return null;
@@ -71,6 +94,12 @@ export default function ComptePage() {
     logout();
     toast.info('Déconnexion effectuée');
     router.push('/');
+  };
+
+  const convertDevisToBc = (d: DevisRow) => {
+    setLines(d.lines);
+    toast.info('Panier chargé depuis le devis ' + d.devis_number);
+    router.push('/commande-pro');
   };
 
   const totalHT = orders.reduce((s, o) => s + Number(o.total_ht), 0);
@@ -97,6 +126,7 @@ export default function ComptePage() {
 
           <nav className="compte-nav">
             <a className="compte-nav-item active" href="#commandes">Mes commandes</a>
+            {isPro() && <a className="compte-nav-item" href="#devis">Mes devis</a>}
             <a className="compte-nav-item" href="#profil">Mon profil</a>
             {isPro() && <a className="compte-nav-item" href="#tarifs">Tarifs préférentiels</a>}
             <Link className="compte-nav-item" href="/panier">Mon panier</Link>
@@ -205,6 +235,77 @@ export default function ComptePage() {
               </div>
             )}
           </section>
+
+          {/* Devis PRO */}
+          {isPro() && (
+            <section id="devis" className="compte-section">
+              <div className="compte-section-head">
+                <h2>Mes devis</h2>
+                <Link className="btn ghost sm" href="/panier">Nouveau devis</Link>
+              </div>
+
+              {devis.length === 0 && (
+                <p style={{ color: 'var(--muted)', fontSize: 14, padding: '16px 0' }}>
+                  Aucun devis sauvegardé. Ajoutez des produits au panier et cliquez sur &quot;Créer un devis&quot;.
+                </p>
+              )}
+
+              {devis.length > 0 && (
+                <div className="orders-list">
+                  {devis.map((d) => {
+                    const date      = new Date(d.created_at).toLocaleDateString('fr-FR');
+                    const validDate = new Date(d.valid_until).toLocaleDateString('fr-FR');
+                    const isExpired = new Date(d.valid_until) < new Date();
+                    return (
+                      <div key={d.id} className="order-card">
+                        <div className="order-card-head">
+                          <div>
+                            <div className="order-id ref">{d.devis_number}</div>
+                            <div className="order-date">Créé le {date}</div>
+                          </div>
+                          <span className={`order-status ${isExpired ? 'status-rupture' : d.status === 'converted' ? 'status-ok' : 'status-pending'}`}>
+                            {isExpired ? 'Expiré' : d.status === 'converted' ? 'Converti' : `Valide jusqu'au ${validDate}`}
+                          </span>
+                        </div>
+                        <ul className="order-lines">
+                          {(d.lines ?? []).slice(0, 3).map((l, i) => (
+                            <li key={i}>{l.quantity} × {l.name}</li>
+                          ))}
+                          {(d.lines ?? []).length > 3 && (
+                            <li style={{ color: 'var(--muted)', fontSize: 12 }}>
+                              + {d.lines.length - 3} article{d.lines.length - 3 > 1 ? 's' : ''}
+                            </li>
+                          )}
+                        </ul>
+                        <div className="order-card-foot">
+                          <span className="order-total">{euro(Number(d.total_ht))} HT</span>
+                          <div className="order-actions">
+                            <Link
+                              className="btn ghost sm"
+                              href={`/devis?devis=${d.devis_number}`}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Voir / PDF
+                            </Link>
+                            {!isExpired && d.status !== 'converted' && (
+                              <button
+                                className="btn solid sm"
+                                type="button"
+                                onClick={() => convertDevisToBc(d)}
+                              >
+                                Créer un bon de commande →
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          )}
 
           {/* Profil */}
           <section id="profil" className="compte-section">

@@ -1,49 +1,177 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCheckoutStore } from '@/lib/store/checkout';
 import { useCartStore, euro } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
 import { useSearchParams } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import { toast } from '@/components/ui/Toast';
+import type { CartLine } from '@/lib/catalog/types';
 
 const TVA = 0.2;
 
+interface SavedDevis {
+  id: string;
+  devis_number: string;
+  customer_name: string | null;
+  company: string | null;
+  lines: CartLine[];
+  total_ht: number;
+  total_ttc: number;
+  frais_ht: number;
+  created_at: string;
+  valid_until: string;
+  status: string;
+}
+
+function genDevisNumber() {
+  return `DEV-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
+}
+
 function DevisContent() {
-  const searchParams = useSearchParams();
-  const orderId = searchParams.get('order');
-  const { placedOrder } = useCheckoutStore();
-  const { lines, totalHT, totalTTC, tva, isFranco, fraisLivraison } = useCartStore();
-  const { isPro } = useAuthStore();
+  const searchParams  = useSearchParams();
+  const orderId       = searchParams.get('order');
+  const savedDevisNum = searchParams.get('devis');
 
-  const isOrderMode = !!orderId && !!placedOrder && placedOrder.id === orderId;
+  const { placedOrder }                                             = useCheckoutStore();
+  const { lines, totalHT, totalTTC, isFranco, fraisLivraison }     = useCartStore();
+  const { user, isPro }                                             = useAuthStore();
 
-  const devisLines  = isOrderMode ? placedOrder.lines : lines;
-  const devisTotalHT  = isOrderMode ? placedOrder.totalHT : totalHT() + fraisLivraison();
-  const devisTotalTTC = isOrderMode ? placedOrder.totalTTC : totalTTC() + fraisLivraison() * (1 + TVA);
-  const devisTVA    = devisTotalHT * TVA;
-  const devisNum    = isOrderMode ? placedOrder.id : `DEVIS-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
-  const devisDate   = isOrderMode ? placedOrder.date : new Date().toLocaleDateString('fr-FR');
-  const validUntil  = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR');
+  const [savedDevis, setSavedDevis]   = useState<SavedDevis | null>(null);
+  const [saving, setSaving]           = useState(false);
+  const [alreadySaved, setAlreadySaved] = useState(false);
+  const [savingPdf, setSavingPdf]     = useState(false);
+
+  // Mode order (facture commande existante)
+  const isOrderMode  = !!orderId && !!placedOrder && placedOrder.id === orderId;
+  // Mode devis sauvegardé (chargé depuis compte)
+  const isSavedMode  = !!savedDevisNum && !!savedDevis;
+
+  // Charger un devis sauvegardé si param ?devis=
+  useEffect(() => {
+    if (!savedDevisNum) return;
+    const supabase = createClient();
+    supabase
+      .from('devis')
+      .select('*')
+      .eq('devis_number', savedDevisNum)
+      .single()
+      .then(({ data }) => {
+        if (data) { setSavedDevis(data as SavedDevis); setAlreadySaved(true); }
+      });
+  }, [savedDevisNum]);
+
+  // Données à afficher selon le mode
+  const devisLines   = isSavedMode ? savedDevis!.lines
+                     : isOrderMode ? placedOrder.lines
+                     : lines;
+  const devisTotalHT  = isSavedMode ? Number(savedDevis!.total_ht)
+                      : isOrderMode ? placedOrder.totalHT
+                      : totalHT() + fraisLivraison();
+  const devisTotalTTC = isSavedMode ? Number(savedDevis!.total_ttc)
+                      : isOrderMode ? placedOrder.totalTTC
+                      : totalTTC() + fraisLivraison() * (1 + TVA);
+  const devisTVA     = devisTotalHT * TVA;
+  const devisNum     = isSavedMode ? savedDevis!.devis_number
+                     : isOrderMode ? placedOrder.id
+                     : genDevisNumber();
+  const devisDate    = isSavedMode
+                       ? new Date(savedDevis!.created_at).toLocaleDateString('fr-FR')
+                       : isOrderMode ? placedOrder.date
+                       : new Date().toLocaleDateString('fr-FR');
+  const validUntil   = isSavedMode
+                       ? new Date(savedDevis!.valid_until).toLocaleDateString('fr-FR')
+                       : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR');
+  const devisFraisHT = isSavedMode ? Number(savedDevis!.frais_ht)
+                     : isOrderMode ? placedOrder.fraisHT
+                     : fraisLivraison();
 
   useEffect(() => {
     const label = isOrderMode ? 'Facture' : 'Devis';
     document.title = `${label} ${devisNum} — MN Fermetures`;
   }, [devisNum, isOrderMode]);
 
+  const handleSaveDevis = async () => {
+    if (!user || !isPro() || alreadySaved) return;
+    setSaving(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.from('devis').insert({
+        devis_number:  devisNum,
+        user_id:       user.id,
+        email:         user.email,
+        customer_name: user.name,
+        company:       user.company ?? null,
+        lines:         devisLines,
+        total_ht:      devisTotalHT,
+        total_ttc:     devisTotalTTC,
+        frais_ht:      devisFraisHT,
+      });
+      if (error) throw error;
+      setAlreadySaved(true);
+      toast.success('Devis sauvegardé dans votre espace compte');
+    } catch {
+      toast.error('Erreur lors de la sauvegarde');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSavePDF = async () => {
+    setSavingPdf(true);
+    try {
+      const { default: html2pdf } = await import('html2pdf.js');
+      const element = document.querySelector('.devis-doc');
+      await html2pdf()
+        .set({
+          margin: [8, 8, 8, 8],
+          filename: `${devisNum}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, logging: false },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        })
+        .from(element)
+        .save();
+    } catch {
+      toast.error('Erreur génération PDF');
+    } finally {
+      setSavingPdf(false);
+    }
+  };
+
   return (
     <div className="devis-page">
       <div className="devis-print-bar no-print">
         <span>{isOrderMode ? `Aperçu de la facture — ${devisNum}` : `Aperçu du devis — ${devisNum}`}</span>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div className="devis-bar-actions">
+          {isPro() && !isOrderMode && (
+            <button
+              className="btn ghost sm"
+              type="button"
+              onClick={handleSaveDevis}
+              disabled={saving || alreadySaved}
+            >
+              {alreadySaved ? '✓ Sauvegardé' : saving ? 'Sauvegarde…' : '💾 Sauvegarder'}
+            </button>
+          )}
           {isPro() && !isOrderMode && (
             <Link className="btn solid" href="/commande-pro">
               Créer un bon de commande →
             </Link>
           )}
+          <button
+            className="btn ghost"
+            type="button"
+            onClick={handleSavePDF}
+            disabled={savingPdf}
+          >
+            {savingPdf ? 'Génération…' : 'Enregistrer PDF'}
+          </button>
           <button className="btn solid" type="button" onClick={() => window.print()}>
-            Imprimer / Enregistrer PDF
+            Imprimer
           </button>
         </div>
       </div>
@@ -111,7 +239,7 @@ function DevisContent() {
             </tr>
           </thead>
           <tbody>
-            {devisLines.map((l: import('@/lib/catalog/types').CartLine, i: number) => (
+            {devisLines.map((l: CartLine, i: number) => (
               <tr key={l.key ?? i}>
                 <td>
                   <div className="devis-line-name">{l.name}</div>
@@ -127,7 +255,11 @@ function DevisContent() {
           <tfoot>
             <tr>
               <td colSpan={4}>Frais de livraison HT</td>
-              <td>{isOrderMode ? (placedOrder.fraisHT === 0 ? 'Offerte' : euro(placedOrder.fraisHT)) : (isFranco() ? 'Offerte' : euro(fraisLivraison()))}</td>
+              <td>
+                {devisFraisHT === 0
+                  ? (isOrderMode ? (placedOrder.fraisHT === 0 ? 'Offerte' : euro(placedOrder.fraisHT)) : (isFranco() ? 'Offerte' : euro(fraisLivraison())))
+                  : euro(devisFraisHT)}
+              </td>
             </tr>
             <tr className="devis-subtotal">
               <td colSpan={4}>Sous-total HT</td>
