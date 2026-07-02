@@ -66,7 +66,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY manquante' }, { status: 500 });
   }
   try {
-    const { id, action } = await req.json() as { id: string; action: 'approve' | 'reject' | 'resend' };
+    const { id, action } = await req.json() as { id: string; action: 'approve' | 'reject' };
     if (!id || !action) return NextResponse.json({ error: 'id et action requis' }, { status: 400 });
 
     const supabase = createAdminClient();
@@ -82,14 +82,6 @@ export async function PATCH(req: NextRequest) {
 
     if (action === 'reject') {
       await supabase.from('pro_requests').update({ status: 'rejected' }).eq('id', id);
-      return NextResponse.json({ ok: true });
-    }
-
-    if (action === 'resend') {
-      // Renvoie l'email de bienvenue au PRO déjà approuvé
-      await sendWelcomeEmail(proReq.name, proReq.email).catch((err) =>
-        console.error('[pro-requests] resend email error:', err)
-      );
       return NextResponse.json({ ok: true });
     }
 

@@ -77,6 +77,10 @@ export async function DELETE(req: NextRequest) {
     if (!id) return NextResponse.json({ error: 'id requis' }, { status: 400 });
 
     const supabase = createAdminClient();
+
+    // Supprime la demande pro liée avant de supprimer l'utilisateur
+    await supabase.from('pro_requests').delete().eq('user_id', id);
+
     const { error } = await supabase.auth.admin.deleteUser(id);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ ok: true });
