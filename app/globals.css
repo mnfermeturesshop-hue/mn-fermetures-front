@@ -2126,77 +2126,7 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 .doc-subtab:hover:not(.active) { background: #f1f5f9; }
 
 /* Steps */
-.doc-steps { }
 .doc-step-intro { font-size: 14px; color: var(--muted); margin-bottom: 16px; }
-.doc-step-sub { font-size: 15px; font-weight: 700; color: var(--navy-800); margin: 20px 0 10px; }
-.doc-step-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
-.doc-step {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 12px 14px;
-  font-size: 13.5px;
-}
-.doc-step-num {
-  flex-shrink: 0;
-  width: 26px; height: 26px;
-  background: var(--navy-800);
-  color: #fff;
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px;
-  font-weight: 800;
-}
-.doc-step-item {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 14px;
-  font-size: 13.5px;
-}
-
-/* Cases (cases/options) */
-.doc-cases { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
-.doc-case { display: flex; gap: 14px; align-items: flex-start; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; }
-.doc-case-num {
-  flex-shrink: 0;
-  width: 30px; height: 30px;
-  border-radius: 50%;
-  color: #fff;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 13px;
-  font-weight: 800;
-}
-.doc-case-body { flex: 1; font-size: 13.5px; }
-.doc-case-body ul, .doc-case-body ol { padding-left: 16px; margin: 6px 0 0; }
-.doc-case-body li { margin-bottom: 4px; }
-.doc-case-body p { margin: 4px 0 0; }
-
-/* Gaposa key legend */
-.doc-key-map {
-  background: #1e293b;
-  color: #f1f5f9;
-  border-radius: 10px;
-  padding: 16px 20px;
-  margin-bottom: 24px;
-}
-.doc-key-map h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #94a3b8; margin: 0 0 12px; }
-.doc-key-grid { display: flex; flex-direction: column; gap: 7px; font-size: 13px; }
-.doc-key {
-  display: inline-block;
-  background: #334155;
-  border: 1px solid #475569;
-  border-radius: 5px;
-  padding: 2px 9px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #e2e8f0;
-  margin-right: 8px;
-  font-family: monospace;
-}
 
 /* ============================================================
    Documentation — Visuels télécommandes & store

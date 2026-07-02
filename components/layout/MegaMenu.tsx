@@ -92,9 +92,6 @@ export function MegaMenu() {
           );
         })}
 
-        <div className="mi">
-          <Link href="/documentation">Documentation</Link>
-        </div>
       </div>
     </nav>
   );

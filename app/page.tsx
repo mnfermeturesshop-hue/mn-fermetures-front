@@ -48,14 +48,9 @@ export default async function HomePage() {
               <Link className="cat" href={item.href} key={item.href}>
                 <div className="ic">{item.icon}</div>
                 <b>{item.name}</b>
-                <span>Voir les références</span>
+                <span>{item.subtitle ?? 'Voir les références'}</span>
               </Link>
             ))}
-            <Link className="cat" href="/documentation">
-              <div className="ic">📄</div>
-              <b>Documentation</b>
-              <span>Guides techniques</span>
-            </Link>
           </div>
         </div>
       </section>

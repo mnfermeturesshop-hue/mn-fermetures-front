@@ -115,6 +115,9 @@ const ABAQUES: Record<AbaqueType, {
   },
 };
 
+const X2_RE = /deux|2×/i;
+const ABAQUE_KEYS = Object.keys(ABAQUES) as AbaqueType[];
+
 function nmColor(nm: number) {
   if (nm <= 6)  return '#16a34a';
   if (nm <= 10) return '#65a30d';
@@ -233,9 +236,9 @@ function AbaquesSection() {
     const li = ab.widths.findIndex(v => v >= lNum);
     if (hi === -1 || li === -1) return null;
     return { nm: ab.data[hi][li], hUsed: ab.heights[hi], lUsed: ab.widths[li], hi, li };
-  }, [type, hNum, lNum, ab]);
+  }, [type, hNum, lNum]);
 
-  const outOfRange = (h || l) && !result;
+  const outOfRange = (!!h || !!l) && !result;
 
   return (
     <div>
@@ -247,7 +250,7 @@ function AbaquesSection() {
 
       <div className="doc-calculator">
         <div className="doc-toggle-row">
-          {(Object.keys(ABAQUES) as AbaqueType[]).map(k => (
+          {ABAQUE_KEYS.map(k => (
             <button key={k} type="button"
               className={`doc-toggle-btn ${type === k ? 'active' : ''}`}
               onClick={() => { setType(k); setH(''); setL(''); }}
@@ -389,7 +392,7 @@ function StoreVis({ pos }: { pos: 'up' | 'mid' | 'dn' }) {
 }
 
 function MFB({ text }: { text: string }) {
-  const x2 = /deux|2×/i.test(text);
+  const x2 = X2_RE.test(text);
   return (
     <div className={`mfb ${x2 ? 'mfb-x2' : ''}`}>
       <div className="mfb-icon">{x2 ? '↕↕' : '↕'}</div>

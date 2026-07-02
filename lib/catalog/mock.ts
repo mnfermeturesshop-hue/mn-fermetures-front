@@ -36,7 +36,7 @@ export const categories: Category[] = [
 /** Types du méga-menu (3 niveaux : NavTop > NavGroup > NavLeaf). */
 export interface NavLeaf  { name: string; href: string }
 export interface NavGroup extends NavLeaf { children: NavLeaf[] }
-export interface NavTop   extends NavLeaf { icon?: string; children?: (NavGroup | NavLeaf)[] }
+export interface NavTop   extends NavLeaf { icon?: string; subtitle?: string; children?: (NavGroup | NavLeaf)[] }
 export const isNavGroup = (item: NavLeaf | NavGroup): item is NavGroup =>
   'children' in item && Array.isArray((item as NavGroup).children);
 
@@ -118,6 +118,9 @@ export const MENU: NavTop[] = [
   },
   {
     name: 'Aide à la pose', href: '/catalogue/aide-a-la-pose',
+  },
+  {
+    name: 'Documentation', href: '/documentation', icon: '📄', subtitle: 'Guides techniques',
   },
 ];
 
