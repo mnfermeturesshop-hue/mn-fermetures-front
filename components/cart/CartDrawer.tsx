@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useCartStore, euro } from '@/lib/store/cart';
+import { useAuthStore } from '@/lib/store/auth';
 import type { CartLine } from '@/lib/catalog/types';
 
 function CartLineRow({ line }: { line: CartLine }) {
@@ -43,6 +44,8 @@ function CartLineRow({ line }: { line: CartLine }) {
 export function CartDrawer() {
   const { lines, isOpen, closeCart, totalHT, totalTTC, tva, fraisLivraison, isFranco, showTTC, toggleTTC } =
     useCartStore();
+  const { isPro } = useAuthStore();
+  const checkoutHref = isPro() ? '/commande-pro' : '/checkout';
 
   if (!isOpen) return null;
 
@@ -108,8 +111,8 @@ export function CartDrawer() {
             </div>
 
             <div className="drawer-ctas">
-              <Link className="btn checkout full" href="/checkout" onClick={closeCart}>
-                Commander →
+              <Link className="btn checkout full" href={checkoutHref} onClick={closeCart}>
+                {isPro() ? 'Créer un bon de commande →' : 'Commander →'}
               </Link>
               <Link className="btn solid full" href="/panier" onClick={closeCart}>
                 Voir le panier

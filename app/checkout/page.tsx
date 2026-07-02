@@ -17,16 +17,17 @@ import { Breadcrumb } from '@/components/ui/Breadcrumb';
 export default function CheckoutPage() {
   const { totalLines } = useCartStore();
   const { step, setStep, guestEmail, guestMode } = useCheckoutStore();
-  const { user } = useAuthStore();
+  const { user, isPro } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
+    if (isPro()) { router.replace('/commande-pro'); return; }
     if (totalLines() === 0) { router.replace('/panier'); return; }
     trackBeginCheckout({ totalHT: useCartStore.getState().totalHT(), numItems: totalLines() });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (totalLines() === 0) return null;
+  if (isPro() || totalLines() === 0) return null;
 
   const next = () => setStep((step < 3 ? step + 1 : step) as 1 | 2 | 3);
   const back = () => setStep((step > 1 ? step - 1 : step) as 1 | 2 | 3);
