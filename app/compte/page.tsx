@@ -91,17 +91,16 @@ export default function ComptePage() {
 
   useEffect(() => {
     if (!user) return;
-    const supabase = createClient();
-    supabase
-      .from('orders')
-      .select('id, order_number, created_at, total_ht, total_ttc, status, lines, payment_method, shipping_method, documents')
-      .order('created_at', { ascending: false })
-      .then(({ data, error }) => {
-        if (error) console.error('[compte] orders fetch:', error);
+    // Commandes via API route (évite les problèmes de colonnes manquantes et de RLS)
+    fetch('/api/orders/mine')
+      .then((r) => r.json())
+      .then((data) => {
         setOrders((data as Order[]) ?? []);
         setLoading(false);
-      });
+      })
+      .catch(() => setLoading(false));
 
+    const supabase = createClient();
     if (isPro()) {
       supabase
         .from('devis')
