@@ -5,8 +5,16 @@ import { NextResponse, type NextRequest } from 'next/server';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Supabase non configuré → admin accessible en dev local
+  // Supabase non configuré : bypass toléré en DEV uniquement.
+  // En production, ne jamais laisser /admin ou /compte ouverts (fail-closed, audit S9).
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    if (
+      process.env.NODE_ENV === 'production' &&
+      pathname !== '/admin/login' &&
+      (pathname.startsWith('/admin') || pathname.startsWith('/compte'))
+    ) {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
     return NextResponse.next({ request });
   }
 

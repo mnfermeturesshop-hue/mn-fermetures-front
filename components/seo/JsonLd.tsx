@@ -5,6 +5,14 @@ import { getBrand } from '@/lib/catalog/mock';
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.mmfermetures.fr';
 
+/** Sérialise en JSON-LD sûr : neutralise `</script>` dans un champ (audit S10). */
+function safeJsonLd(obj: unknown): string {
+  return JSON.stringify(obj)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026');
+}
+
 function availability(p: Product): string {
   if (isUnit(p)) {
     return p.variants.some((v) => v.inStock)
@@ -52,7 +60,7 @@ export function ProductJsonLd({ product }: { product: Product }) {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      dangerouslySetInnerHTML={{ __html: safeJsonLd(schema) }}
     />
   );
 }
@@ -79,7 +87,7 @@ export function OrganizationJsonLd() {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      dangerouslySetInnerHTML={{ __html: safeJsonLd(schema) }}
     />
   );
 }
@@ -99,7 +107,7 @@ export function BreadcrumbJsonLd({ crumbs }: { crumbs: { label: string; href?: s
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      dangerouslySetInnerHTML={{ __html: safeJsonLd(schema) }}
     />
   );
 }

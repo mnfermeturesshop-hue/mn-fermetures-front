@@ -1,19 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { rateLimit, clientIp } from '@/lib/security/rateLimit';
+import { verifyTurnstile } from '@/lib/security/turnstile';
+import { escapeHtml } from '@/lib/security/escapeHtml';
 
 export async function POST(req: NextRequest) {
+  const ip = clientIp(req);
+  if (!rateLimit(`pro-request:${ip}`)) {
+    return NextResponse.json(
+      { error: 'Trop de tentatives. Réessayez dans une minute.' },
+      { status: 429 }
+    );
+  }
+
   const body = await req.json() as {
     company?: string; siret?: string;
     name?: string; email?: string; phone?: string; password?: string;
+    turnstileToken?: string;
   };
-  const { company = '', siret = '', name = '', email = '', phone = '', password = '' } = body;
+  const { company = '', siret = '', name = '', email = '', phone = '', password = '', turnstileToken = '' } = body;
 
   if (!company.trim() || !siret.trim() || !name.trim() || !email.trim()) {
     return NextResponse.json({ error: 'Champs obligatoires manquants.' }, { status: 400 });
   }
+  if (!/^\d{14}$/.test(siret.trim())) {
+    return NextResponse.json({ error: 'Le SIRET doit comporter 14 chiffres.' }, { status: 400 });
+  }
   if (!password || password.length < 8) {
     return NextResponse.json({ error: 'Le mot de passe doit faire au moins 8 caractères.' }, { status: 400 });
+  }
+  if (!(await verifyTurnstile(turnstileToken, ip))) {
+    return NextResponse.json({ error: 'Vérification anti-robot échouée. Réessayez.' }, { status: 400 });
   }
 
   const supabase = createAdminClient();
@@ -75,11 +93,11 @@ export async function POST(req: NextRequest) {
   <div style="background:#fff;padding:32px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;">
     <p style="margin:0 0 16px;">Une nouvelle inscription pro est en attente d'approbation :</p>
     <table style="border-collapse:collapse;font-size:14px;margin-bottom:24px;">
-      <tr><td style="padding:6px 16px 6px 0;color:#6b7280;">Entreprise</td><td><strong>${company}</strong></td></tr>
-      <tr><td style="padding:6px 16px 6px 0;color:#6b7280;">SIRET</td><td style="font-family:monospace;">${siret}</td></tr>
-      <tr><td style="padding:6px 16px 6px 0;color:#6b7280;">Contact</td><td>${name}</td></tr>
-      <tr><td style="padding:6px 16px 6px 0;color:#6b7280;">Email</td><td>${email}</td></tr>
-      ${phone ? `<tr><td style="padding:6px 16px 6px 0;color:#6b7280;">Téléphone</td><td>${phone}</td></tr>` : ''}
+      <tr><td style="padding:6px 16px 6px 0;color:#6b7280;">Entreprise</td><td><strong>${escapeHtml(company)}</strong></td></tr>
+      <tr><td style="padding:6px 16px 6px 0;color:#6b7280;">SIRET</td><td style="font-family:monospace;">${escapeHtml(siret)}</td></tr>
+      <tr><td style="padding:6px 16px 6px 0;color:#6b7280;">Contact</td><td>${escapeHtml(name)}</td></tr>
+      <tr><td style="padding:6px 16px 6px 0;color:#6b7280;">Email</td><td>${escapeHtml(email)}</td></tr>
+      ${phone ? `<tr><td style="padding:6px 16px 6px 0;color:#6b7280;">Téléphone</td><td>${escapeHtml(phone)}</td></tr>` : ''}
     </table>
     <div style="text-align:center;">
       <a href="${siteUrl}/admin/pro-requests"

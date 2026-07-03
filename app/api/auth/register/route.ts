@@ -1,33 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { createClient } from '@supabase/supabase-js';
-
-// Simple in-memory rate limiter (5 tentatives / minute par IP)
-const rl = new Map<string, { n: number; reset: number }>();
-function rateLimit(ip: string): boolean {
-  const now = Date.now();
-  const e = rl.get(ip);
-  if (!e || e.reset < now) { rl.set(ip, { n: 1, reset: now + 60_000 }); return true; }
-  if (e.n >= 5) return false;
-  e.n++;
-  return true;
-}
-
-async function verifyTurnstile(token: string, ip: string): Promise<boolean> {
-  const secret = process.env.TURNSTILE_SECRET_KEY;
-  if (!secret || !token) return true; // graceful skip si non configuré
-  try {
-    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ secret, response: token, remoteip: ip }),
-    });
-    const data: { success: boolean } = await res.json();
-    return data.success === true;
-  } catch {
-    return false;
-  }
-}
+import { rateLimit, clientIp } from '@/lib/security/rateLimit';
+import { verifyTurnstile } from '@/lib/security/turnstile';
+import { escapeHtml } from '@/lib/security/escapeHtml';
 
 function validatePassword(pw: string): string | null {
   if (pw.length < 8)        return 'Le mot de passe doit faire au moins 8 caractères.';
@@ -56,7 +32,7 @@ async function sendWelcomeEmail(to: string, firstName: string) {
       <p style="margin:6px 0 0;color:#93c5fd;font-size:13px;">Volets roulants · Motorisations · Pièces détachées</p>
     </td></tr>
     <tr><td style="padding:32px;">
-      <h1 style="margin:0 0 16px;color:#1e3a5f;font-size:22px;">Bienvenue, ${firstName} !</h1>
+      <h1 style="margin:0 0 16px;color:#1e3a5f;font-size:22px;">Bienvenue, ${escapeHtml(firstName)} !</h1>
       <p style="margin:0 0 12px;">Votre compte MN Fermetures a bien été créé.</p>
       <p style="margin:0 0 20px;">Pour l'activer, cliquez sur le lien de confirmation que vous venez de recevoir. Une fois vérifié, vous aurez accès à votre espace client.</p>
       <div style="padding:16px;background:#f0f4f8;border-radius:8px;margin-bottom:20px;">
@@ -88,9 +64,9 @@ async function sendWelcomeEmail(to: string, firstName: string) {
 }
 
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? '127.0.0.1';
+  const ip = clientIp(req);
 
-  if (!rateLimit(ip)) {
+  if (!rateLimit(`register:${ip}`)) {
     return NextResponse.json(
       { error: 'Trop de tentatives. Réessayez dans une minute.' },
       { status: 429 }

@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { verifyCartLines } from '@/lib/catalog/verifyCart';
 import { getUserDiscounts } from '@/lib/pricing/discounts';
 import { computeOrderTotals, type ShippingMethod } from '@/lib/pricing/shipping';
+import { escapeHtml } from '@/lib/security/escapeHtml';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -56,9 +57,9 @@ function buildEmailHtml(payload: OrderPayload): string {
   const linesHtml = lines.map((l) => `
     <tr>
       <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;">
-        <div style="font-weight:600;color:#1e3a5f;">${l.name}</div>
-        ${l.reference ? `<div style="font-size:12px;color:#6b7280;font-family:monospace;">${l.reference}</div>` : ''}
-        ${l.detail ? `<div style="font-size:12px;color:#6b7280;">${l.detail}</div>` : ''}
+        <div style="font-weight:600;color:#1e3a5f;">${escapeHtml(l.name)}</div>
+        ${l.reference ? `<div style="font-size:12px;color:#6b7280;font-family:monospace;">${escapeHtml(l.reference)}</div>` : ''}
+        ${l.detail ? `<div style="font-size:12px;color:#6b7280;">${escapeHtml(l.detail)}</div>` : ''}
       </td>
       <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:center;">${l.quantity}</td>
       <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">${euro(l.unitPriceHT * l.quantity)}&nbsp;HT</td>
@@ -94,7 +95,7 @@ function buildEmailHtml(payload: OrderPayload): string {
       <td style="padding:32px 32px 0;text-align:center;">
         <div style="display:inline-block;width:56px;height:56px;border-radius:50%;background:#dcfce7;line-height:56px;font-size:28px;margin-bottom:16px;">✓</div>
         <h1 style="margin:0 0 8px;font-size:22px;color:#1e3a5f;">Commande confirmée !</h1>
-        <p style="margin:0;color:#6b7280;font-size:14px;">Merci ${customerName} pour votre commande.</p>
+        <p style="margin:0;color:#6b7280;font-size:14px;">Merci ${escapeHtml(customerName)} pour votre commande.</p>
         <div style="margin:16px auto;display:inline-block;padding:8px 20px;background:#f0f4f8;border-radius:6px;font-family:monospace;font-weight:700;color:#1e3a5f;font-size:16px;">
           N° ${orderNumber}
         </div>
@@ -131,12 +132,12 @@ function buildEmailHtml(payload: OrderPayload): string {
       <td style="padding:24px 32px 0;">
         <h2 style="margin:0 0 12px;font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;">Adresse de livraison</h2>
         <div style="padding:14px 16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;line-height:1.7;">
-          <strong>${shippingAddress.firstName} ${shippingAddress.lastName}</strong><br>
-          ${shippingAddress.company ? shippingAddress.company + '<br>' : ''}
-          ${shippingAddress.address1}<br>
-          ${shippingAddress.address2 ? shippingAddress.address2 + '<br>' : ''}
-          ${shippingAddress.postalCode} ${shippingAddress.city}<br>
-          ${shippingAddress.phone}
+          <strong>${escapeHtml(shippingAddress.firstName)} ${escapeHtml(shippingAddress.lastName)}</strong><br>
+          ${shippingAddress.company ? escapeHtml(shippingAddress.company) + '<br>' : ''}
+          ${escapeHtml(shippingAddress.address1)}<br>
+          ${shippingAddress.address2 ? escapeHtml(shippingAddress.address2) + '<br>' : ''}
+          ${escapeHtml(shippingAddress.postalCode)} ${escapeHtml(shippingAddress.city)}<br>
+          ${escapeHtml(shippingAddress.phone)}
         </div>
       </td>
     </tr>

@@ -257,6 +257,19 @@ En cas de doute « mort vs pas encore branché » → te demander avant toute su
 
 **Limitation connue** : si le client ferme l'onglet avant la page de confirmation, la commande n'est pas créée même si le webhook arrive (le contexte complet — adresses, lignes — dépasse les métadonnées Stripe). Sécurité OK (pas de sous-paiement) ; à traiter ultérieurement en créant la commande dès l'intent.
 
-Reste à traiter (lots suivants) : S4, S7–S12, D1–D5, C2–C5, P1/P2/P5.
+### ✅ Lot Sécurité‑3 — Durcissement (S4, S7–S12)
+`typecheck` ✅ · `build` ✅.
+
+**Nouveaux utilitaires** : `lib/security/rateLimit.ts` (limiteur mémoire + `clientIp`), `lib/security/turnstile.ts` (`verifyTurnstile`), `lib/security/escapeHtml.ts`.
+
+- **S4** — `next` 14.2.5 → **14.2.35** : corrige la CVE de contournement de middleware (critique) + advisories associés. Résiduels `npm audit` : `postcss` (modéré, fix = Next 16 breaking) et `xlsx` (haute, sans patch amont — usage **admin authentifié** uniquement ; à remplacer par `exceljs` ultérieurement).
+- **S7** — `/api/pro-request` : rate‑limit + **Turnstile** (widget ajouté au formulaire `app/pro`) + validation SIRET (14 chiffres). `register` refactorisé sur les utilitaires partagés.
+- **S8** — **échappement HTML** de tous les champs utilisateur dans les emails (`orders`, `bon-de-commande`, `pro-request`, `register`, `admin/pro-requests`) via `escapeHtml()`.
+- **S9** — middleware **fail‑closed** en production : si Supabase non configuré, `/admin` et `/compte` renvoient vers `/` (plus de bypass silencieux).
+- **S10** — JSON‑LD : sérialisation sûre (`<`/`>`/`&`) → neutralise `</script>`.
+- **S11** — en‑têtes de sécurité dans `next.config.mjs` (`X-Content-Type-Options`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy`, `Permissions-Policy`, HSTS).
+- **S12** — `create-payment-intent` : rate‑limit + validation du `orderNumber`.
+
+Reste à traiter (lots suivants) : D1–D5 (base), C2–C5 & P1/P2/P5 (cohérence/simplification).
 </content>
 </invoke>

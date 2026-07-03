@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth/guards';
+import { escapeHtml } from '@/lib/security/escapeHtml';
 
 export async function GET() {
   const guard = await requireAdmin();
@@ -39,7 +40,7 @@ async function sendWelcomeEmail(name: string, email: string) {
     <div style="font-size:13px;color:#93c5fd;margin-top:4px;">Espace professionnel</div>
   </div>
   <div style="background:#fff;padding:32px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;">
-    <p style="margin:0 0 16px;">Bonjour ${name},</p>
+    <p style="margin:0 0 16px;">Bonjour ${escapeHtml(name)},</p>
     <p style="margin:0 0 24px;color:#4b5563;">
       Votre compte professionnel <strong>MN Fermetures</strong> vient d'être activé par notre équipe.
       Vous pouvez dès maintenant vous connecter avec votre email et le mot de passe que vous avez défini lors de votre inscription.

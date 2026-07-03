@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { verifyCartLines } from '@/lib/catalog/verifyCart';
 import { getUserDiscounts } from '@/lib/pricing/discounts';
 import { computeOrderTotals, type ShippingMethod } from '@/lib/pricing/shipping';
+import { escapeHtml } from '@/lib/security/escapeHtml';
 
 interface OrderLine {
   key: string;
@@ -47,9 +48,9 @@ function linesTable(lines: OrderLine[]): string {
   const rows = lines.map((l) => `
     <tr>
       <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;">
-        <div style="font-weight:600;color:#1e3a5f;">${l.name}</div>
-        ${l.reference ? `<div style="font-size:12px;color:#6b7280;font-family:monospace;">${l.reference}</div>` : ''}
-        ${l.detail ? `<div style="font-size:12px;color:#6b7280;">${l.detail}</div>` : ''}
+        <div style="font-weight:600;color:#1e3a5f;">${escapeHtml(l.name)}</div>
+        ${l.reference ? `<div style="font-size:12px;color:#6b7280;font-family:monospace;">${escapeHtml(l.reference)}</div>` : ''}
+        ${l.detail ? `<div style="font-size:12px;color:#6b7280;">${escapeHtml(l.detail)}</div>` : ''}
       </td>
       <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:center;">${l.quantity}</td>
       <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">${euro(l.unitPriceHT)} HT</td>
@@ -75,12 +76,12 @@ function linesTable(lines: OrderLine[]): string {
 function addrBlock(addr: Address): string {
   return `
     <div style="padding:14px 16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;line-height:1.7;">
-      <strong>${addr.firstName} ${addr.lastName}</strong><br>
-      ${addr.company ? addr.company + '<br>' : ''}
-      ${addr.address1}<br>
-      ${addr.address2 ? addr.address2 + '<br>' : ''}
-      ${addr.postalCode} ${addr.city}<br>
-      ${addr.phone}
+      <strong>${escapeHtml(addr.firstName)} ${escapeHtml(addr.lastName)}</strong><br>
+      ${addr.company ? escapeHtml(addr.company) + '<br>' : ''}
+      ${escapeHtml(addr.address1)}<br>
+      ${addr.address2 ? escapeHtml(addr.address2) + '<br>' : ''}
+      ${escapeHtml(addr.postalCode)} ${escapeHtml(addr.city)}<br>
+      ${escapeHtml(addr.phone)}
     </div>
   `;
 }
@@ -139,8 +140,8 @@ function buildHqEmail(p: BonDeCommandePayload): string {
       <td style="padding:20px 32px 0;">
         <h2 style="margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;">Client</h2>
         <div style="padding:14px 16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;line-height:1.7;">
-          <strong>${customerName}</strong>${company ? ` — ${company}` : ''}<br>
-          <a href="mailto:${email}" style="color:#1e3a5f;">${email}</a>
+          <strong>${escapeHtml(customerName)}</strong>${company ? ` — ${escapeHtml(company)}` : ''}<br>
+          <a href="mailto:${encodeURIComponent(email)}" style="color:#1e3a5f;">${escapeHtml(email)}</a>
         </div>
       </td>
     </tr>
@@ -185,7 +186,7 @@ function buildCustomerEmail(p: BonDeCommandePayload): string {
       <td style="padding:32px 32px 0;text-align:center;">
         <div style="display:inline-block;width:56px;height:56px;border-radius:50%;background:#dcfce7;line-height:56px;font-size:28px;margin-bottom:16px;">✓</div>
         <h1 style="margin:0 0 8px;font-size:22px;color:#1e3a5f;">Bon de commande transmis !</h1>
-        <p style="margin:0;color:#6b7280;font-size:14px;">Merci ${customerName}, votre bon de commande a bien été reçu.</p>
+        <p style="margin:0;color:#6b7280;font-size:14px;">Merci ${escapeHtml(customerName)}, votre bon de commande a bien été reçu.</p>
         <div style="margin:16px auto;display:inline-block;padding:8px 20px;background:#f0f4f8;border-radius:6px;font-family:monospace;font-weight:700;color:#1e3a5f;font-size:16px;">
           N° ${orderNumber}
         </div>

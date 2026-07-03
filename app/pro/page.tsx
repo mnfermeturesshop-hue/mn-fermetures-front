@@ -7,6 +7,7 @@ import { useAuthStore } from '@/lib/store/auth';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { toast } from '@/components/ui/Toast';
 import { fetchCompanyBySiret } from '@/lib/siret';
+import { TurnstileWidget } from '@/components/ui/TurnstileWidget';
 
 type Tab = 'login' | 'register';
 
@@ -93,6 +94,8 @@ function RegisterForm() {
   const [error, setError] = useState('');
   const [siretLoading, setSiretLoading] = useState(false);
   const [companyAutoFilled, setCompanyAutoFilled] = useState(false);
+  const [turnstileToken, setToken] = useState('');
+  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const strength = getPasswordStrength(password);
 
   useEffect(() => {
@@ -116,13 +119,14 @@ function RegisterForm() {
     if (password.length < 8)  { setError('Le mot de passe doit faire au moins 8 caractères.'); return; }
     if (!/[A-Z]/.test(password)) { setError('Ajoutez au moins une majuscule.'); return; }
     if (!/[0-9]/.test(password)) { setError('Ajoutez au moins un chiffre.'); return; }
+    if (siteKey && !turnstileToken) { setError('Veuillez compléter la vérification anti-robot.'); return; }
     setLoading(true);
     setError('');
     try {
       const res = await fetch('/api/pro-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ company, siret, name, email, phone, password }),
+        body: JSON.stringify({ company, siret, name, email, phone, password, turnstileToken }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? 'Une erreur est survenue.'); }
@@ -277,6 +281,12 @@ function RegisterForm() {
               <span className="field-hint error">Les mots de passe ne correspondent pas.</span>
             )}
           </div>
+          <TurnstileWidget
+            onVerify={setToken}
+            onExpire={() => setToken('')}
+            onError={() => setError('Erreur de vérification anti-robot.')}
+          />
+
           {error && <div className="form-error">{error}</div>}
           <div className="auth-form-row">
             <button className="btn ghost" type="button" onClick={() => setStep(1)}>← Retour</button>

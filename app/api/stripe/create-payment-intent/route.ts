@@ -4,16 +4,25 @@ import { createClient } from '@/lib/supabase/server';
 import { verifyCartLines } from '@/lib/catalog/verifyCart';
 import { getUserDiscounts } from '@/lib/pricing/discounts';
 import { computeOrderTotals, type ShippingMethod } from '@/lib/pricing/shipping';
+import { rateLimit, clientIp } from '@/lib/security/rateLimit';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function POST(req: NextRequest) {
+  if (!rateLimit(`payment-intent:${clientIp(req)}`, 15, 60_000)) {
+    return NextResponse.json({ error: 'Trop de requêtes. Patientez un instant.' }, { status: 429 });
+  }
+
   const { lines, shippingMethod, orderNumber, email } = await req.json() as {
     lines: unknown;
     shippingMethod: ShippingMethod;
     orderNumber: string;
     email?: string;
   };
+
+  if (typeof orderNumber !== 'string' || !orderNumber) {
+    return NextResponse.json({ error: 'Commande invalide.' }, { status: 400 });
+  }
 
   // Le MONTANT est recalculé côté serveur (audit S2) — jamais reçu du client.
   const supabase = createClient();
