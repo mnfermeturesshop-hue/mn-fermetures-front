@@ -10,7 +10,7 @@ type Status = 'loading' | 'error';
 function ConfirmationHandler() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { pendingOrderPayload, setPendingOrderPayload } = useCheckoutStore();
+  const { pendingOrderPayload, setPendingOrderPayload, setPlacedOrder } = useCheckoutStore();
   const { clearCart } = useCartStore();
   const [status, setStatus] = useState<Status>('loading');
   const [errorMsg, setErrorMsg] = useState('');
@@ -37,19 +37,41 @@ function ConfirmationHandler() {
       return;
     }
 
-    const orderNumber = pendingOrderPayload.orderNumber;
+    const payload = pendingOrderPayload;
+    const orderNumber = payload.orderNumber;
     const paymentIntentId = searchParams.get('payment_intent') ?? undefined;
 
+    // On n'affiche la confirmation QUE si le serveur valide le paiement :
+    // /api/orders vérifie le PaymentIntent auprès de Stripe (audit S3).
     fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...pendingOrderPayload, paymentMethod: 'card', paymentIntentId }),
+      body: JSON.stringify({ ...payload, paymentMethod: 'card', paymentIntentId }),
     })
-      .catch((e) => console.error('[confirmation] order save error:', e))
-      .finally(() => {
+      .then(async (res) => {
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error ?? 'Le paiement n\'a pas pu être confirmé.');
+        }
+        setPlacedOrder({
+          id: orderNumber,
+          date: new Date().toLocaleDateString('fr-FR'),
+          lines: payload.lines,
+          totalHT: payload.totalHT,
+          totalTTC: payload.totalTTC,
+          fraisHT: payload.fraisHT,
+          shippingAddress: payload.shippingAddress,
+          shippingMethod: payload.shippingMethod,
+          paymentMethod: 'card',
+          status: 'paid',
+        });
         clearCart();
         setPendingOrderPayload(null);
         router.replace(`/commande/${orderNumber}`);
+      })
+      .catch((e: Error) => {
+        setStatus('error');
+        setErrorMsg(e.message);
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

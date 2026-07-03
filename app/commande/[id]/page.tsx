@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useCheckoutStore } from '@/lib/store/checkout';
+import { useCheckoutStore, type PlacedOrder } from '@/lib/store/checkout';
 import { euro } from '@/lib/store/cart';
 
 interface Props { params: { id: string } }
 
-const SHIPPING_LABELS = {
+const SHIPPING_LABELS: Record<string, string> = {
   standard: 'Livraison standard (3-5 jours ouvrés)',
   express:  'Livraison express 24h',
 };
@@ -18,34 +18,77 @@ const PAYMENT_LABELS: Record<string, string> = {
   bon_de_commande: 'Bon de commande pro',
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapDbOrder(d: any): PlacedOrder {
+  return {
+    id: d.order_number,
+    date: new Date(d.created_at).toLocaleDateString('fr-FR'),
+    lines: d.lines ?? [],
+    totalHT: Number(d.total_ht),
+    totalTTC: Number(d.total_ttc),
+    fraisHT: Number(d.frais_ht),
+    shippingAddress: d.shipping_address,
+    shippingMethod: d.shipping_method,
+    paymentMethod: d.payment_method,
+    status: d.status,
+  };
+}
+
 export default function ConfirmationPage({ params }: Props) {
   const { placedOrder } = useCheckoutStore();
   const router = useRouter();
 
+  const fromStore = placedOrder && placedOrder.id === params.id ? placedOrder : null;
+  const [order, setOrder] = useState<PlacedOrder | null>(fromStore);
+  const [loading, setLoading] = useState(!fromStore);
+
   useEffect(() => {
-    if (!placedOrder || placedOrder.id !== params.id) {
-      router.replace('/');
-    }
-  }, [placedOrder, params.id, router]);
+    if (fromStore) return;
+    // Repli sur la base (source de vérité) — utile en cas de rechargement / revisite.
+    let cancelled = false;
+    fetch(`/api/orders/${params.id}`)
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data) => { if (!cancelled) setOrder(mapDbOrder(data)); })
+      .catch(() => { if (!cancelled) router.replace('/'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.id]);
 
-  if (!placedOrder || placedOrder.id !== params.id) return null;
+  if (loading) {
+    return (
+      <div className="wrap" style={{ textAlign: 'center', padding: '80px 20px' }}>
+        <div className="spinner" style={{ width: 40, height: 40, margin: '0 auto 24px' }} />
+        <p style={{ color: '#6b7280' }}>Chargement de votre commande…</p>
+      </div>
+    );
+  }
+  if (!order) return null;
 
-  const addr = placedOrder.shippingAddress;
-  const isVirement      = placedOrder.paymentMethod === 'virement';
-  const isBonDeCommande = placedOrder.paymentMethod === 'bon_de_commande';
+  const addr = order.shippingAddress;
+  const isVirement      = order.paymentMethod === 'virement';
+  const isBonDeCommande = order.paymentMethod === 'bon_de_commande';
+  const isPaid          = order.status === 'paid';
 
   return (
     <div className="wrap confirm-page">
       {/* Hero confirmation */}
       <div className="confirm-hero">
         <div className="confirm-icon">✓</div>
-        <h1>Commande confirmée !</h1>
+        <h1>{isPaid ? 'Paiement validé !' : 'Commande confirmée !'}</h1>
         <p className="confirm-subtitle">
-          Merci pour votre commande. Un email de confirmation vous a été envoyé.
+          {isPaid
+            ? 'Votre paiement a bien été validé. Un email de confirmation vous a été envoyé.'
+            : 'Merci pour votre commande. Un email de confirmation vous a été envoyé.'}
         </p>
+        {isPaid && (
+          <div className="confirm-paid-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 8, padding: '6px 14px', background: '#dcfce7', color: '#166534', borderRadius: 999, fontWeight: 700, fontSize: 14 }}>
+            ✓ Paiement confirmé
+          </div>
+        )}
         <div className="confirm-order-id">
           <span>N° de commande</span>
-          <strong className="ref">{placedOrder.id}</strong>
+          <strong className="ref">{order.id}</strong>
         </div>
       </div>
 
@@ -65,7 +108,7 @@ export default function ConfirmationPage({ params }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {placedOrder.lines.map((l) => (
+                {order.lines.map((l) => (
                   <tr key={l.key}>
                     <td>
                       <div className="confirm-line-name">{l.name}</div>
@@ -79,12 +122,12 @@ export default function ConfirmationPage({ params }: Props) {
               </tbody>
               <tfoot>
                 <tr>
-                  <td colSpan={2}>Livraison ({SHIPPING_LABELS[placedOrder.shippingMethod]})</td>
-                  <td>{placedOrder.fraisHT === 0 ? <span className="green">Offerte</span> : euro(placedOrder.fraisHT)}</td>
+                  <td colSpan={2}>Livraison ({SHIPPING_LABELS[order.shippingMethod]})</td>
+                  <td>{order.fraisHT === 0 ? <span className="green">Offerte</span> : euro(order.fraisHT)}</td>
                 </tr>
                 <tr className="confirm-total-row">
                   <td colSpan={2}><strong>Total TTC</strong></td>
-                  <td><strong>{euro(placedOrder.totalTTC)}</strong></td>
+                  <td><strong>{euro(order.totalTTC)}</strong></td>
                 </tr>
               </tfoot>
             </table>
@@ -106,7 +149,7 @@ export default function ConfirmationPage({ params }: Props) {
           {/* Paiement / Bon de commande */}
           <section className="confirm-section">
             <h2>{isBonDeCommande ? 'Bon de commande' : 'Paiement'}</h2>
-            <p className="confirm-payment">{PAYMENT_LABELS[placedOrder.paymentMethod] ?? placedOrder.paymentMethod}</p>
+            <p className="confirm-payment">{PAYMENT_LABELS[order.paymentMethod] ?? order.paymentMethod}</p>
             {isBonDeCommande && (
               <div className="doc-info-box" style={{ marginTop: 12 }}>
                 <strong>Votre bon de commande a été transmis à notre équipe commerciale.</strong>
@@ -122,7 +165,7 @@ export default function ConfirmationPage({ params }: Props) {
                 <div className="virement-info" style={{ marginTop: 10 }}>
                   <div className="virement-row"><span>Titulaire</span><strong>MN FERMETURES SARL</strong></div>
                   <div className="virement-row"><span>IBAN</span><strong className="ref">FR76 3000 4004 0300 0100 1234 567</strong></div>
-                  <div className="virement-row"><span>Référence</span><strong className="ref">{placedOrder.id}</strong></div>
+                  <div className="virement-row"><span>Référence</span><strong className="ref">{order.id}</strong></div>
                 </div>
               </div>
             )}
@@ -143,7 +186,7 @@ export default function ConfirmationPage({ params }: Props) {
             <div className="confirm-eta">
               <span>📦</span>
               <span>Expédition estimée : <strong>
-                {placedOrder.shippingMethod === 'express' ? '24h ouvrées' : '3–5 jours ouvrés'}
+                {order.shippingMethod === 'express' ? '24h ouvrées' : '3–5 jours ouvrés'}
               </strong></span>
             </div>
           </div>
@@ -153,7 +196,7 @@ export default function ConfirmationPage({ params }: Props) {
               <button
                 className="btn devis full"
                 type="button"
-                onClick={() => window.open(`/devis?order=${placedOrder.id}`, '_blank')}
+                onClick={() => window.open(`/devis?order=${order.id}`, '_blank')}
               >
                 Télécharger la facture
               </button>

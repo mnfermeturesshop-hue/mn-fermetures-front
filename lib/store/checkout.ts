@@ -31,6 +31,8 @@ export interface PlacedOrder {
   shippingAddress: Address;
   shippingMethod: ShippingMethod;
   paymentMethod: PaymentMethod;
+  /** 'paid' si le paiement a été confirmé côté serveur. */
+  status?: string;
 }
 
 export interface PendingOrderPayload {
@@ -69,6 +71,7 @@ interface CheckoutStore {
   pendingOrderPayload: PendingOrderPayload | null;
 
   setPendingOrderPayload: (p: PendingOrderPayload | null) => void;
+  setPlacedOrder: (o: PlacedOrder) => void;
   setStep: (s: 1 | 2 | 3) => void;
   setGuestEmail: (email: string) => void;
   setGuestMode: (v: boolean) => void;
@@ -109,6 +112,7 @@ export const useCheckoutStore = create<CheckoutStore>()(
       pendingOrderPayload: null,
 
       setPendingOrderPayload: (p) => set({ pendingOrderPayload: p }),
+      setPlacedOrder: (o) => set({ placedOrder: o }),
       setStep: (s) => set({ step: s }),
       setGuestEmail: (email) => set({ guestEmail: email }),
       setGuestMode: (v) => set({ guestMode: v }),

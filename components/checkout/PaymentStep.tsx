@@ -43,7 +43,7 @@ export function PaymentStep({ onBack }: Props) {
     paymentMethod, setPaymentMethod,
     shippingAddress, billingAddress, sameAsBilling,
     shippingMethod, guestEmail, guestMode,
-    setPendingOrderPayload,
+    setPendingOrderPayload, setPlacedOrder,
   } = useCheckoutStore();
   const { user, isPro } = useAuthStore();
   const { lines, totalHT, totalTTC, isFranco, clearCart } = useCartStore();
@@ -103,6 +103,19 @@ export function PaymentStep({ onBack }: Props) {
     } catch (e) {
       console.error('[checkout] order API error:', e);
     }
+    // Mémorise la commande pour l'affichage de la page de confirmation
+    setPlacedOrder({
+      id: orderNumber,
+      date: new Date().toLocaleDateString('fr-FR'),
+      lines,
+      totalHT: grandHT,
+      totalTTC: grandTTC,
+      fraisHT,
+      shippingAddress,
+      shippingMethod,
+      paymentMethod: 'virement',
+      status: 'pending',
+    });
     clearCart();
     window.location.href = `/commande/${orderNumber}`;
   };

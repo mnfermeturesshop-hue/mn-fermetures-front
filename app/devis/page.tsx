@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useCheckoutStore } from '@/lib/store/checkout';
+import { useCheckoutStore, type Address } from '@/lib/store/checkout';
 import { useCartStore, euro } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
 import { useSearchParams } from 'next/navigation';
@@ -27,6 +27,16 @@ interface SavedDevis {
   status: string;
 }
 
+interface OrderData {
+  number: string;
+  lines: CartLine[];
+  totalHT: number;
+  totalTTC: number;
+  fraisHT: number;
+  date: string;
+  address: Address;
+}
+
 function genDevisNumber() {
   return `DEV-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
 }
@@ -41,16 +51,12 @@ function DevisContent() {
   const { user, isPro }                                             = useAuthStore();
 
   const [savedDevis, setSavedDevis]     = useState<SavedDevis | null>(null);
+  const [fetchedOrder, setFetchedOrder] = useState<OrderData | null>(null);
   const [saving, setSaving]             = useState(false);
   const [alreadySaved, setAlreadySaved] = useState(false);
   const [savingPdf, setSavingPdf]       = useState(false);
   // Numéro de devis stable pour toute la durée de la page (ne se régénère pas)
   const [cartDevisNum]                  = useState(genDevisNumber);
-
-  // Mode order (facture commande existante)
-  const isOrderMode  = !!orderId && !!placedOrder && placedOrder.id === orderId;
-  // Mode devis sauvegardé (chargé depuis compte)
-  const isSavedMode  = !!savedDevisNum && !!savedDevis;
 
   // Charger un devis sauvegardé si param ?devis=
   useEffect(() => {
@@ -66,29 +72,68 @@ function DevisContent() {
       });
   }, [savedDevisNum]);
 
+  // Mode facture : commande depuis le store, sinon depuis la base (source de vérité)
+  const orderFromStore: OrderData | null =
+    orderId && placedOrder && placedOrder.id === orderId
+      ? {
+          number: placedOrder.id,
+          lines: placedOrder.lines,
+          totalHT: placedOrder.totalHT,
+          totalTTC: placedOrder.totalTTC,
+          fraisHT: placedOrder.fraisHT,
+          date: placedOrder.date,
+          address: placedOrder.shippingAddress,
+        }
+      : null;
+
+  useEffect(() => {
+    if (!orderId || orderFromStore) return;
+    fetch(`/api/orders/${orderId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .then((d: any) => {
+        if (!d) return;
+        setFetchedOrder({
+          number: d.order_number,
+          lines: d.lines ?? [],
+          totalHT: Number(d.total_ht),
+          totalTTC: Number(d.total_ttc),
+          fraisHT: Number(d.frais_ht),
+          date: new Date(d.created_at).toLocaleDateString('fr-FR'),
+          address: d.shipping_address,
+        });
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderId]);
+
+  const orderData = orderFromStore ?? fetchedOrder;
+  const isOrderMode  = !!orderId && !!orderData;
+  // Mode devis sauvegardé (chargé depuis compte)
+  const isSavedMode  = !!savedDevisNum && !!savedDevis;
+
   // Données à afficher selon le mode
   const devisLines   = isSavedMode ? savedDevis!.lines
-                     : isOrderMode ? placedOrder.lines
+                     : isOrderMode ? orderData!.lines
                      : lines;
   const devisTotalHT  = isSavedMode ? Number(savedDevis!.total_ht)
-                      : isOrderMode ? placedOrder.totalHT
+                      : isOrderMode ? orderData!.totalHT
                       : totalHT() + fraisLivraison();
   const devisTotalTTC = isSavedMode ? Number(savedDevis!.total_ttc)
-                      : isOrderMode ? placedOrder.totalTTC
+                      : isOrderMode ? orderData!.totalTTC
                       : totalTTC() + fraisLivraison() * (1 + TVA);
   const devisTVA     = devisTotalHT * TVA;
   const devisNum     = isSavedMode ? savedDevis!.devis_number
-                     : isOrderMode ? placedOrder.id
+                     : isOrderMode ? orderData!.number
                      : cartDevisNum;
   const devisDate    = isSavedMode
                        ? new Date(savedDevis!.created_at).toLocaleDateString('fr-FR')
-                       : isOrderMode ? placedOrder.date
+                       : isOrderMode ? orderData!.date
                        : new Date().toLocaleDateString('fr-FR');
   const validUntil   = isSavedMode
                        ? new Date(savedDevis!.valid_until).toLocaleDateString('fr-FR')
                        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR');
   const devisFraisHT = isSavedMode ? Number(savedDevis!.frais_ht)
-                     : isOrderMode ? placedOrder.fraisHT
+                     : isOrderMode ? orderData!.fraisHT
                      : fraisLivraison();
 
   useEffect(() => {
@@ -221,16 +266,16 @@ function DevisContent() {
               contact@mmfermetures.fr
             </address>
           </div>
-          {isOrderMode && placedOrder.shippingAddress.lastName && (
+          {isOrderMode && orderData!.address?.lastName && (
             <div className="devis-destinataire">
               <div className="devis-party-label">Destinataire / Livraison</div>
               <address>
-                <strong>{placedOrder.shippingAddress.firstName} {placedOrder.shippingAddress.lastName}</strong><br />
-                {placedOrder.shippingAddress.company && <>{placedOrder.shippingAddress.company}<br /></>}
-                {placedOrder.shippingAddress.address1}<br />
-                {placedOrder.shippingAddress.address2 && <>{placedOrder.shippingAddress.address2}<br /></>}
-                {placedOrder.shippingAddress.postalCode} {placedOrder.shippingAddress.city}<br />
-                {placedOrder.shippingAddress.phone}
+                <strong>{orderData!.address.firstName} {orderData!.address.lastName}</strong><br />
+                {orderData!.address.company && <>{orderData!.address.company}<br /></>}
+                {orderData!.address.address1}<br />
+                {orderData!.address.address2 && <>{orderData!.address.address2}<br /></>}
+                {orderData!.address.postalCode} {orderData!.address.city}<br />
+                {orderData!.address.phone}
               </address>
             </div>
           )}
@@ -266,7 +311,7 @@ function DevisContent() {
               <td colSpan={4}>Frais de livraison HT</td>
               <td>
                 {devisFraisHT === 0
-                  ? (isOrderMode ? (placedOrder.fraisHT === 0 ? 'Offerte' : euro(placedOrder.fraisHT)) : (isFranco() ? 'Offerte' : euro(fraisLivraison())))
+                  ? (isOrderMode ? (orderData!.fraisHT === 0 ? 'Offerte' : euro(orderData!.fraisHT)) : (isFranco() ? 'Offerte' : euro(fraisLivraison())))
                   : euro(devisFraisHT)}
               </td>
             </tr>
