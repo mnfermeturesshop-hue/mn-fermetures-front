@@ -193,7 +193,9 @@ export default function AdminClients() {
                         {client.company || client.name || '—'}
                         {client.banned && <span className="adm-badge-blocked">Bloqué</span>}
                       </div>
-                      {client.name && <div className="adm-prod-brand">{client.name}</div>}
+                      {client.company && client.name && (
+                        <div className="adm-prod-brand">{client.name}</div>
+                      )}
                     </td>
                     <td>
                       <span className="ref adm-slug">{client.email}</span>
