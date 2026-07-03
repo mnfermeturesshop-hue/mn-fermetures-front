@@ -8,9 +8,10 @@ export async function GET() {
   try {
     const supabase = createAdminClient();
 
-    const [{ data: profiles }, { data: { users } }] = await Promise.all([
+    const [{ data: profiles }, { data: { users } }, { data: proRequests }] = await Promise.all([
       supabase.from('profiles').select('id, name, role, company, discounts').in('role', ['b2b', 'blocked']).order('name'),
       supabase.auth.admin.listUsers({ perPage: 1000 }),
+      supabase.from('pro_requests').select('email, company'),
     ]);
 
     const now = new Date();
@@ -20,15 +21,23 @@ export async function GET() {
       banned: !!(u.banned_until && new Date(u.banned_until) > now),
     }]));
 
-    const clients = (profiles ?? []).map((p) => ({
-      id: p.id,
-      email: userDataById[p.id]?.email ?? '',
-      name: p.name,
-      company: p.company ?? '',
-      discounts: (p.discounts as Record<string, number>) ?? {},
-      lastSignIn: userDataById[p.id]?.lastSignIn ?? null,
-      banned: userDataById[p.id]?.banned ?? false,
-    }));
+    // Fallback : récupère le nom d'entreprise depuis pro_requests si profiles.company est vide
+    const proCompanyByEmail = Object.fromEntries(
+      (proRequests ?? []).map((r) => [r.email, r.company])
+    );
+
+    const clients = (profiles ?? []).map((p) => {
+      const email = userDataById[p.id]?.email ?? '';
+      return {
+        id: p.id,
+        email,
+        name: p.name,
+        company: p.company || proCompanyByEmail[email] || '',
+        discounts: (p.discounts as Record<string, number>) ?? {},
+        lastSignIn: userDataById[p.id]?.lastSignIn ?? null,
+        banned: userDataById[p.id]?.banned ?? false,
+      };
+    });
 
     return NextResponse.json(clients);
   } catch (err) {
