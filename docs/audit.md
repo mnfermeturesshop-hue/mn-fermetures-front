@@ -253,6 +253,8 @@ En cas de doute « mort vs pas encore branché » → te demander avant toute su
 - `api/orders` (carte) **récupère le PaymentIntent** (`stripe.paymentIntents.retrieve`) : refuse si `status !== 'succeeded'`, enregistre le **montant réellement encaissé** et passe la commande à `paid`.
 - Nouvelle route `api/stripe/webhook` : vérifie la **signature** (`constructEvent` + `STRIPE_WEBHOOK_SECRET`) et marque la commande `paid` sur `payment_intent.succeeded` (filet asynchrone). Variable ajoutée à `.env.local.example` (clés Stripe de test committées **redigées** au passage).
 
+**Correctif suivi** : le **générateur de tablier sur mesure** (`TablierGenerateur`, moteur `lib/tablier`) est un 2ᵉ système de prix distinct du catalogue. Ses lignes (ni référence ni grille catalogue) étaient rejetées par la vérification. Ajout d'un descripteur `pricing: { kind: 'tablier', … }` + prise en charge dans `verifyCartLines` via `resoudrePrix()` côté serveur.
+
 **Limitation connue** : si le client ferme l'onglet avant la page de confirmation, la commande n'est pas créée même si le webhook arrive (le contexte complet — adresses, lignes — dépasse les métadonnées Stripe). Sécurité OK (pas de sous-paiement) ; à traiter ultérieurement en créant la commande dès l'intent.
 
 Reste à traiter (lots suivants) : S4, S7–S12, D1–D5, C2–C5, P1/P2/P5.

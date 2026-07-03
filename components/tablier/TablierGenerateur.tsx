@@ -153,6 +153,17 @@ export function TablierGenerateur() {
       unitPriceHT: result.total,
       quantity: qty,
       uom: 'unite',
+      // Descripteur pour le recalcul serveur (audit S2) — dimensions brutes
+      // (le serveur ré-applique le snap via resoudrePrix).
+      pricing: {
+        kind: 'tablier',
+        slug: selectedSlug,
+        colorisCode: activeColoris,
+        largeur,
+        hauteur,
+        avecAttache,
+        avecVerrou,
+      },
     });
     openCart();
     toast.success('Tablier ajouté au panier');

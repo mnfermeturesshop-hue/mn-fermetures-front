@@ -107,15 +107,26 @@ export interface ColorRef { code: string; label: string; hex: string }
  * Descripteur autoritaire permettant au SERVEUR de recalculer le prix d'une
  * ligne sans faire confiance au `unitPriceHT` envoyé par le client (audit S2).
  * - unit/kit : identifiés par leur `reference` (présente sur la ligne).
- * - matrix (tablier) : n'ont pas de référence → dimensions + options requises.
+ * - matrix : produit catalogue à grille → dimensions + options requises.
+ * - tablier : générateur de tablier sur mesure (moteur lib/tablier).
  */
-export type LinePricing = {
-  kind: 'matrix';
-  slug: string;
-  height: number;
-  width: number;
-  options: string[];
-};
+export type LinePricing =
+  | {
+      kind: 'matrix';
+      slug: string;
+      height: number;
+      width: number;
+      options: string[];
+    }
+  | {
+      kind: 'tablier';
+      slug: string;
+      colorisCode: string;
+      largeur: number;
+      hauteur: number;
+      avecAttache: boolean;
+      avecVerrou: boolean;
+    };
 
 export interface CartLine {
   /** Clé de ligne (réf + dimensions/options choisies). */

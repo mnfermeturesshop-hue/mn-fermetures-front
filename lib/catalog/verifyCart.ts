@@ -1,7 +1,8 @@
 import { getAllProducts } from './db';
 import { resolveMatrixPrice } from './resolvePrice';
 import { isMatrix, isUnit, isKit, type Product, type CartLine, type Uom } from './types';
-import { applyDiscount, getDiscount, type DiscountMap } from '@/lib/familles';
+import { applyDiscount, getDiscount, type DiscountMap, type FamilleSlug } from '@/lib/familles';
+import { resoudrePrix } from '@/lib/tablier/engine';
 
 /**
  * Vérification autoritaire du panier côté serveur (audit S2).
@@ -56,21 +57,41 @@ export async function verifyCartLines(
       return { ok: false, error: 'Quantité invalide.' };
     }
 
-    let product: Product | undefined;
     let base: number | null = null;
+    let name = String(raw?.name ?? '');
+    let famille: FamilleSlug | undefined;
 
     if (raw?.pricing?.kind === 'matrix') {
       const pr = raw.pricing;
-      product = bySlug.get(pr.slug);
+      const product = bySlug.get(pr.slug);
       if (!product || !isMatrix(product)) {
         return { ok: false, error: `Produit introuvable : ${pr.slug}` };
       }
       base = resolveMatrixPrice(product, Number(pr.height), Number(pr.width), Array.isArray(pr.options) ? pr.options : []);
+      name = product.name;
+      famille = product.famille;
+    } else if (raw?.pricing?.kind === 'tablier') {
+      // Générateur de tablier sur mesure (moteur lib/tablier) — le serveur
+      // ré-résout le prix à partir des dimensions brutes (avec snap au barème).
+      const pr = raw.pricing;
+      const res = resoudrePrix({
+        slug: pr.slug,
+        colorisCode: pr.colorisCode,
+        largeur: Number(pr.largeur),
+        hauteur: Number(pr.hauteur),
+        avecAttacheRigide: !!pr.avecAttache,
+        avecVerrou: !!pr.avecVerrou,
+      });
+      if (!res) return { ok: false, error: `Tablier hors abaque : ${pr.slug}` };
+      base = res.total;
+      name = res.lame.nom;
+      // Le générateur n'applique pas de remise famille → parité avec l'affichage.
     } else if (raw?.reference) {
       const hit = byRef.get(raw.reference);
       if (!hit) return { ok: false, error: `Référence introuvable : ${raw.reference}` };
-      product = hit.product;
       base = hit.base;
+      name = hit.product.name;
+      famille = hit.product.famille;
     } else {
       return { ok: false, error: 'Ligne non vérifiable (référence ou dimensions manquantes).' };
     }
@@ -79,12 +100,12 @@ export async function verifyCartLines(
       return { ok: false, error: 'Prix indisponible pour un article (hors abaque ?).' };
     }
 
-    const unitPriceHT = applyDiscount(base, getDiscount(discounts, product.famille));
+    const unitPriceHT = applyDiscount(base, getDiscount(discounts, famille));
     productsHT += unitPriceHT * qty;
 
     verified.push({
-      key: String(raw.key ?? product.slug),
-      name: product.name,              // libellé autoritaire
+      key: String(raw.key ?? name),
+      name,                            // libellé autoritaire
       detail: raw.detail,              // affichage seulement
       reference: raw.reference,
       unitPriceHT,
