@@ -139,6 +139,8 @@ export function PaymentStep({ onBack }: Props) {
             amountTTC={grandTTC}
             orderNumber={orderNumber}
             email={email}
+            lines={lines}
+            shippingMethod={shippingMethod}
             onPay={handleStripeConfirm}
             paying={paying}
             setExternalPaying={setPaying}

@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { euro } from '@/lib/store/cart';
+import type { CartLine } from '@/lib/catalog/types';
+import type { ShippingMethod } from '@/lib/pricing/shipping';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -71,31 +73,40 @@ function CheckoutForm({ amountTTC, onPay, paying, setExternalPaying }: {
   );
 }
 
-export function StripeCardForm({ amountTTC, orderNumber, email, onPay, paying, setExternalPaying }: {
+export function StripeCardForm({ amountTTC, orderNumber, email, lines, shippingMethod, onPay, paying, setExternalPaying }: {
   amountTTC: number;
   orderNumber: string;
   email: string;
+  lines: CartLine[];
+  shippingMethod: ShippingMethod;
   onPay: (confirmStripe: () => Promise<{ error?: string }>) => void;
   paying: boolean;
   setExternalPaying: (v: boolean) => void;
 }) {
   const [clientSecret, setClientSecret] = useState('');
+  const [serverAmountTTC, setServerAmountTTC] = useState(amountTTC);
   const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    if (!amountTTC || !orderNumber) return;
+    if (!orderNumber || lines.length === 0) return;
+    // Le montant est calculé côté serveur (audit S2) : on n'envoie que le
+    // descripteur du panier + le mode de livraison, jamais un prix.
     fetch('/api/stripe/create-payment-intent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amountTTC, orderNumber, email }),
+      body: JSON.stringify({ lines, shippingMethod, orderNumber, email }),
     })
       .then((r) => r.json())
       .then((data) => {
-        if (data.clientSecret) setClientSecret(data.clientSecret);
-        else setLoadError(data.error ?? 'Impossible d\'initialiser le paiement');
+        if (data.clientSecret) {
+          setClientSecret(data.clientSecret);
+          if (typeof data.amountTTC === 'number') setServerAmountTTC(data.amountTTC);
+        } else {
+          setLoadError(data.error ?? 'Impossible d\'initialiser le paiement');
+        }
       })
       .catch(() => setLoadError('Erreur réseau'));
-  }, [amountTTC, orderNumber, email]);
+  }, [orderNumber, email, shippingMethod, lines]);
 
   if (loadError) return <div className="form-error">{loadError}</div>;
   if (!clientSecret) return <div className="adm-loading" style={{ padding: 24 }}>Initialisation du paiement…</div>;
@@ -113,7 +124,7 @@ export function StripeCardForm({ amountTTC, orderNumber, email, onPay, paying, s
       }}
     >
       <CheckoutForm
-        amountTTC={amountTTC}
+        amountTTC={serverAmountTTC}
         onPay={onPay}
         paying={paying}
         setExternalPaying={setExternalPaying}

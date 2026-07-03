@@ -236,6 +236,25 @@ En cas de doute « mort vs pas encore branché » → te demander avant toute su
 - **S5** — `user_id`/`email` dérivés de la session (jamais du body) dans `api/orders` (guest → `user_id null`, `is_guest` calculé serveur) et `api/orders/bon-de-commande` (401 si non connecté). `api/devis` POST exige désormais une session.
 - **S6** — `PATCH /api/devis` : vérification **propriétaire OU admin** (et non admin seul, pour préserver la conversion de devis par le client B2B depuis `/compte`) + whitelist des statuts (`draft|converted|expired`).
 
-Reste à traiter (lots suivants) : S2, S3, S4, S7–S12, D1–D5, C2–C5, P*.
+### ✅ Lot Sécurité‑2 — Prix serveur & paiement vérifié (S2, S3)
+`typecheck` ✅ · `build` ✅.
+
+**Nouveaux modules**
+- `lib/pricing/shipping.ts` : barème de port + TVA + `computeOrderTotals()`, **source unique client ET serveur** (corrige aussi P3). `lib/store/checkout.ts` réutilise ce module.
+- `lib/pricing/discounts.ts` : `getUserDiscounts()` — remises lues en base (jamais du client).
+- `lib/catalog/verifyCart.ts` : `verifyCartLines()` — recharge le catalogue, recalcule chaque prix unitaire (réf unit/kit ou dimensions matricielles) + remise serveur, rejette toute ligne non vérifiable.
+- `lib/catalog/types.ts` : descripteur `LinePricing` (matrix) ajouté à `CartLine` ; `TablierConfigurator` le renseigne (dimensions/options) pour permettre la re-tarification serveur.
+
+**S2 — Montants recalculés côté serveur**
+- `create-payment-intent` ne reçoit plus de montant : il prend `{ lines, shippingMethod }`, revérifie et **calcule lui-même** le montant du PaymentIntent. `StripeCardForm`/`PaymentStep` adaptés (envoient le panier, affichent le montant autoritaire renvoyé).
+- `api/orders` et `api/orders/bon-de-commande` revérifient le panier et **stockent les totaux serveur** (lignes + HT/TTC/port), y compris dans les emails. Le virement/BC est **rejeté** si le panier n'est pas vérifiable.
+
+**S3 — Paiement vérifié**
+- `api/orders` (carte) **récupère le PaymentIntent** (`stripe.paymentIntents.retrieve`) : refuse si `status !== 'succeeded'`, enregistre le **montant réellement encaissé** et passe la commande à `paid`.
+- Nouvelle route `api/stripe/webhook` : vérifie la **signature** (`constructEvent` + `STRIPE_WEBHOOK_SECRET`) et marque la commande `paid` sur `payment_intent.succeeded` (filet asynchrone). Variable ajoutée à `.env.local.example` (clés Stripe de test committées **redigées** au passage).
+
+**Limitation connue** : si le client ferme l'onglet avant la page de confirmation, la commande n'est pas créée même si le webhook arrive (le contexte complet — adresses, lignes — dépasse les métadonnées Stripe). Sécurité OK (pas de sous-paiement) ; à traiter ultérieurement en créant la commande dès l'intent.
+
+Reste à traiter (lots suivants) : S4, S7–S12, D1–D5, C2–C5, P1/P2/P5.
 </content>
 </invoke>

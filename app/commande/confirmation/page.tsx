@@ -38,11 +38,12 @@ function ConfirmationHandler() {
     }
 
     const orderNumber = pendingOrderPayload.orderNumber;
+    const paymentIntentId = searchParams.get('payment_intent') ?? undefined;
 
     fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...pendingOrderPayload, paymentMethod: 'card' }),
+      body: JSON.stringify({ ...pendingOrderPayload, paymentMethod: 'card', paymentIntentId }),
     })
       .catch((e) => console.error('[confirmation] order save error:', e))
       .finally(() => {

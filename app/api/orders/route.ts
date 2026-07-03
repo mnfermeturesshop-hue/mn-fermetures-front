@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import Stripe from 'stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { verifyCartLines } from '@/lib/catalog/verifyCart';
+import { getUserDiscounts } from '@/lib/pricing/discounts';
+import { computeOrderTotals, type ShippingMethod } from '@/lib/pricing/shipping';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 interface OrderLine {
   key: string;
@@ -37,6 +43,7 @@ interface OrderPayload {
   fraisHT: number;
   shippingAddress: Address;
   billingAddress?: Address;
+  paymentIntentId?: string;
 }
 
 const euro = (n: number) =>
@@ -192,14 +199,69 @@ async function sendEmail(to: string, subject: string, html: string) {
 export async function POST(req: NextRequest) {
   const payload: OrderPayload = await req.json();
   const { orderNumber, email, customerName,
-    paymentMethod, shippingMethod, lines,
-    totalHT, totalTTC, fraisHT, shippingAddress, billingAddress } = payload;
+    paymentMethod, shippingMethod, shippingAddress, billingAddress, paymentIntentId } = payload;
 
   // user_id dérivé de la session — jamais du body (anti-usurpation, cf. audit S5)
   const serverClient = createClient();
   const { data: { user: sessionUser } } = await serverClient.auth.getUser();
   const trustedUserId = sessionUser?.id ?? null;
   const trustedEmail = sessionUser?.email ?? email;
+
+  const method: ShippingMethod = shippingMethod === 'express' ? 'express' : 'standard';
+
+  // Re-tarification autoritaire du panier côté serveur (audit S2)
+  const discounts = await getUserDiscounts(trustedUserId);
+  const verified = await verifyCartLines(payload.lines, discounts);
+
+  // Détermination du montant et du statut de confiance
+  let lines = payload.lines;
+  let totals = { fraisHT: payload.fraisHT, totalHT: payload.totalHT, totalTTC: payload.totalTTC };
+  let status: 'pending' | 'paid' = 'pending';
+
+  if (paymentMethod === 'card') {
+    // Paiement carte : le montant réellement encaissé fait foi (audit S3).
+    if (!paymentIntentId) {
+      return NextResponse.json({ error: 'Référence de paiement manquante.' }, { status: 400 });
+    }
+    let pi: Stripe.PaymentIntent;
+    try {
+      pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+    } catch {
+      return NextResponse.json({ error: 'Paiement introuvable.' }, { status: 400 });
+    }
+    if (pi.status !== 'succeeded') {
+      return NextResponse.json({ error: 'Paiement non confirmé.' }, { status: 402 });
+    }
+    status = 'paid';
+    // Montant TTC = ce que Stripe a réellement encaissé (montant serveur du PaymentIntent).
+    const paidTTC = pi.amount / 100;
+    if (verified.ok) {
+      const t = computeOrderTotals(verified.productsHT, method);
+      lines = verified.lines;
+      totals = { fraisHT: t.fraisHT, totalHT: t.totalHT, totalTTC: paidTTC };
+    } else {
+      // Filet : le charge est déjà correct (montant fixé serveur à l'intent) ;
+      // on conserve l'affichage client mais on force le TTC réellement payé.
+      totals = { ...totals, totalTTC: paidTTC };
+    }
+  } else {
+    // Virement / autre : aucun encaissement → le panier DOIT être vérifiable.
+    if (!verified.ok) {
+      return NextResponse.json({ error: verified.error }, { status: 400 });
+    }
+    const t = computeOrderTotals(verified.productsHT, method);
+    lines = verified.lines;
+    totals = t;
+  }
+
+  // Payload corrigé (montants/lignes autoritaires) pour la persistance ET l'email
+  const finalPayload: OrderPayload = {
+    ...payload,
+    lines,
+    totalHT: totals.totalHT,
+    totalTTC: totals.totalTTC,
+    fraisHT: totals.fraisHT,
+  };
 
   // 1. Sauvegarde en base
   const supabase = createAdminClient();
@@ -210,14 +272,14 @@ export async function POST(req: NextRequest) {
     is_guest: !sessionUser,
     user_id: trustedUserId,
     payment_method: paymentMethod,
-    shipping_method: shippingMethod,
+    shipping_method: method,
     lines,
-    total_ht: totalHT,
-    total_ttc: totalTTC,
-    frais_ht: fraisHT,
+    total_ht: totals.totalHT,
+    total_ttc: totals.totalTTC,
+    frais_ht: totals.fraisHT,
     shipping_address: shippingAddress,
     billing_address: billingAddress ?? shippingAddress,
-    status: 'pending',
+    status,
   });
 
   if (error) {
@@ -226,7 +288,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 2. Email de confirmation
-  const html = buildEmailHtml(payload);
+  const html = buildEmailHtml(finalPayload);
   await sendEmail(
     trustedEmail,
     `Confirmation de commande ${orderNumber} — MN Fermetures`,

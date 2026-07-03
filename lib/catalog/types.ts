@@ -103,6 +103,20 @@ export type Product = UnitProduct | MatrixProduct | KitProduct;
 export interface ColorRef { code: string; label: string; hex: string }
 
 /* ---------- Panier ---------- */
+/**
+ * Descripteur autoritaire permettant au SERVEUR de recalculer le prix d'une
+ * ligne sans faire confiance au `unitPriceHT` envoyé par le client (audit S2).
+ * - unit/kit : identifiés par leur `reference` (présente sur la ligne).
+ * - matrix (tablier) : n'ont pas de référence → dimensions + options requises.
+ */
+export type LinePricing = {
+  kind: 'matrix';
+  slug: string;
+  height: number;
+  width: number;
+  options: string[];
+};
+
 export interface CartLine {
   /** Clé de ligne (réf + dimensions/options choisies). */
   key: string;
@@ -112,6 +126,8 @@ export interface CartLine {
   unitPriceHT: MoneyHT;
   quantity: number;
   uom: Uom;
+  /** Métadonnées de re-tarification serveur (obligatoire pour les tabliers). */
+  pricing?: LinePricing;
 }
 
 /* ---------- Contrat des résolveurs de prix ----------

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { verifyCartLines } from '@/lib/catalog/verifyCart';
+import { getUserDiscounts } from '@/lib/pricing/discounts';
+import { computeOrderTotals, type ShippingMethod } from '@/lib/pricing/shipping';
 
 interface OrderLine {
   key: string;
@@ -249,8 +252,7 @@ async function sendEmail(to: string, subject: string, html: string) {
 
 export async function POST(req: NextRequest) {
   const payload: BonDeCommandePayload = await req.json();
-  const { orderNumber, email, customerName, shippingMethod,
-    lines, totalHT, totalTTC, fraisHT, shippingAddress } = payload;
+  const { orderNumber, email, customerName, shippingMethod, shippingAddress } = payload;
 
   // Le bon de commande est réservé aux pros connectés — user_id issu de la session (audit S5)
   const serverClient = createClient();
@@ -258,6 +260,24 @@ export async function POST(req: NextRequest) {
   if (!sessionUser) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
   }
+
+  // Re-tarification autoritaire (audit S2) — remises pro lues en base, pas du client.
+  const method: ShippingMethod = shippingMethod === 'express' ? 'express' : 'standard';
+  const discounts = await getUserDiscounts(sessionUser.id);
+  const verified = await verifyCartLines(payload.lines, discounts);
+  if (!verified.ok) {
+    return NextResponse.json({ error: verified.error }, { status: 400 });
+  }
+  const totals = computeOrderTotals(verified.productsHT, method);
+
+  // Payload corrigé (lignes + totaux serveur) pour persistance ET emails
+  const finalPayload: BonDeCommandePayload = {
+    ...payload,
+    lines: verified.lines,
+    totalHT: totals.totalHT,
+    totalTTC: totals.totalTTC,
+    fraisHT: totals.fraisHT,
+  };
 
   // 1. Sauvegarde en base
   const supabase = createAdminClient();
@@ -268,11 +288,11 @@ export async function POST(req: NextRequest) {
     is_guest:         false,
     user_id:          sessionUser.id,
     payment_method:   'bon_de_commande',
-    shipping_method:  shippingMethod,
-    lines,
-    total_ht:         totalHT,
-    total_ttc:        totalTTC,
-    frais_ht:         fraisHT,
+    shipping_method:  method,
+    lines:            verified.lines,
+    total_ht:         totals.totalHT,
+    total_ttc:        totals.totalTTC,
+    frais_ht:         totals.fraisHT,
     shipping_address: shippingAddress,
     billing_address:  shippingAddress,
     status:           'pending',
@@ -286,14 +306,14 @@ export async function POST(req: NextRequest) {
   await sendEmail(
     hqEmail,
     `📋 Bon de commande ${orderNumber} — ${payload.company || customerName}`,
-    buildHqEmail(payload),
+    buildHqEmail(finalPayload),
   );
 
   // 3. Email de confirmation → client pro
   await sendEmail(
     email,
     `Votre bon de commande ${orderNumber} — MN Fermetures`,
-    buildCustomerEmail(payload),
+    buildCustomerEmail(finalPayload),
   );
 
   return NextResponse.json({ orderNumber });

@@ -3,6 +3,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { CartLine } from '@/lib/catalog/types';
+import { shippingCostHT, type ShippingMethod } from '@/lib/pricing/shipping';
+
+export type { ShippingMethod };
+export { shippingCostHT };
 
 export interface Address {
   firstName: string;
@@ -15,7 +19,6 @@ export interface Address {
   phone: string;
 }
 
-export type ShippingMethod = 'standard' | 'express';
 export type PaymentMethod  = 'card' | 'virement' | 'bon_de_commande';
 
 export interface PlacedOrder {
@@ -44,16 +47,8 @@ export interface PendingOrderPayload {
   fraisHT: number;
   shippingAddress: Address;
   billingAddress: Address;
-}
-
-const SHIPPING_PRICE: Record<ShippingMethod, number> = {
-  standard: 26,   // 0 si franco
-  express: 42,
-};
-
-export function shippingCostHT(method: ShippingMethod, isFranco: boolean): number {
-  if (method === 'standard' && isFranco) return 0;
-  return SHIPPING_PRICE[method];
+  /** Renseigné au retour Stripe pour vérifier le paiement côté serveur (S3). */
+  paymentIntentId?: string;
 }
 
 const BLANK_ADDR: Address = {

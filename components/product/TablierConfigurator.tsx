@@ -61,13 +61,17 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
       .filter(Boolean)
       .join(' · ');
 
+    const sortedOpts = [...opts].sort();
     addLine({
-      key: `${product.slug}-${height}-${width}-${color}-${opts.sort().join('+')}`,
+      key: `${product.slug}-${height}-${width}-${color}-${sortedOpts.join('+')}`,
       name: product.name,
       detail,
       unitPriceHT: finalPrice,
       quantity: 1,
       uom: 'unite',
+      // Descripteur pour le recalcul serveur (audit S2) — le prix ci-dessus
+      // n'est qu'indicatif ; le serveur re-tarife via ces dimensions/options.
+      pricing: { kind: 'matrix', slug: product.slug, height, width, options: sortedOpts },
     });
     trackAddToCart({ key: `${product.slug}-${height}-${width}`, name: product.name, categorySlug: product.categorySlug, priceHT: finalPrice, quantity: 1 });
     toast.success('Tablier ajouté au panier');
