@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
@@ -11,6 +12,7 @@ export async function middleware(request: NextRequest) {
 
   let supabaseResponse = NextResponse.next({ request });
 
+  // Client SSR pour lire/rafraîchir la session depuis les cookies
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -30,6 +32,7 @@ export async function middleware(request: NextRequest) {
     }
   );
 
+  // Toujours appeler getUser() pour que le refresh de token se produise
   const { data: { user } } = await supabase.auth.getUser();
 
   // Protège /compte
@@ -40,22 +43,35 @@ export async function middleware(request: NextRequest) {
   // Protège /admin — réservé au rôle admin
   if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
     if (!user) {
-      return NextResponse.redirect(new URL('/admin/login', request.url));
+      return redirectWithCookies('/admin/login', request, supabaseResponse);
     }
 
-    // Vérifie le rôle dans la table profiles
-    const { data: profile } = await supabase
+    // Service role pour vérifier le rôle — bypasse RLS, évite les faux négatifs
+    const adminClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    const { data: profile } = await adminClient
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single();
 
     if (!profile || profile.role !== 'admin') {
-      return NextResponse.redirect(new URL('/admin/login', request.url));
+      return redirectWithCookies('/admin/login', request, supabaseResponse);
     }
   }
 
   return supabaseResponse;
+}
+
+/** Crée un redirect en copiant les cookies rafraîchis (évite la boucle infinie). */
+function redirectWithCookies(path: string, request: NextRequest, supabaseResponse: NextResponse) {
+  const redirect = NextResponse.redirect(new URL(path, request.url));
+  supabaseResponse.cookies.getAll().forEach(({ name, value }) => {
+    redirect.cookies.set(name, value);
+  });
+  return redirect;
 }
 
 export const config = {
