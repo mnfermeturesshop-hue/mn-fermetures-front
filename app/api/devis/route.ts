@@ -3,14 +3,18 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 
 export async function POST(req: NextRequest) {
-  // Récupérer la session depuis les cookies (Supabase Auth réel)
+  // user_id/email issus EXCLUSIVEMENT de la session (audit S5) — jamais du body
   const serverClient = createClient();
   const { data: { user: sessionUser } } = await serverClient.auth.getUser();
 
+  if (!sessionUser?.email) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+  }
+  const userId = sessionUser.id;
+  const email = sessionUser.email;
+
   const body = await req.json() as {
     devisNumber: string;
-    userId: string;
-    email: string;
     customerName: string;
     company?: string;
     lines: unknown[];
@@ -18,14 +22,6 @@ export async function POST(req: NextRequest) {
     totalTTC: number;
     fraisHT: number;
   };
-
-  // En production : utiliser l'ID de session ; en dev : utiliser le body
-  const userId = sessionUser?.id ?? body.userId;
-  const email  = sessionUser?.email ?? body.email;
-
-  if (!userId || !email) {
-    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-  }
 
   const adminClient = createAdminClient();
   const { error } = await adminClient.from('devis').insert({
@@ -44,12 +40,43 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ ok: true });
 }
 
+const ALLOWED_DEVIS_STATUS = ['draft', 'converted', 'expired'] as const;
+
 export async function PATCH(req: NextRequest) {
+  // Changement de statut : réservé au propriétaire du devis ou à un admin (audit S6)
+  const serverClient = createClient();
+  const { data: { user } } = await serverClient.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+
   const { devisNumber, status } = await req.json() as { devisNumber: string; status: string };
   if (!devisNumber || !status) {
     return NextResponse.json({ error: 'devisNumber et status requis' }, { status: 400 });
   }
+  if (!(ALLOWED_DEVIS_STATUS as readonly string[]).includes(status)) {
+    return NextResponse.json({ error: 'Statut invalide' }, { status: 400 });
+  }
+
   const adminClient = createAdminClient();
+
+  // Vérifie la propriété (ou le rôle admin) avant toute écriture
+  const { data: devis } = await adminClient
+    .from('devis')
+    .select('user_id')
+    .eq('devis_number', devisNumber)
+    .single();
+  if (!devis) return NextResponse.json({ error: 'Devis introuvable' }, { status: 404 });
+
+  if (devis.user_id !== user.id) {
+    const { data: profile } = await adminClient
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+    if (!profile || profile.role !== 'admin') {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+  }
+
   const { error } = await adminClient
     .from('devis')
     .update({ status })

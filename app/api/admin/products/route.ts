@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/auth/guards';
 
 export async function POST(req: NextRequest) {
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return NextResponse.json(
-      { error: 'SUPABASE_SERVICE_ROLE_KEY manquante — ajoutez-la dans les variables d\'environnement Vercel.' },
-      { status: 500 }
-    );
-  }
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
   try {
     const payload = await req.json();
     const supabase = createAdminClient();
@@ -25,12 +22,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return NextResponse.json(
-      { error: 'SUPABASE_SERVICE_ROLE_KEY manquante' },
-      { status: 500 }
-    );
-  }
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
   try {
     const { id, slug } = await req.json();
     const supabase = createAdminClient();

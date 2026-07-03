@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
 
 interface OrderLine {
   key: string;
@@ -190,18 +191,24 @@ async function sendEmail(to: string, subject: string, html: string) {
 
 export async function POST(req: NextRequest) {
   const payload: OrderPayload = await req.json();
-  const { orderNumber, email, customerName, isGuest, userId,
+  const { orderNumber, email, customerName,
     paymentMethod, shippingMethod, lines,
     totalHT, totalTTC, fraisHT, shippingAddress, billingAddress } = payload;
+
+  // user_id dérivé de la session — jamais du body (anti-usurpation, cf. audit S5)
+  const serverClient = createClient();
+  const { data: { user: sessionUser } } = await serverClient.auth.getUser();
+  const trustedUserId = sessionUser?.id ?? null;
+  const trustedEmail = sessionUser?.email ?? email;
 
   // 1. Sauvegarde en base
   const supabase = createAdminClient();
   const { error } = await supabase.from('orders').insert({
     order_number: orderNumber,
-    email,
+    email: trustedEmail,
     customer_name: customerName,
-    is_guest: isGuest,
-    user_id: userId ?? null,
+    is_guest: !sessionUser,
+    user_id: trustedUserId,
     payment_method: paymentMethod,
     shipping_method: shippingMethod,
     lines,
@@ -221,7 +228,7 @@ export async function POST(req: NextRequest) {
   // 2. Email de confirmation
   const html = buildEmailHtml(payload);
   await sendEmail(
-    email,
+    trustedEmail,
     `Confirmation de commande ${orderNumber} — MN Fermetures`,
     html
   );

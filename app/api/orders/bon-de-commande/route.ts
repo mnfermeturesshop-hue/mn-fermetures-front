@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
 
 interface OrderLine {
   key: string;
@@ -248,17 +249,24 @@ async function sendEmail(to: string, subject: string, html: string) {
 
 export async function POST(req: NextRequest) {
   const payload: BonDeCommandePayload = await req.json();
-  const { orderNumber, email, customerName, userId, shippingMethod,
+  const { orderNumber, email, customerName, shippingMethod,
     lines, totalHT, totalTTC, fraisHT, shippingAddress } = payload;
+
+  // Le bon de commande est réservé aux pros connectés — user_id issu de la session (audit S5)
+  const serverClient = createClient();
+  const { data: { user: sessionUser } } = await serverClient.auth.getUser();
+  if (!sessionUser) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+  }
 
   // 1. Sauvegarde en base
   const supabase = createAdminClient();
   const { error } = await supabase.from('orders').insert({
     order_number:     orderNumber,
-    email,
+    email:            sessionUser.email ?? email,
     customer_name:    customerName,
     is_guest:         false,
-    user_id:          userId ?? null,
+    user_id:          sessionUser.id,
     payment_method:   'bon_de_commande',
     shipping_method:  shippingMethod,
     lines,

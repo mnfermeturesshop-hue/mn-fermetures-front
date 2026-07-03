@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/auth/guards';
 
 export async function GET() {
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY manquante' }, { status: 500 });
-  }
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
   try {
     const supabase = createAdminClient();
     const { data, error } = await supabase
@@ -62,9 +62,8 @@ async function sendWelcomeEmail(name: string, email: string) {
 }
 
 export async function PATCH(req: NextRequest) {
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY manquante' }, { status: 500 });
-  }
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
   try {
     const { id, action } = await req.json() as { id: string; action: 'approve' | 'reject' };
     if (!id || !action) return NextResponse.json({ error: 'id et action requis' }, { status: 400 });

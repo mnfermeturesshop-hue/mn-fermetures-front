@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/auth/guards';
 
 export async function GET() {
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY manquante' }, { status: 500 });
-  }
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
   try {
     const supabase = createAdminClient();
 
@@ -47,9 +47,8 @@ export async function GET() {
 }
 
 export async function PATCH(req: NextRequest) {
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY manquante' }, { status: 500 });
-  }
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
   try {
     const body = await req.json() as { id: string; discounts?: Record<string, number>; action?: 'block' | 'unblock' };
     const { id, action, discounts } = body;
@@ -78,9 +77,8 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY manquante' }, { status: 500 });
-  }
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
   try {
     const { id } = await req.json() as { id: string };
     if (!id) return NextResponse.json({ error: 'id requis' }, { status: 400 });
