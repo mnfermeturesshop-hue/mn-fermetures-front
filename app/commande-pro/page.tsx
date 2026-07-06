@@ -105,6 +105,9 @@ export default function CommandeProPage() {
             detail: l.detail,
             quantity: l.quantity,
             unitPriceHT: l.unitPriceHT,
+            // Descripteur de re-tarification serveur (tablier sur mesure,
+            // ligne de devis négocié…) — indispensable à la vérification.
+            pricing: l.pricing,
           })),
           totalHT: grandHT,
           totalTTC: grandTTC,

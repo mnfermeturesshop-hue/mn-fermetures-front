@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   const discounts = await getUserDiscounts(user?.id ?? null);
-  const verified = await verifyCartLines(lines, discounts);
+  const verified = await verifyCartLines(lines, discounts, { userId: user?.id ?? null });
   if (!verified.ok) {
     return NextResponse.json({ error: verified.error }, { status: 400 });
   }

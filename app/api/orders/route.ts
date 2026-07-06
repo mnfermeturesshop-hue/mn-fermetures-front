@@ -222,7 +222,7 @@ export async function POST(req: NextRequest) {
 
   // Re-tarification autoritaire du panier côté serveur (audit S2)
   const discounts = await getUserDiscounts(trustedUserId);
-  const verified = await verifyCartLines(payload.lines, discounts);
+  const verified = await verifyCartLines(payload.lines, discounts, { userId: trustedUserId });
 
   // Détermination du montant et du statut de confiance
   let lines = payload.lines;

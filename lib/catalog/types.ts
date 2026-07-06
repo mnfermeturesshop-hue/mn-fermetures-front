@@ -109,6 +109,8 @@ export interface ColorRef { code: string; label: string; hex: string }
  * - unit/kit : identifiés par leur `reference` (présente sur la ligne).
  * - matrix : produit catalogue à grille → dimensions + options requises.
  * - tablier : générateur de tablier sur mesure (moteur lib/tablier).
+ * - devis : ligne issue d'un devis ERP stocké en base (prix négocié) —
+ *   le serveur revalide propriété + prix depuis la table `devis`.
  */
 export type LinePricing =
   | {
@@ -126,6 +128,11 @@ export type LinePricing =
       hauteur: number;
       avecAttache: boolean;
       avecVerrou: boolean;
+    }
+  | {
+      kind: 'devis';
+      devisNumber: string;
+      line: number;
     };
 
 export interface CartLine {

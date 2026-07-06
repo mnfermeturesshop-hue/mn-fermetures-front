@@ -3,6 +3,7 @@ import { resolveMatrixPrice } from './resolvePrice';
 import { isMatrix, isUnit, isKit, type Product, type CartLine, type Uom } from './types';
 import { applyDiscount, getDiscount, type DiscountMap, type FamilleSlug } from '@/lib/familles';
 import { resoudrePrix } from '@/lib/tablier/engine';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 /**
  * Vérification autoritaire du panier côté serveur (audit S2).
@@ -30,12 +31,43 @@ export type VerifyResult =
 
 const MAX_QTY = 999;
 
+/** Contexte de vérification — requis pour les lignes issues d'un devis. */
+export interface VerifyContext {
+  /** Utilisateur de session (propriétaire attendu des devis référencés). */
+  userId?: string | null;
+}
+
+interface DevisRow {
+  user_id: string | null;
+  status: string;
+  lines: CartLine[];
+}
+
 export async function verifyCartLines(
   clientLines: unknown,
   discounts: DiscountMap,
+  ctx: VerifyContext = {},
 ): Promise<VerifyResult> {
   if (!Array.isArray(clientLines) || clientLines.length === 0) {
     return { ok: false, error: 'Panier vide ou invalide.' };
+  }
+
+  // Cache des devis référencés par les lignes (chargés une seule fois chacun)
+  const devisCache = new Map<string, DevisRow | null>();
+  async function loadDevis(devisNumber: string): Promise<DevisRow | null> {
+    if (devisCache.has(devisNumber)) return devisCache.get(devisNumber) ?? null;
+    let row: DevisRow | null = null;
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      const admin = createAdminClient();
+      const { data } = await admin
+        .from('devis')
+        .select('user_id, status, lines')
+        .eq('devis_number', devisNumber)
+        .single<DevisRow>();
+      row = data ?? null;
+    }
+    devisCache.set(devisNumber, row);
+    return row;
   }
 
   const products = await getAllProducts();
@@ -60,8 +92,29 @@ export async function verifyCartLines(
     let base: number | null = null;
     let name = String(raw?.name ?? '');
     let famille: FamilleSlug | undefined;
+    // Les prix de devis sont négociés : ni re-tarification ni remise en plus.
+    let isNegotiated = false;
 
-    if (raw?.pricing?.kind === 'matrix') {
+    if (raw?.pricing?.kind === 'devis') {
+      // Ligne issue d'un devis stocké en base (site ou ERP) — le serveur
+      // vérifie la propriété et reprend le prix négocié tel qu'enregistré.
+      const pr = raw.pricing;
+      if (!ctx.userId) {
+        return { ok: false, error: 'Connexion requise pour commander un devis.' };
+      }
+      const devis = await loadDevis(String(pr.devisNumber));
+      if (!devis) return { ok: false, error: `Devis introuvable : ${pr.devisNumber}` };
+      if (devis.user_id !== ctx.userId) {
+        return { ok: false, error: 'Ce devis ne vous appartient pas.' };
+      }
+      const src = devis.lines?.[Number(pr.line)];
+      if (!src || typeof src.unitPriceHT !== 'number') {
+        return { ok: false, error: `Ligne de devis invalide : ${pr.devisNumber}#${pr.line}` };
+      }
+      base = src.unitPriceHT;
+      name = src.name;
+      isNegotiated = true;
+    } else if (raw?.pricing?.kind === 'matrix') {
       const pr = raw.pricing;
       const product = bySlug.get(pr.slug);
       if (!product || !isMatrix(product)) {
@@ -100,7 +153,7 @@ export async function verifyCartLines(
       return { ok: false, error: 'Prix indisponible pour un article (hors abaque ?).' };
     }
 
-    const unitPriceHT = applyDiscount(base, getDiscount(discounts, famille));
+    const unitPriceHT = isNegotiated ? base : applyDiscount(base, getDiscount(discounts, famille));
     productsHT += unitPriceHT * qty;
 
     verified.push({

@@ -265,7 +265,7 @@ export async function POST(req: NextRequest) {
   // Re-tarification autoritaire (audit S2) — remises pro lues en base, pas du client.
   const method: ShippingMethod = shippingMethod === 'express' ? 'express' : 'standard';
   const discounts = await getUserDiscounts(sessionUser.id);
-  const verified = await verifyCartLines(payload.lines, discounts);
+  const verified = await verifyCartLines(payload.lines, discounts, { userId: sessionUser.id });
   if (!verified.ok) {
     return NextResponse.json({ error: verified.error }, { status: 400 });
   }

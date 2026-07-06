@@ -43,6 +43,8 @@ interface DevisRow {
   total_ttc: number;
   lines: CartLine[];
   status: string;
+  source?: string;
+  pdf_path?: string | null;
 }
 
 interface Order {
@@ -104,9 +106,17 @@ export default function ComptePage() {
     if (isPro()) {
       supabase
         .from('devis')
-        .select('id, devis_number, created_at, valid_until, total_ht, total_ttc, lines, status')
+        .select('id, devis_number, created_at, valid_until, total_ht, total_ttc, lines, status, source, pdf_path')
         .order('created_at', { ascending: false })
-        .then(({ data }) => setDevis((data as DevisRow[]) ?? []));
+        .then(({ data, error }) => {
+          if (!error) { setDevis((data as DevisRow[]) ?? []); return; }
+          // Migration 20260706_devis_erp pas encore jouée — fallback sans les colonnes ERP
+          supabase
+            .from('devis')
+            .select('id, devis_number, created_at, valid_until, total_ht, total_ttc, lines, status')
+            .order('created_at', { ascending: false })
+            .then(({ data: fallback }) => setDevis((fallback as DevisRow[]) ?? []));
+        });
     }
 
     // Charger le profil étendu (adresses + téléphone)
@@ -334,8 +344,15 @@ export default function ComptePage() {
                       <div key={d.id} className="order-card">
                         <div className="order-card-head">
                           <div>
-                            <div className="order-id ref">{d.devis_number}</div>
-                            <div className="order-date">Créé le {date}</div>
+                            <div className="order-id ref">
+                              {d.devis_number}
+                              {d.source === 'erp' && (
+                                <span className="pro-chip" style={{ marginLeft: 8 }}>Devis MN</span>
+                              )}
+                            </div>
+                            <div className="order-date">
+                              {d.source === 'erp' ? 'Établi par nos équipes le ' : 'Créé le '}{date}
+                            </div>
                           </div>
                           <span className={`order-status ${isExpired ? 'status-rupture' : d.status === 'converted' ? 'status-ok' : 'status-pending'}`}>
                             {isExpired ? 'Expiré' : d.status === 'converted' ? 'Converti' : `Valide jusqu'au ${validDate}`}
@@ -354,14 +371,25 @@ export default function ComptePage() {
                         <div className="order-card-foot">
                           <span className="order-total">{euro(Number(d.total_ht))} HT</span>
                           <div className="order-actions">
-                            <Link
-                              className="btn ghost sm"
-                              href={`/devis?devis=${d.devis_number}`}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              Voir / PDF
-                            </Link>
+                            {d.pdf_path ? (
+                              <a
+                                className="btn ghost sm"
+                                href={`/api/devis/${d.devis_number}/pdf`}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                ↓ PDF
+                              </a>
+                            ) : (
+                              <Link
+                                className="btn ghost sm"
+                                href={`/devis?devis=${d.devis_number}`}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                Voir / PDF
+                              </Link>
+                            )}
                             {!isExpired && d.status !== 'converted' && (
                               <button
                                 className="btn solid sm"
