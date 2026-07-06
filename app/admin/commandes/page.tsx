@@ -118,6 +118,8 @@ export default function AdminCommandes() {
       list = list.filter((o) =>
         (o.order_number ?? o.id).toLowerCase().includes(q) ||
         o.email?.toLowerCase().includes(q) ||
+        o.customer_name?.toLowerCase().includes(q) ||
+        o.shipping_address?.company?.toLowerCase().includes(q) ||
         `${o.shipping_address?.firstName ?? ''} ${o.shipping_address?.lastName ?? ''}`.toLowerCase().includes(q)
       );
     }
@@ -217,7 +219,11 @@ export default function AdminCommandes() {
                       <td><span className="ref">{o.order_number ?? o.id}</span></td>
                       <td>{new Date(o.created_at).toLocaleDateString('fr-FR')}</td>
                       <td>
-                        {o.shipping_address?.firstName} {o.shipping_address?.lastName}
+                        {/* Entreprise en premier (cohérent avec l'onglet Devis), sinon le nom */}
+                        {o.shipping_address?.company
+                          || o.customer_name
+                          || `${o.shipping_address?.firstName ?? ''} ${o.shipping_address?.lastName ?? ''}`.trim()
+                          || '—'}
                         <br /><span className="adm-muted" style={{ fontSize: 12 }}>{o.email}</span>
                       </td>
                       <td>

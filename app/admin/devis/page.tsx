@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from '@/components/ui/Toast';
 
 interface Client {
@@ -38,6 +38,11 @@ export default function AdminDevisPage() {
   const [devis, setDevis]     = useState<DevisRow[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Filtres (même outil que l'onglet Commandes)
+  const [search, setSearch]             = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterSource, setFilterSource] = useState('');
+
   // Formulaire d'import
   const [showForm, setShowForm]     = useState(false);
   const [clientId, setClientId]     = useState('');
@@ -59,6 +64,22 @@ export default function AdminDevisPage() {
       .then((r) => r.json())
       .then((data) => { if (Array.isArray(data)) setClients(data); });
   }, []);
+
+  const filtered = useMemo(() => {
+    let list = devis;
+    if (filterStatus) list = list.filter((d) => d.status === filterStatus);
+    if (filterSource) list = list.filter((d) => d.source === filterSource);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter((d) =>
+        d.devis_number?.toLowerCase().includes(q) ||
+        d.email?.toLowerCase().includes(q) ||
+        d.customer_name?.toLowerCase().includes(q) ||
+        d.company?.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [devis, search, filterStatus, filterSource]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,6 +162,27 @@ export default function AdminDevisPage() {
         </form>
       )}
 
+      {/* ── Filtres (même outil que l'onglet Commandes) ── */}
+      <div className="adm-toolbar">
+        <input
+          className="adm-search"
+          type="search"
+          placeholder="N° devis, client, entreprise, email…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <select className="adm-select" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+          <option value="">Tous les statuts</option>
+          {Object.entries(STATUS_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+        </select>
+        <select className="adm-select" value={filterSource} onChange={(e) => setFilterSource(e.target.value)}>
+          <option value="">Toutes les sources</option>
+          <option value="site">Site</option>
+          <option value="erp">ERP</option>
+        </select>
+        <span className="adm-count">{filtered.length} devis</span>
+      </div>
+
       {/* ── Liste des devis ── */}
       {loading ? (
         <div className="adm-loading">Chargement…</div>
@@ -159,10 +201,10 @@ export default function AdminDevisPage() {
               </tr>
             </thead>
             <tbody>
-              {devis.length === 0 && (
+              {filtered.length === 0 && (
                 <tr className="adm-tr"><td colSpan={7} style={{ color: 'var(--muted)' }}>Aucun devis.</td></tr>
               )}
-              {devis.map((d) => (
+              {filtered.map((d) => (
                 <tr key={d.id} className="adm-tr">
                   <td className="ref">{d.devis_number}</td>
                   <td>

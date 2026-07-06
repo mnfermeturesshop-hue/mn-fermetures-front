@@ -72,6 +72,8 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   cancelled:  { label: 'Annulé',         cls: 'status-rupture' },
 };
 
+type CompteTab = 'commandes' | 'devis' | 'profil' | 'tarifs';
+
 export default function ComptePage() {
   const { user, isPro, logout } = useAuthStore();
   const { setLines, clearCart }  = useCartStore();
@@ -79,6 +81,15 @@ export default function ComptePage() {
   const [orders, setOrders]   = useState<Order[]>([]);
   const [devis, setDevis]     = useState<DevisRow[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Onglet actif — une seule rubrique affichée à la fois
+  const [tab, setTab] = useState<CompteTab>('commandes');
+
+  // Filtres (même outil que l'admin)
+  const [orderSearch, setOrderSearch] = useState('');
+  const [orderStatus, setOrderStatus] = useState('');
+  const [devisSearch, setDevisSearch] = useState('');
+  const [devisStatus, setDevisStatus] = useState('');
 
   // Profil éditable
   const [profil, setProfil]       = useState({ name: '', company: '', phone: '' });
@@ -209,6 +220,28 @@ export default function ComptePage() {
 
   const totalHT = orders.reduce((s, o) => s + Number(o.total_ht), 0);
 
+  // Listes filtrées (recherche + statut)
+  const filteredOrders = orders.filter((o) => {
+    if (orderStatus && o.status !== orderStatus) return false;
+    const q = orderSearch.trim().toLowerCase();
+    if (!q) return true;
+    return o.order_number?.toLowerCase().includes(q) ||
+      (o.lines ?? []).some((l) => l.name?.toLowerCase().includes(q));
+  });
+
+  const devisState = (d: DevisRow) =>
+    d.status === 'converted' ? 'converted'
+    : new Date(d.valid_until) < new Date() ? 'expired'
+    : 'active';
+
+  const filteredDevis = devis.filter((d) => {
+    if (devisStatus && devisState(d) !== devisStatus) return false;
+    const q = devisSearch.trim().toLowerCase();
+    if (!q) return true;
+    return d.devis_number?.toLowerCase().includes(q) ||
+      (d.lines ?? []).some((l) => l.name?.toLowerCase().includes(q));
+  });
+
   return (
     <div className="wrap compte-page">
       <Breadcrumb crumbs={[{ label: 'Accueil', href: '/' }, { label: 'Mon compte' }]} />
@@ -230,10 +263,14 @@ export default function ComptePage() {
           </div>
 
           <nav className="compte-nav">
-            <a className="compte-nav-item active" href="#commandes">Mes commandes</a>
-            {isPro() && <a className="compte-nav-item" href="#devis">Mes devis</a>}
-            <a className="compte-nav-item" href="#profil">Mon profil</a>
-            {isPro() && <a className="compte-nav-item" href="#tarifs">Tarifs préférentiels</a>}
+            <button type="button" className={`compte-nav-item ${tab === 'commandes' ? 'active' : ''}`} onClick={() => setTab('commandes')}>Mes commandes</button>
+            {isPro() && (
+              <button type="button" className={`compte-nav-item ${tab === 'devis' ? 'active' : ''}`} onClick={() => setTab('devis')}>Mes devis</button>
+            )}
+            <button type="button" className={`compte-nav-item ${tab === 'profil' ? 'active' : ''}`} onClick={() => setTab('profil')}>Mon profil</button>
+            {isPro() && (
+              <button type="button" className={`compte-nav-item ${tab === 'tarifs' ? 'active' : ''}`} onClick={() => setTab('tarifs')}>Tarifs préférentiels</button>
+            )}
             <Link className="compte-nav-item" href="/panier">Mon panier</Link>
           </nav>
 
@@ -261,6 +298,7 @@ export default function ComptePage() {
           </div>
 
           {/* Commandes */}
+          {tab === 'commandes' && (
           <section id="commandes" className="compte-section">
             <div className="compte-section-head">
               <h2>Mes commandes</h2>
@@ -278,8 +316,31 @@ export default function ComptePage() {
             )}
 
             {!loading && orders.length > 0 && (
+              <div className="compte-toolbar">
+                <input
+                  className="profil-input"
+                  type="search"
+                  placeholder="N° de commande, produit…"
+                  value={orderSearch}
+                  onChange={(e) => setOrderSearch(e.target.value)}
+                />
+                <select className="profil-input" value={orderStatus} onChange={(e) => setOrderStatus(e.target.value)}>
+                  <option value="">Tous les statuts</option>
+                  {Object.entries(STATUS).map(([v, s]) => <option key={v} value={v}>{s.label}</option>)}
+                </select>
+                <span className="compte-count">{filteredOrders.length} commande{filteredOrders.length > 1 ? 's' : ''}</span>
+              </div>
+            )}
+
+            {!loading && orders.length > 0 && filteredOrders.length === 0 && (
+              <p style={{ color: 'var(--muted)', fontSize: 14, padding: '16px 0' }}>
+                Aucune commande ne correspond à votre recherche.
+              </p>
+            )}
+
+            {!loading && filteredOrders.length > 0 && (
               <div className="orders-list">
-                {orders.map((o) => {
+                {filteredOrders.map((o) => {
                   const st = STATUS[o.status] ?? { label: o.status, cls: 'status-pending' };
                   const date = new Date(o.created_at).toLocaleDateString('fr-FR');
                   return (
@@ -340,9 +401,10 @@ export default function ComptePage() {
               </div>
             )}
           </section>
+          )}
 
           {/* Devis PRO */}
-          {isPro() && (
+          {tab === 'devis' && isPro() && (
             <section id="devis" className="compte-section">
               <div className="compte-section-head">
                 <h2>Mes devis</h2>
@@ -356,8 +418,33 @@ export default function ComptePage() {
               )}
 
               {devis.length > 0 && (
+                <div className="compte-toolbar">
+                  <input
+                    className="profil-input"
+                    type="search"
+                    placeholder="N° de devis, produit…"
+                    value={devisSearch}
+                    onChange={(e) => setDevisSearch(e.target.value)}
+                  />
+                  <select className="profil-input" value={devisStatus} onChange={(e) => setDevisStatus(e.target.value)}>
+                    <option value="">Tous les statuts</option>
+                    <option value="active">En cours de validité</option>
+                    <option value="converted">Converti</option>
+                    <option value="expired">Expiré</option>
+                  </select>
+                  <span className="compte-count">{filteredDevis.length} devis</span>
+                </div>
+              )}
+
+              {devis.length > 0 && filteredDevis.length === 0 && (
+                <p style={{ color: 'var(--muted)', fontSize: 14, padding: '16px 0' }}>
+                  Aucun devis ne correspond à votre recherche.
+                </p>
+              )}
+
+              {filteredDevis.length > 0 && (
                 <div className="orders-list">
-                  {devis.map((d) => {
+                  {filteredDevis.map((d) => {
                     const date      = new Date(d.created_at).toLocaleDateString('fr-FR');
                     const validDate = new Date(d.valid_until).toLocaleDateString('fr-FR');
                     const isExpired = new Date(d.valid_until) < new Date();
@@ -436,6 +523,7 @@ export default function ComptePage() {
           )}
 
           {/* Profil */}
+          {tab === 'profil' && (
           <section id="profil" className="compte-section">
             <div className="compte-section-head">
               <h2>Mon profil</h2>
@@ -551,9 +639,10 @@ export default function ComptePage() {
               </div>
             </form>
           </section>
+          )}
 
           {/* Tarifs pro */}
-          {isPro() && (
+          {tab === 'tarifs' && isPro() && (
             <section id="tarifs" className="compte-section">
               <div className="compte-section-head">
                 <h2>Vos conditions tarifaires</h2>
