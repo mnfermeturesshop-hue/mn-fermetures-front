@@ -39,9 +39,11 @@ const euro = (n: number) =>
 
 /**
  * Conversion d'un devis ERP en bon de commande : le client accepte le devis.
- * Le devis passe en `converted` et l'équipe MN est notifiée par email — le
- * traitement de la commande se fait dans l'ERP (le détail est dans le PDF).
- * Réservé au propriétaire du devis (session serveur).
+ * Une commande (payment_method 'bon_de_commande') est créée — elle apparaît
+ * dans « Mes commandes » de l'espace client et dans l'admin, où l'équipe peut
+ * y joindre ARC/facture/suivi. Le devis passe en `converted` et l'équipe MN
+ * est notifiée par email — le traitement se fait dans l'ERP (détail dans le
+ * PDF). Réservé au propriétaire du devis (session serveur).
  */
 export async function POST(_req: NextRequest, { params }: { params: { number: string } }) {
   const serverClient = createClient();
@@ -68,6 +70,47 @@ export async function POST(_req: NextRequest, { params }: { params: { number: st
     return NextResponse.json({ error: 'Ce devis a expiré — contactez votre commercial.' }, { status: 409 });
   }
 
+  // 1. Création de la commande liée (visible dans « Mes commandes » du client)
+  const orderNumber = `BC-${devis.devis_number}`;
+  const totalHT = Number(devis.total_ht) || 0;
+
+  // Adresse de livraison : celle enregistrée sur le profil, sinon vide
+  // (la livraison est de toute façon pilotée par l'ERP sur ce flux)
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('shipping_address')
+    .eq('id', user.id)
+    .single();
+
+  const { error: orderErr } = await admin.from('orders').insert({
+    order_number:     orderNumber,
+    email:            devis.email,
+    customer_name:    devis.customer_name ?? devis.email,
+    is_guest:         false,
+    user_id:          user.id,
+    payment_method:   'bon_de_commande',
+    shipping_method:  'standard',
+    lines: [{
+      key: `devis-${devis.devis_number}`,
+      name: `Commande sur devis ${devis.devis_number}`,
+      detail: 'Détail dans le PDF du devis',
+      quantity: 1,
+      unitPriceHT: totalHT,
+      uom: 'unite',
+    }],
+    total_ht:         totalHT,
+    total_ttc:        Math.round(totalHT * 1.2 * 100) / 100,
+    frais_ht:         0,
+    shipping_address: profile?.shipping_address ?? {},
+    billing_address:  profile?.shipping_address ?? {},
+    status:           'pending',
+  });
+  // Doublon (re-clic après un échec partiel) : la commande existe déjà → on continue
+  if (orderErr && !orderErr.message.includes('duplicate')) {
+    return NextResponse.json({ error: `Création de la commande : ${orderErr.message}` }, { status: 400 });
+  }
+
+  // 2. Devis marqué converti
   const { error: upErr } = await admin
     .from('devis')
     .update({ status: 'converted' })
@@ -81,7 +124,7 @@ export async function POST(_req: NextRequest, { params }: { params: { number: st
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://mn-fermetures-front.vercel.app';
   const hqEmail = process.env.CONTACT_BC_EMAIL ?? process.env.GMAIL_USER ?? '';
 
-  // 1. Notification équipe MN — la commande se traite dans l'ERP
+  // 3. Notification équipe MN — la commande se traite dans l'ERP
   if (hqEmail) {
     await sendEmail(
       hqEmail,
@@ -96,8 +139,9 @@ export async function POST(_req: NextRequest, { params }: { params: { number: st
     <p style="margin:0 0 12px;">Le client <strong>${escapeHtml(clientLabel)}</strong>
       (<a href="mailto:${encodeURIComponent(devis.email)}">${escapeHtml(devis.email)}</a>)
       vient d'accepter le devis <strong style="font-family:monospace;">${escapeHtml(devis.devis_number)}</strong>.</p>
+    <p style="margin:0 0 12px;">Commande créée sur le site : <strong style="font-family:monospace;">${escapeHtml(orderNumber)}</strong></p>
     ${totalBlock}
-    <p style="margin:0 0 16px;color:#6b7280;font-size:13px;">Le détail figure dans le PDF du devis (ERP). Traiter la commande dans l'ERP.</p>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:13px;">Le détail figure dans le PDF du devis (ERP). Traiter la commande dans l'ERP, puis joindre ARC/facture/suivi à la commande dans l'admin.</p>
     <a href="${siteUrl}/admin/devis"
        style="background:#10314f;color:#fff;text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:600;font-size:14px;display:inline-block;">
       Voir dans l'admin →
@@ -107,10 +151,10 @@ export async function POST(_req: NextRequest, { params }: { params: { number: st
     );
   }
 
-  // 2. Confirmation client
+  // 4. Confirmation client
   await sendEmail(
     devis.email,
-    `Votre commande sur devis ${devis.devis_number} — MN Fermetures`,
+    `Votre commande ${orderNumber} — MN Fermetures`,
     `
 <div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#1f2937;">
   <div style="background:#10314f;padding:24px 28px;border-radius:8px 8px 0 0;text-align:center;">
@@ -120,6 +164,8 @@ export async function POST(_req: NextRequest, { params }: { params: { number: st
     <p style="margin:0 0 12px;">Bonjour${devis.customer_name ? ' ' + escapeHtml(devis.customer_name) : ''},</p>
     <p style="margin:0 0 12px;">Nous avons bien reçu votre <strong>bon de commande</strong> sur le devis
       <strong style="font-family:monospace;">${escapeHtml(devis.devis_number)}</strong>.</p>
+    <p style="margin:0 0 12px;">Votre numéro de commande : <strong style="font-family:monospace;">${escapeHtml(orderNumber)}</strong><br>
+      Retrouvez-la à tout moment dans votre espace client, rubrique « Mes commandes ».</p>
     ${totalBlock}
     <p style="margin:0 0 16px;color:#4b5563;">Notre équipe commerciale la traite et revient vers vous sous <strong>24h ouvrées</strong>
       pour confirmer les délais de fabrication et de livraison.</p>
@@ -128,5 +174,5 @@ export async function POST(_req: NextRequest, { params }: { params: { number: st
 </div>`,
   );
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, orderNumber });
 }

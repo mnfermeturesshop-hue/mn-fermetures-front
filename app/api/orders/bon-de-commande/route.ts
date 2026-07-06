@@ -301,14 +301,18 @@ export async function POST(req: NextRequest) {
 
   if (error) console.error('[bon-de-commande] Supabase insert error:', error);
 
-  const hqEmail = process.env.CONTACT_BC_EMAIL ?? 'moideparisest@gmail.com';
+  // Destinataire interne des bons de commande : CONTACT_BC_EMAIL, sinon le
+  // compte Gmail expéditeur (l'ancienne adresse de test codée en dur est retirée)
+  const hqEmail = process.env.CONTACT_BC_EMAIL ?? process.env.GMAIL_USER ?? '';
 
   // 2. Email interne → équipe MN Fermetures
-  await sendEmail(
-    hqEmail,
-    `📋 Bon de commande ${orderNumber} — ${payload.company || customerName}`,
-    buildHqEmail(finalPayload),
-  );
+  if (hqEmail) {
+    await sendEmail(
+      hqEmail,
+      `📋 Bon de commande ${orderNumber} — ${payload.company || customerName}`,
+      buildHqEmail(finalPayload),
+    );
+  }
 
   // 3. Email de confirmation → client pro
   await sendEmail(

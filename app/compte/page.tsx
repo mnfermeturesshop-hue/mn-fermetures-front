@@ -182,7 +182,12 @@ export default function ComptePage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? 'Erreur inconnue');
         setDevis((prev) => prev.map((x) => x.id === d.id ? { ...x, status: 'converted' } : x));
-        toast.success('Bon de commande transmis — notre équipe vous recontacte sous 24h ouvrées');
+        // La commande créée apparaît immédiatement dans « Mes commandes »
+        fetch('/api/orders/mine')
+          .then((r) => r.json())
+          .then((orders) => setOrders((orders as Order[]) ?? []))
+          .catch(() => {});
+        toast.success(`Commande ${data.orderNumber ?? ''} créée — retrouvez-la dans « Mes commandes »`);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Erreur lors de la commande');
       }
