@@ -4,7 +4,9 @@ import { useState, useMemo, useCallback } from 'react';
 import { LAMES, resoudrePrix } from '@/lib/tablier/engine';
 import type { LameTablier } from '@/lib/tablier/types';
 import { useCartStore } from '@/lib/store/cart';
+import { useAuthStore } from '@/lib/store/auth';
 import { toast } from '@/components/ui/Toast';
+import { PUBLIC_PRICES } from '@/lib/config';
 
 const euro = (n: number) =>
   n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
@@ -66,6 +68,9 @@ function ColorisSwatches({
 export function TablierGenerateur() {
   const addLine = useCartStore((s) => s.addLine);
   const openCart = useCartStore((s) => s.openCart);
+  const { user } = useAuthStore();
+  // Prix réservés aux connectés (PUBLIC_PRICES=false)
+  const priceGated = !PUBLIC_PRICES && !user;
 
   const [matiere, setMatiere] = useState<'pvc' | 'alu'>('alu');
   const [selectedSlug, setSelectedSlug] = useState<string>('alu-cd942');
@@ -275,7 +280,7 @@ export function TablierGenerateur() {
                 />
                 <span>
                   Attaches rigides
-                  {result && avecAttache && (
+                  {result && avecAttache && !priceGated && (
                     <em> +{euro(result.supAttache)}</em>
                   )}
                 </span>
@@ -293,7 +298,7 @@ export function TablierGenerateur() {
                   {lame.attacheParDefaut === 'verrou' && (
                     <strong className="cfg-default-badge"> (inclus)</strong>
                   )}
-                  {result && avecVerrou && lame.attacheParDefaut !== 'verrou' && (
+                  {result && avecVerrou && lame.attacheParDefaut !== 'verrou' && !priceGated && (
                     <em> +{euro(result.supVerrou)}</em>
                   )}
                 </span>
@@ -320,7 +325,20 @@ export function TablierGenerateur() {
             <span>{lame.coloris.find((c) => c.code === activeColoris)?.label}</span>
           </div>
 
-          {result ? (
+          {result && priceGated ? (
+            <>
+              <div className="cfg-summary-dims">
+                {result.largeurSnap} × {result.hauteurSnap} mm
+              </div>
+              <div className="cfg-gate">
+                <p className="cfg-gate-text">
+                  <strong>Prix réservé aux professionnels.</strong><br />
+                  Connectez-vous pour obtenir votre tarif instantané et commander.
+                </p>
+                <a className="btn solid full cfg-cta" href="/pro">Se connecter à l&apos;espace pro</a>
+              </div>
+            </>
+          ) : result ? (
             <>
               <div className="cfg-summary-dims">
                 {result.largeurSnap} × {result.hauteurSnap} mm

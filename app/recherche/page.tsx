@@ -5,6 +5,8 @@ import { getAllProducts, getAllBrands, getAllCategories } from '@/lib/catalog/db
 import { searchProducts } from '@/lib/catalog/search';
 import type { Product } from '@/lib/catalog/types';
 import { RechercheClient } from './RechercheClient';
+import { maskProductPrices } from '@/lib/catalog/maskPrices';
+import { pricesVisible } from '@/lib/pricing/visibility';
 
 export const metadata: Metadata = {
   title: 'Recherche — MN Fermetures',
@@ -20,12 +22,15 @@ export default async function Page({ searchParams }: Props) {
   let results: Product[] = [];
 
   if (q.length >= 2) {
-    const [products, brands, categories] = await Promise.all([
+    const [products, brands, categories, showPrices] = await Promise.all([
       getAllProducts(),
       getAllBrands(),
       getAllCategories(),
+      pricesVisible(),
     ]);
-    results = searchProducts(q, products, brands, categories, 48).map((r) => r.product);
+    results = searchProducts(q, products, brands, categories, 48).map((r) =>
+      showPrices ? r.product : maskProductPrices(r.product)
+    );
   }
 
   return <RechercheClient query={q} results={results} />;

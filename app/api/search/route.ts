@@ -5,15 +5,17 @@ import { getAllProducts, getAllBrands, getAllCategories } from '@/lib/catalog/db
 import { searchProducts } from '@/lib/catalog/search';
 import { priceFrom } from '@/lib/catalog/resolvePrice';
 import { isUnit, isKit } from '@/lib/catalog/types';
+import { pricesVisible } from '@/lib/pricing/visibility';
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q') ?? '';
   if (q.trim().length < 2) return NextResponse.json([]);
 
-  const [products, brands, categories] = await Promise.all([
+  const [products, brands, categories, showPrices] = await Promise.all([
     getAllProducts(),
     getAllBrands(),
     getAllCategories(),
+    pricesVisible(),
   ]);
 
   const results = searchProducts(q, products, brands, categories, 6);
@@ -25,7 +27,7 @@ export async function GET(req: NextRequest) {
     pricingType:  r.product.pricingType,
     matchedField: r.matchedField,
     imageUrl:     r.product.imageUrl ?? null,
-    priceHT:      r.product.proOnly ? null : priceFrom(r.product),
+    priceHT:      (!showPrices || r.product.proOnly) ? null : priceFrom(r.product),
     reference:
       isUnit(r.product)  ? r.product.variants[0]?.reference :
       isKit(r.product)   ? r.product.configs[0]?.reference  : undefined,

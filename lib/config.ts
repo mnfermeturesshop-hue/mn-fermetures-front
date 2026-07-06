@@ -11,3 +11,15 @@
  * Repasser à `true` réactive l'ensemble du parcours particulier.
  */
 export const B2C_ENABLED = false;
+
+/**
+ * PUBLIC_PRICES — décision PDG (juillet 2026) : les prix ne sont visibles
+ * qu'après connexion (audience pro). À `false` :
+ *   - les pages serveur masquent les prix AVANT envoi au navigateur
+ *     (via maskProductPrices — aucun prix dans le payload de la page)
+ *   - l'API de recherche renvoie priceHT: null aux visiteurs non connectés
+ *   - le JSON-LD n'expose plus d'offres tarifaires
+ *   - le générateur de tablier n'affiche prix/ajout qu'aux connectés
+ * Repasser à `true` rend les prix publics à nouveau.
+ */
+export const PUBLIC_PRICES = false;

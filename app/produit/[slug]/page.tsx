@@ -17,6 +17,8 @@ import { RecentlyViewed } from '@/components/ui/RecentlyViewed';
 import { ProductJsonLd, BreadcrumbJsonLd } from '@/components/seo/JsonLd';
 import { ZoomableImage } from '@/components/ui/ZoomableImage';
 import Link from 'next/link';
+import { maskProductPrices } from '@/lib/catalog/maskPrices';
+import { pricesVisible } from '@/lib/pricing/visibility';
 
 interface Props { params: { slug: string } }
 
@@ -41,15 +43,20 @@ const PILL: Record<string, { cls: string; label: string }> = {
 };
 
 export default async function ProductPage({ params }: Props) {
-  const [product, allBrands, allCategories] = await Promise.all([
+  const [rawProduct, allBrands, allCategories, showPrices] = await Promise.all([
     getProductBySlugDB(params.slug),
     getAllBrands(),
     getAllCategories(),
+    pricesVisible(),
   ]);
-  if (!product) notFound();
+  if (!rawProduct) notFound();
+
+  // Prix réservés aux connectés : masqués avant envoi au navigateur
+  const product = showPrices ? rawProduct : maskProductPrices(rawProduct);
 
   // Produits associés : composants du kit (référence croisée) OU même catégorie
-  const catProducts = await getProductsByCategory(product.categorySlug);
+  const rawCatProducts = await getProductsByCategory(product.categorySlug);
+  const catProducts = showPrices ? rawCatProducts : rawCatProducts.map(maskProductPrices);
 
   let related = catProducts.filter((p) => p.slug !== product.slug).slice(0, 4);
 
@@ -157,7 +164,8 @@ export default async function ProductPage({ params }: Props) {
 
           {product.proOnly ? (
             <div className="pro-gate">
-              <p>Ce produit est réservé aux professionnels.</p>
+              <p><strong>Prix réservé aux professionnels.</strong><br />
+              Connectez-vous pour voir vos tarifs, configurer et commander.</p>
               <Link className="btn solid" href="/pro">Accéder à l&apos;espace pro</Link>
             </div>
           ) : (

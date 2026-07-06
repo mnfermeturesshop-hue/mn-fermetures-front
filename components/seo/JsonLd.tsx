@@ -36,19 +36,23 @@ export function ProductJsonLd({ product }: { product: Product }) {
       ? { '@type': 'Brand', name: brand.name }
       : { '@type': 'Brand', name: 'MN Fermetures' },
     category: product.categorySlug.replace(/-/g, ' '),
-    offers: {
-      '@type': isMatrix(product) ? 'AggregateOffer' : 'Offer',
-      priceCurrency: 'EUR',
-      ...(isMatrix(product)
-        ? { lowPrice: price.toFixed(2), priceSpecification: { '@type': 'PriceSpecification', valueAddedTaxIncluded: false } }
-        : { price: price.toFixed(2), priceSpecification: { '@type': 'PriceSpecification', valueAddedTaxIncluded: false } }),
-      availability: availability(product),
-      seller: {
-        '@type': 'Organization',
-        name: 'MN Fermetures',
-        url: BASE,
+    // Prix réservés aux connectés : aucune offre tarifaire dans les données
+    // structurées publiques quand le produit est masqué (proOnly).
+    ...(product.proOnly ? {} : {
+      offers: {
+        '@type': isMatrix(product) ? 'AggregateOffer' : 'Offer',
+        priceCurrency: 'EUR',
+        ...(isMatrix(product)
+          ? { lowPrice: price.toFixed(2), priceSpecification: { '@type': 'PriceSpecification', valueAddedTaxIncluded: false } }
+          : { price: price.toFixed(2), priceSpecification: { '@type': 'PriceSpecification', valueAddedTaxIncluded: false } }),
+        availability: availability(product),
+        seller: {
+          '@type': 'Organization',
+          name: 'MN Fermetures',
+          url: BASE,
+        },
       },
-    },
+    }),
     ...(isUnit(product) && product.variants[0]?.reference
       ? { sku: product.variants[0].reference, mpn: product.variants[0].reference }
       : {}),

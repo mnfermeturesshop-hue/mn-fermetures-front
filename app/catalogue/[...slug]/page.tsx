@@ -6,6 +6,8 @@ import { getAllProducts, getAllBrands } from '@/lib/catalog/db';
 import { resolveMenuPath } from '@/lib/catalog/menuResolve';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { CatalogueClient } from '@/components/catalogue/CatalogueClient';
+import { maskProductPrices } from '@/lib/catalog/maskPrices';
+import { pricesVisible } from '@/lib/pricing/visibility';
 
 interface Props { params: { slug: string[] } }
 
@@ -22,7 +24,13 @@ export default async function CataloguePage({ params }: Props) {
   const resolved = resolveMenuPath(params.slug);
   if (!resolved) notFound();
 
-  const [allProducts, allBrands] = await Promise.all([getAllProducts(), getAllBrands()]);
+  const [rawProducts, allBrands, showPrices] = await Promise.all([
+    getAllProducts(),
+    getAllBrands(),
+    pricesVisible(),
+  ]);
+  // Prix réservés aux connectés : masqués avant envoi au navigateur
+  const allProducts = showPrices ? rawProducts : rawProducts.map(maskProductPrices);
 
   const catProducts = allProducts.filter((p) =>
     p.menuPath

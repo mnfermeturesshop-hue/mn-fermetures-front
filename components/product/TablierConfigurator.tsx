@@ -13,6 +13,8 @@ import { trackAddToCart } from '@/lib/analytics';
 export function TablierConfigurator({ product }: { product: MatrixProduct }) {
   const searchParams = useSearchParams();
   const router = useRouter();
+  // Prix masqués (visiteur non connecté) : le produit arrive sans grille tarifaire
+  const priceGated = product.proOnly || product.heights.length === 0;
 
   // Lire H/L depuis l'URL si présents (partage de devis)
   const initH = (() => {
@@ -139,6 +141,18 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
         )}
 
         {/* Sticky : toujours visible sans scroller */}
+        {priceGated ? (
+          <div className="price-out price-out--gated">
+            <div>
+              <div className="eyebrow">Prix sur connexion</div>
+              <div className="cfg-gate-text">
+                Tarifs réservés aux professionnels.
+              </div>
+              <div className="cfg-dims">{width} × {height} mm</div>
+            </div>
+            <a className="btn solid" href="/pro">Se connecter</a>
+          </div>
+        ) : (
         <div className="price-out">
           <div>
             <div className="eyebrow">Prix indicatif</div>
@@ -167,6 +181,7 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
             Ajouter au panier
           </button>
         </div>
+        )}
       </div>
     </div>
   );

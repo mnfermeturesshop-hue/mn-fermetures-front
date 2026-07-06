@@ -6,14 +6,19 @@ import { ProductCard } from '@/components/product/ProductCard';
 import { TablierConfigurator } from '@/components/product/TablierConfigurator';
 import { FindMyPart } from '@/components/ui/FindMyPart';
 import { TablierGenerateur } from '@/components/tablier/TablierGenerateur';
+import { maskProductPrices } from '@/lib/catalog/maskPrices';
+import { pricesVisible } from '@/lib/pricing/visibility';
 
 export default async function HomePage() {
-  const [allProducts, tablier] = await Promise.all([
+  const [allProducts, rawTablier, showPrices] = await Promise.all([
     getAllProducts(),
     getProductBySlugDB('tablier-pvc-40'),
+    pricesVisible(),
   ]);
 
-  const featured = allProducts.slice(0, 6);
+  // Prix réservés aux connectés : masqués avant envoi au navigateur
+  const featured = (showPrices ? allProducts : allProducts.map(maskProductPrices)).slice(0, 6);
+  const tablier = rawTablier && !showPrices ? maskProductPrices(rawTablier) : rawTablier;
 
   return (
     <>
