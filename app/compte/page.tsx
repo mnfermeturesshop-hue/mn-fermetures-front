@@ -174,6 +174,22 @@ export default function ComptePage() {
   };
 
   const convertDevisToBc = async (d: DevisRow) => {
+    // Devis ERP (PDF importé par nos équipes) : l'acceptation vaut bon de
+    // commande — l'équipe MN est notifiée et traite la commande dans l'ERP.
+    if (d.source === 'erp') {
+      try {
+        const res = await fetch(`/api/devis/${d.devis_number}/convert`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? 'Erreur inconnue');
+        setDevis((prev) => prev.map((x) => x.id === d.id ? { ...x, status: 'converted' } : x));
+        toast.success('Bon de commande transmis — notre équipe vous recontacte sous 24h ouvrées');
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Erreur lors de la commande');
+      }
+      return;
+    }
+
+    // Devis créés sur le site : recharge le panier et suit le flux BC classique
     setLines(d.lines);
     // Marquer le devis comme converti (masque le bouton immédiatement)
     setDevis((prev) => prev.map((x) => x.id === d.id ? { ...x, status: 'converted' } : x));
@@ -359,6 +375,9 @@ export default function ComptePage() {
                           </span>
                         </div>
                         <ul className="order-lines">
+                          {(d.lines ?? []).length === 0 && (
+                            <li style={{ color: 'var(--muted)' }}>Détail dans le PDF du devis</li>
+                          )}
                           {(d.lines ?? []).slice(0, 3).map((l, i) => (
                             <li key={i}>{l.quantity} × {l.name}</li>
                           ))}
@@ -369,7 +388,9 @@ export default function ComptePage() {
                           )}
                         </ul>
                         <div className="order-card-foot">
-                          <span className="order-total">{euro(Number(d.total_ht))} HT</span>
+                          <span className="order-total">
+                            {Number(d.total_ht) > 0 ? `${euro(Number(d.total_ht))} HT` : ''}
+                          </span>
                           <div className="order-actions">
                             {d.pdf_path ? (
                               <a
@@ -396,7 +417,7 @@ export default function ComptePage() {
                                 type="button"
                                 onClick={() => convertDevisToBc(d)}
                               >
-                                Créer un bon de commande →
+                                {d.source === 'erp' ? 'Commander ce devis →' : 'Créer un bon de commande →'}
                               </button>
                             )}
                           </div>
