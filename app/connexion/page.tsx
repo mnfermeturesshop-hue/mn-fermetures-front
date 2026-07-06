@@ -1,12 +1,16 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import { HomeEspaces } from '@/components/home/HomeEspaces';
+import { B2C_ENABLED } from '@/lib/config';
 
 export const metadata: Metadata = {
   title: 'Connexion — MM Fermetures',
-  description: 'Connectez-vous à votre espace particulier ou professionnel MM Fermetures.',
+  description: 'Connectez-vous à votre espace professionnel MM Fermetures.',
 };
 
 export default function ConnexionPage() {
+  // Offre B2B uniquement : la connexion passe par l'espace pro
+  if (!B2C_ENABLED) redirect('/pro');
   return (
     <div className="wrap" style={{ paddingTop: 40, paddingBottom: 80 }}>
       <div style={{ textAlign: 'center', marginBottom: 40 }}>

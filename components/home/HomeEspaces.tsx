@@ -2,13 +2,15 @@
 
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store/auth';
+import { B2C_ENABLED } from '@/lib/config';
 
 export function HomeEspaces({ standalone = false }: { standalone?: boolean }) {
   const { user, isPro } = useAuthStore();
 
   const grid = (
     <div className="espaces-grid">
-      {/* Particuliers */}
+      {/* Particuliers — masqué tant que l'offre est B2B uniquement */}
+      {B2C_ENABLED && (
       <div className="espace-card">
         <div className="espace-icon">👤</div>
         <div className="espace-body">
@@ -33,6 +35,7 @@ export function HomeEspaces({ standalone = false }: { standalone?: boolean }) {
           )}
         </div>
       </div>
+      )}
 
       {/* Professionnels */}
       <div className="espace-card espace-card--pro">
@@ -68,7 +71,7 @@ export function HomeEspaces({ standalone = false }: { standalone?: boolean }) {
         <div className="sec-head">
           <div>
             <span className="eyebrow">Votre espace</span>
-            <h2>Clients particuliers &amp; professionnels</h2>
+            <h2>{B2C_ENABLED ? <>Clients particuliers &amp; professionnels</> : 'Espace professionnel'}</h2>
           </div>
         </div>
         {grid}

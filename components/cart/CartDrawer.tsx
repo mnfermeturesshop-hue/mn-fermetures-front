@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCartStore, euro } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
 import type { CartLine } from '@/lib/catalog/types';
+import { B2C_ENABLED } from '@/lib/config';
 
 function CartLineRow({ line }: { line: CartLine }) {
   const { updateQty, removeLine } = useCartStore();
@@ -45,7 +46,9 @@ export function CartDrawer() {
   const { lines, isOpen, closeCart, totalHT, totalTTC, tva, fraisLivraison, isFranco, showTTC, toggleTTC } =
     useCartStore();
   const { isPro } = useAuthStore();
-  const checkoutHref = isPro() ? '/devis' : '/checkout';
+  // B2B uniquement : les non-pros sont dirigés vers l'espace pro pour se connecter
+  const checkoutHref = isPro() ? '/devis' : B2C_ENABLED ? '/checkout' : '/pro';
+  const checkoutLabel = isPro() ? 'Créer un devis →' : B2C_ENABLED ? 'Commander →' : 'Se connecter à l\'espace pro →';
 
   if (!isOpen) return null;
 
@@ -112,12 +115,12 @@ export function CartDrawer() {
 
             <div className="drawer-ctas">
               <Link className="btn checkout full" href={checkoutHref} onClick={closeCart}>
-                {isPro() ? 'Créer un devis →' : 'Commander →'}
+                {checkoutLabel}
               </Link>
               <Link className="btn solid full" href="/panier" onClick={closeCart}>
                 Voir le panier
               </Link>
-              {!isPro() && (
+              {!isPro() && B2C_ENABLED && (
                 <Link className="btn devis-link" href="/devis" onClick={closeCart}>
                   Générer un devis PDF
                 </Link>

@@ -7,6 +7,7 @@ import { verifyCartLines } from '@/lib/catalog/verifyCart';
 import { getUserDiscounts } from '@/lib/pricing/discounts';
 import { computeOrderTotals, type ShippingMethod } from '@/lib/pricing/shipping';
 import { escapeHtml } from '@/lib/security/escapeHtml';
+import { B2C_ENABLED } from '@/lib/config';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -198,6 +199,15 @@ async function sendEmail(to: string, subject: string, html: string) {
 }
 
 export async function POST(req: NextRequest) {
+  // Offre B2B uniquement : le tunnel de commande B2C (carte/virement) est fermé.
+  // Les pros passent par /api/orders/bon-de-commande.
+  if (!B2C_ENABLED) {
+    return NextResponse.json(
+      { error: 'La commande en ligne est réservée aux professionnels (bon de commande).' },
+      { status: 403 }
+    );
+  }
+
   const payload: OrderPayload = await req.json();
   const { orderNumber, email, customerName,
     paymentMethod, shippingMethod, shippingAddress, billingAddress, paymentIntentId } = payload;

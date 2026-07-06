@@ -8,6 +8,7 @@ import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { toast } from '@/components/ui/Toast';
 import { fetchCompanyBySiret } from '@/lib/siret';
 import { TurnstileWidget } from '@/components/ui/TurnstileWidget';
+import { B2C_ENABLED } from '@/lib/config';
 
 type Tab = 'login' | 'register';
 
@@ -306,7 +307,8 @@ function RegisterForm() {
 
 function ProPageContent() {
   const searchParams = useSearchParams();
-  const particulier = searchParams.get('type') === 'particulier';
+  // Mode « particulier » masqué tant que l'offre est B2B uniquement
+  const particulier = B2C_ENABLED && searchParams.get('type') === 'particulier';
   const [tab, setTab] = useState<Tab>('login');
   const { user, isPro } = useAuthStore();
   const router = useRouter();
@@ -353,12 +355,12 @@ function ProPageContent() {
               Vous êtes un professionnel ?{' '}
               <Link href="/pro">Ouvrir un compte pro →</Link>
             </p>
-          ) : (
+          ) : B2C_ENABLED ? (
             <p className="auth-b2c-hint">
               Vous êtes un particulier ?{' '}
               <Link href="/inscription">Créer un compte particulier →</Link>
             </p>
-          )}
+          ) : null}
         </div>
 
         {/* Colonne droite — avantages */}

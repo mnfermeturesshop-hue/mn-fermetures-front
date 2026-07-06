@@ -9,6 +9,7 @@ import { MegaMenu } from './MegaMenu';
 import { SearchBar } from './SearchBar';
 import { MobileMenu } from './MobileMenu';
 import { PriceToggle } from '@/components/ui/PriceToggle';
+import { B2C_ENABLED } from '@/lib/config';
 
 function SearchIcon() {
   return (
@@ -71,8 +72,8 @@ export function Header() {
                 <button className="act" type="button" onClick={logout}>Déconnexion</button>
               </div>
             ) : (
-              <Link className="act" href="/connexion">
-                Connexion
+              <Link className="act" href={B2C_ENABLED ? '/connexion' : '/pro'}>
+                {B2C_ENABLED ? 'Connexion' : 'Espace pro'}
               </Link>
             )}
 

@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { rateLimit, clientIp } from '@/lib/security/rateLimit';
 import { verifyTurnstile } from '@/lib/security/turnstile';
 import { escapeHtml } from '@/lib/security/escapeHtml';
+import { B2C_ENABLED } from '@/lib/config';
 
 function validatePassword(pw: string): string | null {
   if (pw.length < 8)        return 'Le mot de passe doit faire au moins 8 caractères.';
@@ -64,6 +65,14 @@ async function sendWelcomeEmail(to: string, firstName: string) {
 }
 
 export async function POST(req: NextRequest) {
+  // Offre B2B uniquement : la création de compte particulier est désactivée
+  if (!B2C_ENABLED) {
+    return NextResponse.json(
+      { error: 'La création de compte particulier est désactivée. Les professionnels peuvent ouvrir un compte via l\'espace pro.' },
+      { status: 403 }
+    );
+  }
+
   const ip = clientIp(req);
 
   if (!rateLimit(`register:${ip}`)) {

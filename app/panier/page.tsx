@@ -6,6 +6,7 @@ import { useAuthStore } from '@/lib/store/auth';
 import type { CartLine } from '@/lib/catalog/types';
 import { ReassuranceStrip } from '@/components/ui/ReassuranceStrip';
 import { DevisActions } from '@/components/cart/DevisActions';
+import { B2C_ENABLED } from '@/lib/config';
 
 function LineRow({ line }: { line: CartLine }) {
   const { updateQty, removeLine } = useCartStore();
@@ -114,10 +115,19 @@ export default function CartPage() {
             <Link className="btn checkout full" href="/devis">
               Créer un devis →
             </Link>
-          ) : (
+          ) : B2C_ENABLED ? (
             <Link className="btn checkout full" href="/checkout">
               Commander →
             </Link>
+          ) : (
+            <>
+              <Link className="btn checkout full" href="/pro">
+                Se connecter à l&apos;espace pro →
+              </Link>
+              <p style={{ fontSize: 13, color: 'var(--muted)', margin: '8px 0 0', textAlign: 'center' }}>
+                Vente réservée aux professionnels.
+              </p>
+            </>
           )}
           <Link className="btn ghost full" href="/">
             Continuer mes achats

@@ -271,5 +271,16 @@ En cas de doute « mort vs pas encore branché » → te demander avant toute su
 - **S12** — `create-payment-intent` : rate‑limit + validation du `orderNumber`.
 
 Reste à traiter (lots suivants) : D1–D5 (base), C2–C5 & P1/P2/P5 (cohérence/simplification).
+
+### ✅ Pivot B2B — masquage du parcours particulier (décision PDG, juillet 2026)
+`typecheck` ✅ · `build` ✅.
+
+Drapeau central **`lib/config.ts` → `B2C_ENABLED = false`** (réversible en une ligne). Masqué, pas supprimé :
+- `/connexion` et `/inscription` → redirection vers `/pro` ; mode `?type=particulier` de `/pro` neutralisé ; lien « Créer un compte particulier » masqué.
+- Header/menu mobile : « Connexion » → « Espace pro » (`/pro`).
+- Accueil (`HomeEspaces`) : carte « Espace particulier » masquée.
+- `/checkout` (tunnel B2C carte/virement) : non-pros redirigés vers `/pro` ; CTA panier/drawer « Commander » remplacés par « Se connecter à l'espace pro » (+ mention « Vente réservée aux professionnels »).
+- APIs fermées en 403 : `POST /api/auth/register`, `POST /api/orders` (commande B2C), `POST /api/stripe/create-payment-intent`.
+- Conservés : catalogue public, devis PDF/mailto du panier, comptes B2C existants (connexion via `/pro` possible, mais plus aucun chemin de commande).
 </content>
 </invoke>

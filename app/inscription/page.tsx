@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { TurnstileWidget } from '@/components/ui/TurnstileWidget';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
+import { B2C_ENABLED } from '@/lib/config';
 
 function getPasswordStrength(pw: string): { level: number; label: string; color: string } {
   if (!pw) return { level: 0, label: '', color: '' };
@@ -19,6 +21,13 @@ function getPasswordStrength(pw: string): { level: number; label: string; color:
 }
 
 export default function InscriptionPage() {
+  const router = useRouter();
+
+  // Offre B2B uniquement : pas de création de compte particulier
+  useEffect(() => {
+    if (!B2C_ENABLED) router.replace('/pro');
+  }, [router]);
+
   const [firstName, setFirstName]     = useState('');
   const [lastName, setLastName]       = useState('');
   const [email, setEmail]             = useState('');
@@ -31,6 +40,8 @@ export default function InscriptionPage() {
   const turnstileRef                  = useRef<() => void>(() => {});
 
   const strength = getPasswordStrength(password);
+
+  if (!B2C_ENABLED) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

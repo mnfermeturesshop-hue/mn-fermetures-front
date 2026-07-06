@@ -8,6 +8,7 @@ import { MENU, isNavGroup } from '@/lib/catalog/mock';
 import { useCartStore } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
 import { toast } from '@/components/ui/Toast';
+import { B2C_ENABLED } from '@/lib/config';
 
 interface Props { isOpen: boolean; onClose: () => void }
 
@@ -160,8 +161,8 @@ export function MobileMenu({ isOpen, onClose }: Props) {
               </div>
             </div>
           ) : (
-            <Link className="btn solid full" href="/connexion" onClick={onClose}>
-              Connexion
+            <Link className="btn solid full" href={B2C_ENABLED ? '/connexion' : '/pro'} onClick={onClose}>
+              {B2C_ENABLED ? 'Connexion' : 'Espace pro'}
             </Link>
           )}
         </div>

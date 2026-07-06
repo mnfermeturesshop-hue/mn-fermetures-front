@@ -13,6 +13,7 @@ import { ShippingStep } from '@/components/checkout/ShippingStep';
 import { PaymentStep } from '@/components/checkout/PaymentStep';
 import { IdentityStep } from '@/components/checkout/IdentityStep';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
+import { B2C_ENABLED } from '@/lib/config';
 
 export default function CheckoutPage() {
   const { totalLines } = useCartStore();
@@ -22,12 +23,15 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (isPro()) { router.replace('/commande-pro'); return; }
+    // Offre B2B uniquement : le tunnel de commande B2C est fermé,
+    // les non-pros sont invités à se connecter via l'espace pro.
+    if (!B2C_ENABLED) { router.replace('/pro'); return; }
     if (totalLines() === 0) { router.replace('/panier'); return; }
     trackBeginCheckout({ totalHT: useCartStore.getState().totalHT(), numItems: totalLines() });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (isPro() || totalLines() === 0) return null;
+  if (isPro() || !B2C_ENABLED || totalLines() === 0) return null;
 
   const next = () => setStep((step < 3 ? step + 1 : step) as 1 | 2 | 3);
   const back = () => setStep((step > 1 ? step - 1 : step) as 1 | 2 | 3);

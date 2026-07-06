@@ -5,10 +5,19 @@ import { verifyCartLines } from '@/lib/catalog/verifyCart';
 import { getUserDiscounts } from '@/lib/pricing/discounts';
 import { computeOrderTotals, type ShippingMethod } from '@/lib/pricing/shipping';
 import { rateLimit, clientIp } from '@/lib/security/rateLimit';
+import { B2C_ENABLED } from '@/lib/config';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function POST(req: NextRequest) {
+  // Offre B2B uniquement : le paiement CB (parcours B2C) est fermé.
+  if (!B2C_ENABLED) {
+    return NextResponse.json(
+      { error: 'Le paiement en ligne est réservé au parcours professionnel.' },
+      { status: 403 }
+    );
+  }
+
   if (!rateLimit(`payment-intent:${clientIp(req)}`, 15, 60_000)) {
     return NextResponse.json({ error: 'Trop de requêtes. Patientez un instant.' }, { status: 429 });
   }
