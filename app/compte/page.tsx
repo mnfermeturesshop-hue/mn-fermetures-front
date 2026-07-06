@@ -30,6 +30,8 @@ const BLANK_ADDR: ProfileAddress = {
 
 interface OrderDocuments {
   arc?: string;
+  proforma?: string;
+  bl?: string;
   facture?: string;
   suivi?: string;
 }
@@ -367,8 +369,8 @@ export default function ComptePage() {
                         <div className="order-actions">
                           {o.payment_method === 'bon_de_commande' ? (
                             <div className="order-docs">
-                              {(['arc', 'facture', 'suivi'] as const).map((type) => {
-                                const LABELS = { arc: 'ARC', facture: 'Facture', suivi: 'Suivi' };
+                              {(['arc', 'proforma', 'bl', 'facture', 'suivi'] as const).map((type) => {
+                                const LABELS = { arc: 'ARC', proforma: 'Pro Forma', bl: 'Bon de livraison', facture: 'Facture', suivi: 'Suivi' };
                                 return o.documents?.[type] ? (
                                   <a
                                     key={type}

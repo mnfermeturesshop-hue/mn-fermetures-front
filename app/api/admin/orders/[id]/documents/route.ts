@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth/guards';
 
-const ALLOWED_TYPES = ['arc', 'facture', 'suivi'] as const;
+const ALLOWED_TYPES = ['arc', 'proforma', 'bl', 'facture', 'suivi'] as const;
 type DocType = (typeof ALLOWED_TYPES)[number];
 
 interface OrderRecord {
@@ -23,7 +23,7 @@ export async function POST(
   const type = formData.get('type') as string | null;
 
   if (!file || !type || !(ALLOWED_TYPES as readonly string[]).includes(type)) {
-    return NextResponse.json({ error: 'file et type (arc|facture|suivi) requis' }, { status: 400 });
+    return NextResponse.json({ error: 'file et type (arc|proforma|bl|facture|suivi) requis' }, { status: 400 });
   }
 
   const supabase = createAdminClient();

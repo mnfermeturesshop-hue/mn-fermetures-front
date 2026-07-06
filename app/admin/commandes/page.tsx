@@ -42,6 +42,8 @@ interface Address {
 
 interface OrderDocuments {
   arc?: string;
+  proforma?: string;
+  bl?: string;
   facture?: string;
   suivi?: string;
 }
@@ -347,8 +349,8 @@ export default function AdminCommandes() {
                               <div className="adm-order-detail-section">
                                 <div className="adm-order-detail-title">Documents ERP</div>
                                 <div className="adm-doc-slots">
-                                  {(['arc', 'facture', 'suivi'] as const).map((type) => {
-                                    const LABELS = { arc: 'ARC', facture: 'Facture', suivi: 'Suivi livraison' };
+                                  {(['arc', 'proforma', 'bl', 'facture', 'suivi'] as const).map((type) => {
+                                    const LABELS = { arc: 'ARC', proforma: 'Pro Forma', bl: 'Bon de livraison', facture: 'Facture', suivi: 'Suivi livraison' };
                                     const docPath = o.documents?.[type];
                                     const isUploading = uploadingDoc === `${o.id}-${type}`;
                                     return (
