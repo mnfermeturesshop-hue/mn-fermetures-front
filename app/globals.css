@@ -2435,3 +2435,57 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 .cfg-gate-text { font-size: 13px; color: var(--muted); line-height: 1.5; margin: 4px 0 6px; }
 .cfg-gate { padding: 14px 0 2px; }
 .cfg-gate .cfg-gate-text { margin-bottom: 12px; }
+
+/* =====================================================================
+   OPTIMISATIONS MOBILE — UX
+   ===================================================================== */
+
+/* Stabilité du texte & interactions tactiles */
+html { -webkit-text-size-adjust: 100%; }
+.drawer, .mob-menu { overscroll-behavior: contain; }
+@media (max-width: 900px) {
+  a, button { -webkit-tap-highlight-color: transparent; }
+  /* La barre d'ajout sticky ne doit pas recouvrir le bas de page produit */
+  .prod-page { padding-bottom: 84px; }
+}
+
+/* iOS : un champ avec une police < 16px déclenche un zoom automatique au focus */
+@media (max-width: 600px) {
+  input:not([type='checkbox']):not([type='radio']), select, textarea { font-size: 16px !important; }
+}
+
+/* Panier — le tableau devient des cartes empilées sur petit écran */
+@media (max-width: 640px) {
+  .cart-table thead { display: none; }
+  .cart-table, .cart-table tbody { display: block; width: 100%; }
+  .cart-tr { position: relative; display: grid; grid-template-columns: 1fr auto;
+    gap: 6px 12px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .cart-tr td { display: block; padding: 0; border: none; }
+  .cart-td-name { grid-column: 1 / -1; padding-right: 40px; }
+  .cart-td-price { grid-column: 1 / -1; }
+  .cart-td-price::before { content: 'Prix unitaire : '; font-size: 11px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .04em; }
+  .cart-td-qty { align-self: center; }
+  .cart-td-total { align-self: center; justify-self: end; font-size: 16px; }
+  .cart-td-del { position: absolute; top: 12px; right: 0; }
+  .cart-head { flex-wrap: wrap; gap: 10px; }
+}
+
+/* Devis / facture — lisible sur petit écran (tableau scrollable) */
+@media (max-width: 640px) {
+  .devis-doc { padding: 20px 12px; }
+  .devis-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    font-size: 12px; }
+  .devis-table th, .devis-table td { padding: 8px; white-space: nowrap; }
+  .devis-table td:first-child { white-space: normal; min-width: 150px; }
+  .devis-header { display: flex; flex-direction: column; gap: 16px; }
+  .devis-print-bar { flex-wrap: wrap; gap: 8px; }
+  .confirm-table td, .confirm-table th { padding: 8px 6px; }
+}
+
+/* Header — compact sur très petit écran */
+@media (max-width: 480px) {
+  .brand.logo-pill img.logo-img { width: 108px; height: auto; }
+  .topbar { gap: 6px; }
+  .acts { gap: 6px; }
+}

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect } from 'react';
 import { useCartStore, euro } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
 import type { CartLine } from '@/lib/catalog/types';
@@ -49,6 +50,14 @@ export function CartDrawer() {
   // B2B uniquement : les non-pros sont dirigés vers l'espace pro pour se connecter
   const checkoutHref = isPro() ? '/devis' : B2C_ENABLED ? '/checkout' : '/pro';
   const checkoutLabel = isPro() ? 'Créer un devis →' : B2C_ENABLED ? 'Commander →' : 'Se connecter à l\'espace pro →';
+
+  // Mobile : fige le défilement de la page derrière le tiroir ouvert
+  useEffect(() => {
+    if (!isOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

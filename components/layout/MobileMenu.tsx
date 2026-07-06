@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { MENU, isNavGroup } from '@/lib/catalog/mock';
 import { useCartStore } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
@@ -83,6 +83,14 @@ export function MobileMenu({ isOpen, onClose }: Props) {
     onClose();
     router.push(`/produit/${slug}`);
   };
+
+  // Mobile : fige le défilement de la page derrière le menu ouvert
+  useEffect(() => {
+    if (!isOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
