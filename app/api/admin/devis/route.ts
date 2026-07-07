@@ -1,17 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { requireAdmin } from '@/lib/auth/guards';
+import { requireStaff, getCommercialClientIds } from '@/lib/auth/guards';
 
-/** Liste de tous les devis (site + ERP) pour l'admin. */
+/** Liste des devis (site + ERP) — un commercial ne voit que ceux de SES clients. */
 export async function GET() {
-  const guard = await requireAdmin();
+  const guard = await requireStaff();
   if (!guard.ok) return guard.response;
 
   const supabase = createAdminClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from('devis')
     .select('id, devis_number, customer_name, company, email, total_ht, status, source, pdf_path, created_at, valid_until')
     .order('created_at', { ascending: false });
+
+  if (guard.role === 'commercial') {
+    const clientIds = await getCommercialClientIds(guard.userId);
+    if (clientIds.size === 0) return NextResponse.json([]);
+    query = query.in('user_id', [...clientIds]);
+  }
+
+  const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json(data ?? []);
 }
@@ -22,7 +30,7 @@ export async function GET() {
  * généré par l'ERP) ; le total HT est optionnel (affichage espace client).
  */
 export async function POST(req: NextRequest) {
-  const guard = await requireAdmin();
+  const guard = await requireStaff();
   if (!guard.ok) return guard.response;
 
   const formData = await req.formData();
@@ -33,6 +41,14 @@ export async function POST(req: NextRequest) {
 
   if (!file)   return NextResponse.json({ error: 'PDF du devis requis.' }, { status: 400 });
   if (!userId) return NextResponse.json({ error: 'Client requis.' }, { status: 400 });
+
+  // Un commercial n'importe des devis que pour SES clients
+  if (guard.role === 'commercial') {
+    const clientIds = await getCommercialClientIds(guard.userId);
+    if (!clientIds.has(userId)) {
+      return NextResponse.json({ error: 'Ce client ne vous est pas assigné.' }, { status: 403 });
+    }
+  }
 
   // N° de devis = nom du fichier ERP sans extension (ex. "DEV-2026-0042.pdf")
   const baseName = (file.name || '').replace(/\.pdf$/i, '').trim();

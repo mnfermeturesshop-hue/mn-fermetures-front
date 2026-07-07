@@ -65,7 +65,9 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    if (!profile || profile.role !== 'admin') {
+    // Back-office ouvert aux admins et aux commerciaux (droits restreints) —
+    // la granularité fine est appliquée par les gardes de chaque route API.
+    if (!profile || (profile.role !== 'admin' && profile.role !== 'commercial')) {
       return redirectWithCookies('/admin/login', request, supabaseResponse);
     }
   }

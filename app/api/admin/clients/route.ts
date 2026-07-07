@@ -1,17 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { requireAdmin } from '@/lib/auth/guards';
+import { requireAdmin, requireStaff } from '@/lib/auth/guards';
 import { orderCountsForLoyalty } from '@/lib/loyalty';
 
 export async function GET() {
-  const guard = await requireAdmin();
+  // Ouvert aux commerciaux — mais chacun ne voit QUE ses clients assignés
+  const guard = await requireStaff();
   if (!guard.ok) return guard.response;
   try {
     const supabase = createAdminClient();
 
+    let profilesQuery = supabase
+      .from('profiles')
+      .select('id, name, role, company, discounts, commercial_id')
+      .in('role', ['b2b', 'blocked'])
+      .order('name');
+    if (guard.role === 'commercial') {
+      profilesQuery = profilesQuery.eq('commercial_id', guard.userId);
+    }
+    let { data: profiles } = await profilesQuery;
+    if (!profiles && guard.role === 'admin') {
+      // Migration 20260707_role_commercial pas encore jouée — fallback sans la
+      // colonne (sans risque : aucun compte commercial ne peut exister avant elle)
+      const { data: fallback } = await supabase
+        .from('profiles')
+        .select('id, name, role, company, discounts')
+        .in('role', ['b2b', 'blocked'])
+        .order('name');
+      profiles = (fallback ?? []).map((p) => ({ ...p, commercial_id: null }));
+    }
+
     const loyaltyYear = new Date().getFullYear();
-    const [{ data: profiles }, { data: { users } }, { data: proRequests }, { data: loyaltyOrders }] = await Promise.all([
-      supabase.from('profiles').select('id, name, role, company, discounts').in('role', ['b2b', 'blocked']).order('name'),
+    const [{ data: { users } }, { data: proRequests }, { data: loyaltyOrders }] = await Promise.all([
       supabase.auth.admin.listUsers({ perPage: 1000 }),
       supabase.from('pro_requests').select('email, company'),
       // CA fidélité : BC expédiés/livrés de l'année en cours, agrégés par client
@@ -51,6 +71,7 @@ export async function GET() {
         lastSignIn: userDataById[p.id]?.lastSignIn ?? null,
         banned: userDataById[p.id]?.banned ?? false,
         loyaltyCaHT: loyaltyCaByUser.get(p.id) ?? 0,
+        commercialId: p.commercial_id ?? null,
       };
     });
 
@@ -62,26 +83,56 @@ export async function GET() {
 }
 
 export async function PATCH(req: NextRequest) {
-  const guard = await requireAdmin();
+  // Staff : les remises sont ouvertes aux commerciaux (sur LEURS clients) ;
+  // blocage et assignation de commercial restent admin uniquement.
+  const guard = await requireStaff();
   if (!guard.ok) return guard.response;
   try {
-    const body = await req.json() as { id: string; discounts?: Record<string, number>; action?: 'block' | 'unblock' };
-    const { id, action, discounts } = body;
+    const body = await req.json() as {
+      id: string;
+      discounts?: Record<string, number>;
+      action?: 'block' | 'unblock';
+      commercialId?: string | null;
+    };
+    const { id, action, discounts, commercialId } = body;
     if (!id) return NextResponse.json({ error: 'id requis' }, { status: 400 });
 
     const supabase = createAdminClient();
 
-    if (action === 'block') {
-      await supabase.auth.admin.updateUserById(id, { ban_duration: '876600h' });
+    if (action === 'block' || action === 'unblock') {
+      if (guard.role !== 'admin') {
+        return NextResponse.json({ error: 'Action réservée à l\'administrateur.' }, { status: 403 });
+      }
+      await supabase.auth.admin.updateUserById(id, {
+        ban_duration: action === 'block' ? '876600h' : 'none',
+      });
       return NextResponse.json({ ok: true });
     }
 
-    if (action === 'unblock') {
-      await supabase.auth.admin.updateUserById(id, { ban_duration: 'none' });
+    // Assignation d'un commercial référent (admin uniquement)
+    if (commercialId !== undefined) {
+      if (guard.role !== 'admin') {
+        return NextResponse.json({ error: 'Action réservée à l\'administrateur.' }, { status: 403 });
+      }
+      const { error } = await supabase
+        .from('profiles')
+        .update({ commercial_id: commercialId || null })
+        .eq('id', id);
+      if (error) return NextResponse.json({ error: error.message }, { status: 400 });
       return NextResponse.json({ ok: true });
     }
 
-    // Mise à jour des remises
+    // Mise à jour des remises — un commercial ne touche que SES clients
+    if (guard.role === 'commercial') {
+      const { data: target } = await supabase
+        .from('profiles')
+        .select('commercial_id')
+        .eq('id', id)
+        .single();
+      if (!target || target.commercial_id !== guard.userId) {
+        return NextResponse.json({ error: 'Ce client ne vous est pas assigné.' }, { status: 403 });
+      }
+    }
     const { error } = await supabase.from('profiles').update({ discounts }).eq('id', id);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ ok: true });

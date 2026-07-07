@@ -14,7 +14,10 @@ interface Client {
   lastSignIn: string | null;
   banned: boolean;
   loyaltyCaHT?: number;
+  commercialId?: string | null;
 }
+
+interface Commercial { id: string; name: string }
 
 function formatDate(iso: string | null) {
   if (!iso) return 'Jamais';
@@ -36,12 +39,49 @@ export default function AdminClients() {
   const [saving, setSaving] = useState<string | null>(null);
   const [acting, setActing] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Client | null>(null);
+  // Rôle du connecté (admin | commercial) — adapte les colonnes et actions
+  const [viewerRole, setViewerRole] = useState<'admin' | 'commercial'>('admin');
+  const [team, setTeam] = useState<Commercial[]>([]);
 
   useEffect(() => {
     fetch('/api/admin/clients')
       .then((r) => r.json())
       .then((data) => { setClients(data); setLoading(false); });
+    fetch('/api/admin/me')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((me) => {
+        if (me?.role) setViewerRole(me.role);
+        // La liste des commerciaux (dropdown d'assignation) est admin only
+        if (me?.role === 'admin') {
+          fetch('/api/admin/team')
+            .then((r) => (r.ok ? r.json() : []))
+            .then((t) => { if (Array.isArray(t)) setTeam(t); });
+        }
+      })
+      .catch(() => {});
   }, []);
+
+  const assignCommercial = async (client: Client, commercialId: string) => {
+    setActing(client.id + 'assign');
+    try {
+      const res = await fetch('/api/admin/clients', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: client.id, commercialId: commercialId || null }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? 'Erreur');
+      }
+      setClients((prev) => prev.map((c) => c.id === client.id ? { ...c, commercialId: commercialId || null } : c));
+      const name = team.find((t) => t.id === commercialId)?.name;
+      toast.success(name ? `Client assigné à ${name}` : 'Client désassigné');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erreur assignation');
+    } finally {
+      setActing(null);
+    }
+  };
 
   const startEdit = (client: Client) => {
     setEditing(client.id);
@@ -171,6 +211,7 @@ export default function AdminClients() {
                 <th>Client</th>
                 <th>Email</th>
                 <th style={{ whiteSpace: 'nowrap' }}>Palier {new Date().getFullYear()}</th>
+                {viewerRole === 'admin' && <th>Commercial</th>}
                 <th>Dernière connexion</th>
                 {FAMILLES.map((f) => (
                   <th key={f.slug} style={{ textAlign: 'center', minWidth: 110 }}>
@@ -223,6 +264,21 @@ export default function AdminClients() {
                         );
                       })()}
                     </td>
+                    {viewerRole === 'admin' && (
+                      <td>
+                        <select
+                          className="adm-select adm-select-sm"
+                          value={client.commercialId ?? ''}
+                          disabled={acting === client.id + 'assign'}
+                          onChange={(e) => assignCommercial(client, e.target.value)}
+                        >
+                          <option value="">— Non assigné —</option>
+                          {team.map((t) => (
+                            <option key={t.id} value={t.id}>{t.name}</option>
+                          ))}
+                        </select>
+                      </td>
+                    )}
                     <td>
                       <span className="adm-last-login">{formatDate(client.lastSignIn)}</span>
                     </td>
@@ -273,7 +329,8 @@ export default function AdminClients() {
                           >
                             Modifier
                           </button>
-                          {client.banned ? (
+                          {/* Blocage/suppression : admin uniquement (l'API refuse de toute façon) */}
+                          {viewerRole === 'admin' && (client.banned ? (
                             <button
                               type="button"
                               className="adm-action-btn"
@@ -293,16 +350,18 @@ export default function AdminClients() {
                             >
                               {acting === client.id + 'block' ? '…' : '⊘ Bloquer'}
                             </button>
+                          ))}
+                          {viewerRole === 'admin' && (
+                            <button
+                              type="button"
+                              className="adm-action-btn del"
+                              onClick={() => setConfirmDelete(client)}
+                              disabled={isActing}
+                              title="Supprimer définitivement"
+                            >
+                              {acting === client.id + 'delete' ? '…' : 'Supprimer'}
+                            </button>
                           )}
-                          <button
-                            type="button"
-                            className="adm-action-btn del"
-                            onClick={() => setConfirmDelete(client)}
-                            disabled={isActing}
-                            title="Supprimer définitivement"
-                          >
-                            {acting === client.id + 'delete' ? '…' : 'Supprimer'}
-                          </button>
                         </>
                       )}
                     </td>

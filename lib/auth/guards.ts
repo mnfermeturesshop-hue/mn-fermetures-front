@@ -49,6 +49,56 @@ export async function requireAdmin(): Promise<AdminGuardOk | GuardErr> {
 }
 
 /**
+ * Garde d'accès pour les routes API du back-office ouvertes aux COMMERCIAUX.
+ *
+ * Un commercial est un admin restreint : il n'agit que sur SES clients
+ * (profiles.commercial_id = lui). Cette garde renvoie le rôle ; c'est à
+ * chaque route de filtrer/vérifier la propriété via getCommercialClientIds
+ * — jamais l'UI. Les routes sensibles (produits, import, suppression de
+ * comptes, demandes pro, équipe) restent sur requireAdmin.
+ */
+export type StaffRole = 'admin' | 'commercial';
+export type StaffGuardOk = { ok: true; userId: string; role: StaffRole };
+
+export async function requireStaff(): Promise<StaffGuardOk | GuardErr> {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: 'Service non configuré.' }, { status: 500 }),
+    };
+  }
+
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, response: NextResponse.json({ error: 'Non autorisé' }, { status: 401 }) };
+  }
+
+  const admin = createAdminClient();
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile || (profile.role !== 'admin' && profile.role !== 'commercial')) {
+    return { ok: false, response: NextResponse.json({ error: 'Accès refusé' }, { status: 403 }) };
+  }
+
+  return { ok: true, userId: user.id, role: profile.role as StaffRole };
+}
+
+/** IDs des clients rattachés à un commercial (périmètre d'action serveur). */
+export async function getCommercialClientIds(commercialId: string): Promise<Set<string>> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('commercial_id', commercialId);
+  return new Set((data ?? []).map((p) => p.id as string));
+}
+
+/**
  * Garde pour les routes qui exigent seulement un utilisateur connecté.
  * Renvoie l'utilisateur de session — à utiliser comme unique source de
  * vérité pour `user_id`/`email` (ne jamais faire confiance au body).

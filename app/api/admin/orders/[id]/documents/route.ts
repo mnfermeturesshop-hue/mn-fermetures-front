@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { requireAdmin } from '@/lib/auth/guards';
+import { requireStaff, getCommercialClientIds } from '@/lib/auth/guards';
 
 const ALLOWED_TYPES = ['arc', 'proforma', 'bl', 'facture', 'suivi'] as const;
 type DocType = (typeof ALLOWED_TYPES)[number];
@@ -8,6 +8,7 @@ type DocType = (typeof ALLOWED_TYPES)[number];
 interface OrderRecord {
   id: string;
   order_number: string;
+  user_id: string | null;
   documents: Record<string, string> | null;
 }
 
@@ -15,7 +16,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const guard = await requireAdmin();
+  const guard = await requireStaff();
   if (!guard.ok) return guard.response;
 
   const formData = await req.formData();
@@ -30,12 +31,20 @@ export async function POST(
 
   const { data: order, error: orderErr } = await supabase
     .from('orders')
-    .select('id, order_number, documents')
+    .select('id, order_number, user_id, documents')
     .eq('id', params.id)
     .single<OrderRecord>();
 
   if (orderErr || !order) {
     return NextResponse.json({ error: 'Commande introuvable' }, { status: 404 });
+  }
+
+  // Un commercial ne joint des documents qu'aux commandes de SES clients
+  if (guard.role === 'commercial') {
+    const clientIds = await getCommercialClientIds(guard.userId);
+    if (!order.user_id || !clientIds.has(order.user_id)) {
+      return NextResponse.json({ error: 'Cette commande ne concerne pas vos clients.' }, { status: 403 });
+    }
   }
 
   const path = `${order.order_number}/${type as DocType}.pdf`;
