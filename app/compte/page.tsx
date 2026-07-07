@@ -223,7 +223,12 @@ export default function ComptePage() {
     router.push('/commande-pro');
   };
 
-  const totalHT = orders.reduce((s, o) => s + Number(o.total_ht), 0);
+  // Total des commandes passées (hors annulées) sur l'année en cours —
+  // le libellé du KPI reflète exactement ce périmètre
+  const kpiYear = new Date().getFullYear();
+  const totalHT = orders
+    .filter((o) => o.status !== 'cancelled' && new Date(o.created_at).getFullYear() === kpiYear)
+    .reduce((s, o) => s + Number(o.total_ht), 0);
 
   // CA fidélité : bons de commande expédiés/livrés de l'année en cours
   const loyaltyYear = new Date().getFullYear();
@@ -303,7 +308,7 @@ export default function ComptePage() {
             </div>
             <div className="kpi">
               <div className="kpi-value">{loading ? '…' : euro(totalHT)}</div>
-              <div className="kpi-label">Total HT {new Date().getFullYear()}</div>
+              <div className="kpi-label">Total commandes HT · {kpiYear}</div>
             </div>
             <div className="kpi">
               <div className="kpi-value">{isPro() && user.proDiscounts && Object.keys(user.proDiscounts).length > 0 ? 'Remises pro' : 'Standard'}</div>
