@@ -70,6 +70,17 @@ export async function middleware(request: NextRequest) {
     if (!profile || (profile.role !== 'admin' && profile.role !== 'commercial')) {
       return redirectWithCookies('/admin/login', request, supabaseResponse);
     }
+
+    // Un commercial est cantonné à SES rubriques : toute autre page /admin
+    // (produits, import, inventaire, demandes pro, équipe, dashboard…)
+    // le renvoie vers ses clients — blocage serveur, pas seulement la nav.
+    if (profile.role === 'commercial') {
+      const allowed = ['/admin/clients', '/admin/devis', '/admin/commandes'];
+      const isAllowed = allowed.some((p) => pathname === p || pathname.startsWith(p + '/'));
+      if (!isAllowed) {
+        return redirectWithCookies('/admin/clients', request, supabaseResponse);
+      }
+    }
   }
 
   return supabaseResponse;
