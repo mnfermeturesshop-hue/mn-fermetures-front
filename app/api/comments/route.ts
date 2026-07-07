@@ -99,6 +99,15 @@ export async function GET(req: NextRequest) {
     .order('created_at', { ascending: true });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
+  // Ouvrir le fil = le marquer lu pour ce user (pastilles "non lu").
+  // Best-effort : ignoré si la migration comment_reads n'est pas jouée.
+  await admin.from('comment_reads').upsert({
+    user_id: access.userId,
+    target_type: target.type,
+    target_number: target.number,
+    last_read_at: new Date().toISOString(),
+  }).then(({ error: e }) => { if (e) console.warn('[comments] read marker:', e.message); });
+
   return NextResponse.json((data ?? []).map((c) => ({
     id: c.id,
     authorRole: c.author_role,

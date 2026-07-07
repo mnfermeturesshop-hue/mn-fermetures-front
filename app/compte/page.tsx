@@ -98,6 +98,11 @@ export default function ComptePage() {
   const [openThread, setOpenThread] = useState<string | null>(null);
   const toggleThread = (key: string) => setOpenThread((cur) => (cur === key ? null : key));
 
+  // Pastilles "non lu" par document (clé : `${type}:${numéro}`)
+  const [unread, setUnread] = useState<Record<string, number>>({});
+  const clearUnread = (key: string) =>
+    setUnread((prev) => (prev[key] ? { ...prev, [key]: 0 } : prev));
+
   // Filtres (même outil que l'admin)
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatus, setOrderStatus] = useState('');
@@ -125,6 +130,12 @@ export default function ComptePage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+
+    // Pastilles de commentaires non lus
+    fetch('/api/comments/unread')
+      .then((r) => (r.ok ? r.json() : {}))
+      .then((u) => setUnread(u ?? {}))
+      .catch(() => {});
 
     const supabase = createClient();
     if (isPro()) {
@@ -437,11 +448,18 @@ export default function ComptePage() {
                             onClick={() => toggleThread(`order-${o.order_number}`)}
                           >
                             💬 Commentaires
+                            {(unread[`order:${o.order_number}`] ?? 0) > 0 && (
+                              <span className="cmt-dot">{unread[`order:${o.order_number}`]}</span>
+                            )}
                           </button>
                         </div>
                       </div>
                       {openThread === `order-${o.order_number}` && (
-                        <CommentThread targetType="order" targetNumber={o.order_number} />
+                        <CommentThread
+                          targetType="order"
+                          targetNumber={o.order_number}
+                          onRead={() => clearUnread(`order:${o.order_number}`)}
+                        />
                       )}
                     </div>
                   );
@@ -557,6 +575,9 @@ export default function ComptePage() {
                               onClick={() => toggleThread(`devis-${d.devis_number}`)}
                             >
                               💬 Commentaires
+                              {(unread[`devis:${d.devis_number}`] ?? 0) > 0 && (
+                                <span className="cmt-dot">{unread[`devis:${d.devis_number}`]}</span>
+                              )}
                             </button>
                             {!isExpired && d.status !== 'converted' && (
                               <button
@@ -570,7 +591,11 @@ export default function ComptePage() {
                           </div>
                         </div>
                         {openThread === `devis-${d.devis_number}` && (
-                          <CommentThread targetType="devis" targetNumber={d.devis_number} />
+                          <CommentThread
+                            targetType="devis"
+                            targetNumber={d.devis_number}
+                            onRead={() => clearUnread(`devis:${d.devis_number}`)}
+                          />
                         )}
                       </div>
                     );

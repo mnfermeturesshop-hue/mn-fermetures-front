@@ -30,9 +30,11 @@ function formatDate(iso: string): string {
       d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 }
 
-export function CommentThread({ targetType, targetNumber }: {
+export function CommentThread({ targetType, targetNumber, onRead }: {
   targetType: 'devis' | 'order';
   targetNumber: string;
+  /** Appelé quand le fil est chargé (= marqué lu côté serveur) — sert à effacer la pastille. */
+  onRead?: () => void;
 }) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,6 +50,7 @@ export function CommentThread({ targetType, targetNumber }: {
         // Si un de MES messages est staff, je suis staff (sinon indéterminé — sans impact)
         const mine = data.find((c) => c.mine);
         if (mine) setViewerIsStaff(mine.authorRole !== 'client');
+        onRead?.();
       })
       .catch(() => toast.error('Impossible de charger les commentaires'))
       .finally(() => setLoading(false));

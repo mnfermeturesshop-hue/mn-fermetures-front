@@ -104,6 +104,8 @@ export default function AdminCommandes() {
   const [updating, setUpdating]   = useState<string | null>(null);
   const [expandedId, setExpandedId]   = useState<string | null>(null);
   const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
+  // Pastilles "commentaires non lus" par n° de commande
+  const [unread, setUnread] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetch('/api/admin/orders')
@@ -113,6 +115,10 @@ export default function AdminCommandes() {
         setLoading(false);
       })
       .catch(() => { setOrders(MOCK_ORDERS); setLoading(false); });
+    fetch('/api/comments/unread')
+      .then((r) => (r.ok ? r.json() : {}))
+      .then((u) => setUnread(u ?? {}))
+      .catch(() => {});
   }, []);
 
   const filtered = useMemo(() => {
@@ -222,7 +228,14 @@ export default function AdminCommandes() {
                       <td style={{ textAlign: 'center', color: '#6b7280', fontSize: 11 }}>
                         {isOpen ? '▲' : '▼'}
                       </td>
-                      <td><span className="ref">{o.order_number ?? o.id}</span></td>
+                      <td>
+                        <span className="ref">{o.order_number ?? o.id}</span>
+                        {(unread[`order:${o.order_number ?? o.id}`] ?? 0) > 0 && (
+                          <span className="cmt-dot" title="Commentaires non lus">
+                            💬 {unread[`order:${o.order_number ?? o.id}`]}
+                          </span>
+                        )}
+                      </td>
                       <td>{new Date(o.created_at).toLocaleDateString('fr-FR')}</td>
                       <td>
                         {/* Entreprise en premier (cohérent avec l'onglet Devis), sinon le nom */}
@@ -352,7 +365,11 @@ export default function AdminCommandes() {
                             {/* Commentaires client ↔ commercial */}
                             <div className="adm-order-detail-section">
                               <div className="adm-order-detail-title">Commentaires client</div>
-                              <CommentThread targetType="order" targetNumber={o.order_number ?? o.id} />
+                              <CommentThread
+                                targetType="order"
+                                targetNumber={o.order_number ?? o.id}
+                                onRead={() => setUnread((prev) => ({ ...prev, [`order:${o.order_number ?? o.id}`]: 0 }))}
+                              />
                             </div>
 
                             {/* Documents ERP — uniquement pour les bons de commande */}

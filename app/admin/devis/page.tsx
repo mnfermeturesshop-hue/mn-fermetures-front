@@ -39,8 +39,9 @@ export default function AdminDevisPage() {
   const [devis, setDevis]     = useState<DevisRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fil de commentaires déplié (n° de devis)
+  // Fil de commentaires déplié (n° de devis) + pastilles non lus
   const [openThread, setOpenThread] = useState<string | null>(null);
+  const [unread, setUnread] = useState<Record<string, number>>({});
 
   // Filtres (même outil que l'onglet Commandes)
   const [search, setSearch]             = useState('');
@@ -67,6 +68,10 @@ export default function AdminDevisPage() {
     fetch('/api/admin/clients')
       .then((r) => r.json())
       .then((data) => { if (Array.isArray(data)) setClients(data); });
+    fetch('/api/comments/unread')
+      .then((r) => (r.ok ? r.json() : {}))
+      .then((u) => setUnread(u ?? {}))
+      .catch(() => {});
   }, []);
 
   const filtered = useMemo(() => {
@@ -242,13 +247,20 @@ export default function AdminDevisPage() {
                       title="Commentaires avec le client"
                     >
                       💬
+                      {(unread[`devis:${d.devis_number}`] ?? 0) > 0 && (
+                        <span className="cmt-dot">{unread[`devis:${d.devis_number}`]}</span>
+                      )}
                     </button>
                   </td>
                 </tr>
                 {openThread === d.devis_number && (
                   <tr key={`${d.id}-thread`} className="adm-tr-detail">
                     <td colSpan={8} style={{ padding: '0 14px 14px' }}>
-                      <CommentThread targetType="devis" targetNumber={d.devis_number} />
+                      <CommentThread
+                        targetType="devis"
+                        targetNumber={d.devis_number}
+                        onRead={() => setUnread((prev) => ({ ...prev, [`devis:${d.devis_number}`]: 0 }))}
+                      />
                     </td>
                   </tr>
                 )}
