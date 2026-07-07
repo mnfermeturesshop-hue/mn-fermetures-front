@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth/guards';
+import { orderCountsForLoyalty } from '@/lib/loyalty';
 
 export async function GET() {
   const guard = await requireAdmin();
@@ -8,11 +9,24 @@ export async function GET() {
   try {
     const supabase = createAdminClient();
 
-    const [{ data: profiles }, { data: { users } }, { data: proRequests }] = await Promise.all([
+    const loyaltyYear = new Date().getFullYear();
+    const [{ data: profiles }, { data: { users } }, { data: proRequests }, { data: loyaltyOrders }] = await Promise.all([
       supabase.from('profiles').select('id, name, role, company, discounts').in('role', ['b2b', 'blocked']).order('name'),
       supabase.auth.admin.listUsers({ perPage: 1000 }),
       supabase.from('pro_requests').select('email, company'),
+      // CA fidélité : BC expédiés/livrés de l'année en cours, agrégés par client
+      supabase
+        .from('orders')
+        .select('user_id, total_ht, status, payment_method, created_at')
+        .eq('payment_method', 'bon_de_commande')
+        .gte('created_at', `${new Date().getFullYear()}-01-01`),
     ]);
+
+    const loyaltyCaByUser = new Map<string, number>();
+    for (const o of loyaltyOrders ?? []) {
+      if (!o.user_id || !orderCountsForLoyalty(o, loyaltyYear)) continue;
+      loyaltyCaByUser.set(o.user_id, (loyaltyCaByUser.get(o.user_id) ?? 0) + Number(o.total_ht));
+    }
 
     const now = new Date();
     const userDataById = Object.fromEntries(users.map((u) => [u.id, {
@@ -36,6 +50,7 @@ export async function GET() {
         discounts: (p.discounts as Record<string, number>) ?? {},
         lastSignIn: userDataById[p.id]?.lastSignIn ?? null,
         banned: userDataById[p.id]?.banned ?? false,
+        loyaltyCaHT: loyaltyCaByUser.get(p.id) ?? 0,
       };
     });
 

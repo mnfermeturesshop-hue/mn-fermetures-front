@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { FAMILLES, type FamilleSlug } from '@/lib/familles';
+import { computeLoyalty } from '@/lib/loyalty';
 import { toast } from '@/components/ui/Toast';
 
 interface Client {
@@ -12,6 +13,7 @@ interface Client {
   discounts: Partial<Record<FamilleSlug, number>>;
   lastSignIn: string | null;
   banned: boolean;
+  loyaltyCaHT?: number;
 }
 
 function formatDate(iso: string | null) {
@@ -168,6 +170,7 @@ export default function AdminClients() {
               <tr>
                 <th>Client</th>
                 <th>Email</th>
+                <th style={{ whiteSpace: 'nowrap' }}>Palier {new Date().getFullYear()}</th>
                 <th>Dernière connexion</th>
                 {FAMILLES.map((f) => (
                   <th key={f.slug} style={{ textAlign: 'center', minWidth: 110 }}>
@@ -199,6 +202,26 @@ export default function AdminClients() {
                     </td>
                     <td>
                       <span className="ref adm-slug">{client.email}</span>
+                    </td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      {(() => {
+                        const ca = client.loyaltyCaHT ?? 0;
+                        const { tier } = computeLoyalty(ca);
+                        return (
+                          <>
+                            {tier ? (
+                              <span className="loyalty-badge loyalty-badge--sm" style={{ background: tier.color }}>
+                                {tier.label}
+                              </span>
+                            ) : (
+                              <span className="adm-muted">—</span>
+                            )}
+                            <div className="adm-muted" style={{ fontSize: 11, marginTop: 3 }}>
+                              {ca.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} € HT
+                            </div>
+                          </>
+                        );
+                      })()}
                     </td>
                     <td>
                       <span className="adm-last-login">{formatDate(client.lastSignIn)}</span>

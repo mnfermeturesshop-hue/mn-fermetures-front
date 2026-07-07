@@ -9,6 +9,8 @@ import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { toast } from '@/components/ui/Toast';
 import { createClient } from '@/lib/supabase/client';
 import type { CartLine } from '@/lib/catalog/types';
+import { orderCountsForLoyalty } from '@/lib/loyalty';
+import { LoyaltyGauge } from '@/components/compte/LoyaltyGauge';
 
 interface OrderLine { name: string; quantity: number; unitPriceHT: number }
 
@@ -222,6 +224,12 @@ export default function ComptePage() {
 
   const totalHT = orders.reduce((s, o) => s + Number(o.total_ht), 0);
 
+  // CA fidélité : bons de commande expédiés/livrés de l'année en cours
+  const loyaltyYear = new Date().getFullYear();
+  const loyaltyCaHT = orders
+    .filter((o) => orderCountsForLoyalty(o, loyaltyYear))
+    .reduce((s, o) => s + Number(o.total_ht), 0);
+
   // Listes filtrées (recherche + statut)
   const filteredOrders = orders.filter((o) => {
     if (orderStatus && o.status !== orderStatus) return false;
@@ -298,6 +306,11 @@ export default function ComptePage() {
               <div className="kpi-label">Remise compte</div>
             </div>
           </div>
+
+          {/* Programme de fidélité — pros uniquement, visible sur tous les onglets */}
+          {isPro() && !loading && (
+            <LoyaltyGauge caHT={loyaltyCaHT} year={loyaltyYear} />
+          )}
 
           {/* Commandes */}
           {tab === 'commandes' && (

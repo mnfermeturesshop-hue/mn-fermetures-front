@@ -2515,3 +2515,48 @@ html { -webkit-text-size-adjust: 100%; }
 .cgv-body h3 { font-size: 14px; color: var(--navy-700); margin: 14px 0 6px; }
 .cgv-body ul { margin: 8px 0 0; padding-left: 22px; display: flex; flex-direction: column; gap: 4px; }
 .cgv-body li { font-size: 14px; line-height: 1.6; color: var(--ink); }
+
+/* ── Programme de fidélité B2B — jauge & badge ────────────────────────── */
+.loyalty-card { background: #fff; border: 1px solid var(--line); border-radius: 14px;
+  padding: 20px 22px 16px; margin: 0 0 24px; }
+.loyalty-head { display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; margin-bottom: 8px; }
+.loyalty-title { font-size: 12px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .07em; color: var(--muted); }
+.loyalty-ca { font-family: var(--font-display); font-size: 22px; font-weight: 800;
+  color: var(--navy-700); margin-top: 2px; }
+.loyalty-ca small { font-size: 12px; font-weight: 500; color: var(--muted); }
+.loyalty-badge { display: inline-block; padding: 5px 14px; border-radius: 999px;
+  color: #fff; font-size: 13px; font-weight: 800; letter-spacing: .03em;
+  box-shadow: 0 2px 8px rgba(0,0,0,.15); white-space: nowrap; }
+.loyalty-badge--none { background: var(--surface-2); color: var(--muted);
+  border: 1px solid var(--line); box-shadow: none; font-weight: 600; }
+.loyalty-badge--sm { padding: 3px 10px; font-size: 11px; }
+
+.loyalty-bar { position: relative; height: 10px; background: var(--surface-2);
+  border-radius: 999px; margin: 26px 0 40px; }
+.loyalty-bar-fill { position: absolute; inset: 0 auto 0 0; border-radius: 999px;
+  background: linear-gradient(90deg, var(--steel-600), var(--navy-700));
+  transition: width .6s ease; }
+.loyalty-milestone { position: absolute; top: 50%; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; }
+.loyalty-milestone-dot { width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; border: 3px solid var(--line); box-sizing: border-box; }
+.loyalty-milestone-label { position: absolute; top: 20px; font-size: 11px;
+  font-weight: 700; color: var(--muted); text-align: center; line-height: 1.2;
+  white-space: nowrap; }
+.loyalty-milestone-label small { display: block; font-weight: 500; font-size: 10px;
+  color: var(--muted); }
+
+.loyalty-next { font-size: 14px; color: var(--ink); margin: 0 0 6px; line-height: 1.5; }
+.loyalty-next--max { color: #16a34a; }
+.loyalty-note { font-size: 12px; color: var(--muted); margin: 0; }
+
+@media (max-width: 600px) {
+  .loyalty-card { padding: 16px 14px 12px; }
+  .loyalty-ca { font-size: 18px; }
+  /* Petits écrans : garder les pastilles, alléger les libellés */
+  .loyalty-milestone-label { font-size: 9.5px; }
+  .loyalty-milestone-label small { display: none; }
+  .loyalty-bar { margin-bottom: 34px; }
+}
