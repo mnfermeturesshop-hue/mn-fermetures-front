@@ -22,16 +22,17 @@ export async function GET() {
 
   const [
     { data: orders },
+    { count: totalOrders },
     { count: pendingOrders },
     { data: devis },
     { count: devisActifs },
-    { data: clients },
-    { data: commercials },
+    { data: allProfiles },
   ] = await Promise.all([
     supabase
       .from('orders')
       .select('user_id, total_ht, status, payment_method, created_at')
       .gte('created_at', dataStart.toISOString()),
+    supabase.from('orders').select('*', { count: 'exact', head: true }),
     supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     supabase
       .from('devis')
@@ -42,9 +43,13 @@ export async function GET() {
       .select('*', { count: 'exact', head: true })
       .eq('status', 'draft')
       .gte('valid_until', now.toISOString()),
-    supabase.from('profiles').select('id, name, company, commercial_id').eq('role', 'b2b'),
-    supabase.from('profiles').select('id, name').eq('role', 'commercial'),
+    // Tous les profils : les libellés du top clients doivent résoudre aussi
+    // les commandes passées par un compte non-b2b (ex. tests avec le compte admin)
+    supabase.from('profiles').select('id, name, company, role, commercial_id'),
   ]);
+
+  const clients = (allProfiles ?? []).filter((p) => p.role === 'b2b');
+  const commercials = (allProfiles ?? []).filter((p) => p.role === 'commercial');
 
   const inWindow = (iso: string) => new Date(iso) >= windowStart;
   const validated = (orders ?? []).filter((o) => isValidatedBC(o));
@@ -88,23 +93,22 @@ export async function GET() {
     byClient.set(o.user_id, agg);
   }
 
-  const clientById = new Map((clients ?? []).map((c) => [c.id, c]));
+  const profileById = new Map((allProfiles ?? []).map((p) => [p.id, p]));
   const topClients = [...byClient.entries()]
     .map(([id, agg]) => {
-      const c = clientById.get(id);
-      return {
-        id,
-        label: c?.company || c?.name || 'Client supprimé',
-        ...agg,
-      };
+      const p = profileById.get(id);
+      const label = p
+        ? (p.company || p.name || 'Sans nom') + (p.role !== 'b2b' ? ` (compte ${p.role})` : '')
+        : 'Compte supprimé';
+      return { id, label, ...agg };
     })
     .sort((a, b) => b.ca12m - a.ca12m)
     .slice(0, 10);
 
   // ── CA par commercial (pilotage des assignations) ──
-  const commercialName = new Map((commercials ?? []).map((c) => [c.id, c.name as string]));
+  const commercialName = new Map(commercials.map((c) => [c.id, c.name as string]));
   const byCommercial = new Map<string, { name: string; clients: number; ca12m: number }>();
-  for (const c of clients ?? []) {
+  for (const c of clients) {
     const key = c.commercial_id ?? 'none';
     const entry = byCommercial.get(key) ?? {
       name: c.commercial_id ? (commercialName.get(c.commercial_id) ?? 'Commercial supprimé') : 'Non assigné',
@@ -120,10 +124,11 @@ export async function GET() {
     kpis: {
       ca12m,
       caMonth,
+      totalOrders: totalOrders ?? 0,
       pendingOrders: pendingOrders ?? 0,
       devisActifs: devisActifs ?? 0,
       conversionPct,
-      clientsB2B: (clients ?? []).length,
+      clientsB2B: clients.length,
     },
     monthly,
     topClients,

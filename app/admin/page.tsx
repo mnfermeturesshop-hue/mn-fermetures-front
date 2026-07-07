@@ -8,8 +8,6 @@ import { MonthlyBarChart, type MonthPoint } from '@/components/ui/MonthlyBarChar
 interface Stats {
   totalProducts: number;
   outOfStock: number;
-  totalOrders: number;
-  pendingOrders: number;
   categories: number;
 }
 
@@ -17,6 +15,7 @@ interface DashboardData {
   kpis: {
     ca12m: number;
     caMonth: number;
+    totalOrders: number;
     pendingOrders: number;
     devisActifs: number;
     conversionPct: number | null;
@@ -43,29 +42,26 @@ async function fetchStats(): Promise<Stats> {
     return {
       totalProducts: products.length,
       outOfStock,
-      totalOrders: 0,
-      pendingOrders: 0,
       categories: 9,
     };
   }
 
+  // Données publiques uniquement (catalogue) — les compteurs de commandes
+  // viennent de l'API serveur /api/admin/dashboard : interrogés depuis le
+  // navigateur, ils étaient tronqués par la RLS (« ses propres commandes »).
   const { createClient } = await import('@/lib/supabase/client');
   const supabase = createClient();
 
-  const [{ count: totalProducts }, { count: outOfStock }, { count: totalOrders }, { count: pendingOrders }, { count: categories }] =
+  const [{ count: totalProducts }, { count: outOfStock }, { count: categories }] =
     await Promise.all([
       supabase.from('products').select('*', { count: 'exact', head: true }).eq('active', true),
       supabase.from('products').select('*', { count: 'exact', head: true }).eq('active', true).contains('variants', [{ inStock: false }]),
-      supabase.from('orders').select('*', { count: 'exact', head: true }),
-      supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('categories').select('*', { count: 'exact', head: true }),
     ]);
 
   return {
     totalProducts: totalProducts ?? 0,
     outOfStock: outOfStock ?? 0,
-    totalOrders: totalOrders ?? 0,
-    pendingOrders: pendingOrders ?? 0,
     categories: categories ?? 0,
   };
 }
@@ -112,11 +108,11 @@ export default function AdminDashboard() {
           <div className="adm-kpi-label">Références en rupture</div>
         </div>
         <div className="adm-kpi">
-          <div className="adm-kpi-value">{stats?.totalOrders ?? '—'}</div>
+          <div className="adm-kpi-value">{dash?.kpis.totalOrders ?? '—'}</div>
           <div className="adm-kpi-label">Commandes totales</div>
         </div>
-        <div className={`adm-kpi ${(stats?.pendingOrders ?? 0) > 0 ? 'adm-kpi-warn' : ''}`}>
-          <div className="adm-kpi-value">{stats?.pendingOrders ?? '—'}</div>
+        <div className={`adm-kpi ${(dash?.kpis.pendingOrders ?? 0) > 0 ? 'adm-kpi-warn' : ''}`}>
+          <div className="adm-kpi-value">{dash?.kpis.pendingOrders ?? '—'}</div>
           <div className="adm-kpi-label">En attente paiement</div>
         </div>
         <div className="adm-kpi">
