@@ -21,7 +21,24 @@ export async function GET() {
 
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json(data ?? []);
+
+  // Résout l'entreprise depuis le PROFIL du client (comme l'onglet Devis) —
+  // l'adresse de livraison n'a pas toujours le champ entreprise rempli.
+  const orders = data ?? [];
+  const userIds = [...new Set(orders.map((o) => o.user_id).filter(Boolean))] as string[];
+  const companyById = new Map<string, string | null>();
+  if (userIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, company')
+      .in('id', userIds);
+    for (const p of profiles ?? []) companyById.set(p.id, p.company ?? null);
+  }
+
+  return NextResponse.json(orders.map((o) => ({
+    ...o,
+    client_company: o.user_id ? companyById.get(o.user_id) ?? null : null,
+  })));
 }
 
 export async function PATCH(req: NextRequest) {

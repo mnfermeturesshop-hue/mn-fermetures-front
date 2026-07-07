@@ -65,6 +65,8 @@ interface OrderRow {
   shipping_address: Address;
   billing_address: Address;
   documents?: OrderDocuments;
+  /** Entreprise du profil client (résolue côté serveur, comme l'onglet Devis). */
+  client_company?: string | null;
 }
 
 const euro = (n: number) =>
@@ -121,6 +123,7 @@ export default function AdminCommandes() {
         (o.order_number ?? o.id).toLowerCase().includes(q) ||
         o.email?.toLowerCase().includes(q) ||
         o.customer_name?.toLowerCase().includes(q) ||
+        o.client_company?.toLowerCase().includes(q) ||
         o.shipping_address?.company?.toLowerCase().includes(q) ||
         `${o.shipping_address?.firstName ?? ''} ${o.shipping_address?.lastName ?? ''}`.toLowerCase().includes(q)
       );
@@ -222,7 +225,8 @@ export default function AdminCommandes() {
                       <td>{new Date(o.created_at).toLocaleDateString('fr-FR')}</td>
                       <td>
                         {/* Entreprise en premier (cohérent avec l'onglet Devis), sinon le nom */}
-                        {o.shipping_address?.company
+                        {o.client_company
+                          || o.shipping_address?.company
                           || o.customer_name
                           || `${o.shipping_address?.firstName ?? ''} ${o.shipping_address?.lastName ?? ''}`.trim()
                           || '—'}
