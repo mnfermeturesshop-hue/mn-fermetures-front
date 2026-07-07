@@ -23,3 +23,10 @@ export const B2C_ENABLED = false;
  * Repasser à `true` rend les prix publics à nouveau.
  */
 export const PUBLIC_PRICES = false;
+
+/**
+ * CGV_VERSION — version des conditions générales de vente affichées sur /cgv.
+ * À incrémenter à CHAQUE révision du texte : la preuve d'acceptation stockée
+ * dans `pro_requests` (clickwrap : date + version + IP) référence cette valeur.
+ */
+export const CGV_VERSION = '2026-07-07';

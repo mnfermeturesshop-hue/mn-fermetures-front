@@ -2500,3 +2500,14 @@ html { -webkit-text-size-adjust: 100%; }
 .compte-toolbar input[type='search'] { flex: 1; min-width: 180px; }
 .compte-toolbar select { width: auto; }
 .compte-count { font-size: 12px; color: var(--muted); white-space: nowrap; margin-left: auto; }
+
+/* ── Page CGV ─────────────────────────────────────────────────────────── */
+.cgv-body section { margin-bottom: 24px; }
+.cgv-body h2 { font-size: 16px; color: var(--navy-700); margin: 0 0 8px; }
+.cgv-body p { font-size: 14px; line-height: 1.7; color: var(--ink); margin: 0; }
+
+/* ── Formulaire pro — case CGV + upload Kbis ─────────────────────────── */
+.cgv-check { display: flex; align-items: flex-start; gap: 10px; font-size: 13px;
+  line-height: 1.5; color: var(--ink); cursor: pointer; margin: 4px 0; }
+.cgv-check input { margin-top: 2px; flex-shrink: 0; width: 16px; height: 16px; }
+.cgv-check a { color: var(--steel-600); text-decoration: underline; font-weight: 600; }

@@ -12,6 +12,10 @@ interface ProRequest {
   phone: string | null;
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
+  cgv_accepted_at?: string | null;
+  cgv_version?: string | null;
+  cgv_ip?: string | null;
+  kbis_path?: string | null;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -95,6 +99,8 @@ export default function AdminProRequests() {
                 <th>Email</th>
                 <th>Téléphone</th>
                 <th>Date</th>
+                <th>CGV</th>
+                <th>Kbis</th>
                 <th>Statut</th>
                 <th>Actions</th>
               </tr>
@@ -109,6 +115,27 @@ export default function AdminProRequests() {
                   <td>{r.phone ?? '—'}</td>
                   <td style={{ whiteSpace: 'nowrap' }}>
                     {new Date(r.created_at).toLocaleDateString('fr-FR')}
+                  </td>
+                  <td style={{ whiteSpace: 'nowrap' }}>
+                    {r.cgv_accepted_at ? (
+                      <span
+                        style={{ color: '#16a34a', fontWeight: 600, fontSize: 12, cursor: 'default' }}
+                        title={`Version ${r.cgv_version ?? '?'} · IP ${r.cgv_ip ?? '?'}`}
+                      >
+                        ✓ {new Date(r.cgv_accepted_at).toLocaleDateString('fr-FR')}
+                      </span>
+                    ) : (
+                      <span className="adm-muted">—</span>
+                    )}
+                  </td>
+                  <td>
+                    {r.kbis_path ? (
+                      <a className="btn ghost sm" href={`/api/admin/pro-requests/${r.id}/kbis`} target="_blank" rel="noreferrer">
+                        ↓ Kbis
+                      </a>
+                    ) : (
+                      <span className="adm-muted">—</span>
+                    )}
                   </td>
                   <td>
                     <span className={`order-status ${STATUS_CLASS[r.status]}`}>

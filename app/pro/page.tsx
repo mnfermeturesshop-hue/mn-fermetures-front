@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store/auth';
@@ -96,6 +96,8 @@ function RegisterForm() {
   const [siretLoading, setSiretLoading] = useState(false);
   const [companyAutoFilled, setCompanyAutoFilled] = useState(false);
   const [turnstileToken, setToken] = useState('');
+  const [cgvAccepted, setCgvAccepted] = useState(false);
+  const kbisRef = useRef<HTMLInputElement>(null);
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const strength = getPasswordStrength(password);
 
@@ -120,15 +122,29 @@ function RegisterForm() {
     if (password.length < 8)  { setError('Le mot de passe doit faire au moins 8 caractères.'); return; }
     if (!/[A-Z]/.test(password)) { setError('Ajoutez au moins une majuscule.'); return; }
     if (!/[0-9]/.test(password)) { setError('Ajoutez au moins un chiffre.'); return; }
+    if (!cgvAccepted) { setError('Veuillez accepter les conditions générales de vente.'); return; }
+    const kbisFile = kbisRef.current?.files?.[0];
+    if (kbisFile && kbisFile.size > 10 * 1024 * 1024) {
+      setError('Le Kbis ne doit pas dépasser 10 Mo.');
+      return;
+    }
     if (siteKey && !turnstileToken) { setError('Veuillez compléter la vérification anti-robot.'); return; }
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/pro-request', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ company, siret, name, email, phone, password, turnstileToken }),
-      });
+      // FormData : champs texte + Kbis optionnel (fichier)
+      const fd = new FormData();
+      fd.append('company', company);
+      fd.append('siret', siret);
+      fd.append('name', name);
+      fd.append('email', email);
+      fd.append('phone', phone);
+      fd.append('password', password);
+      fd.append('turnstileToken', turnstileToken);
+      fd.append('cgvAccepted', cgvAccepted ? 'true' : 'false');
+      if (kbisFile) fd.append('kbis', kbisFile);
+
+      const res = await fetch('/api/pro-request', { method: 'POST', body: fd });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? 'Une erreur est survenue.'); }
       else { setSubmitted(true); }
@@ -282,6 +298,33 @@ function RegisterForm() {
               <span className="field-hint error">Les mots de passe ne correspondent pas.</span>
             )}
           </div>
+
+          <div className="field">
+            <label htmlFor="reg-kbis">Extrait Kbis</label>
+            <input
+              id="reg-kbis"
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+              ref={kbisRef}
+            />
+            <span className="field-hint">
+              Optionnel — accélère la validation de votre compte (PDF ou image, 10 Mo max).
+            </span>
+          </div>
+
+          <label className="cgv-check">
+            <input
+              type="checkbox"
+              checked={cgvAccepted}
+              onChange={(e) => setCgvAccepted(e.target.checked)}
+            />
+            <span>
+              J&apos;ai lu et j&apos;accepte les{' '}
+              <Link href="/cgv" target="_blank" rel="noreferrer">conditions générales de vente</Link>
+              {' '}de MN Fermetures. *
+            </span>
+          </label>
+
           <TurnstileWidget
             onVerify={setToken}
             onExpire={() => setToken('')}
