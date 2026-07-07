@@ -7,6 +7,7 @@ interface Commercial {
   id: string;
   name: string;
   email: string;
+  phone?: string | null;
   clients: number;
 }
 
@@ -17,6 +18,7 @@ export default function AdminEquipePage() {
   const [showForm, setShowForm] = useState(false);
   const [name, setName]         = useState('');
   const [email, setEmail]       = useState('');
+  const [phone, setPhone]       = useState('');
   const [password, setPassword] = useState('');
   const [saving, setSaving]     = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Commercial | null>(null);
@@ -39,12 +41,12 @@ export default function AdminEquipePage() {
       const res = await fetch('/api/admin/team', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, phone }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Erreur inconnue');
       toast.success(`Compte commercial créé pour ${name}`);
-      setName(''); setEmail(''); setPassword('');
+      setName(''); setEmail(''); setPhone(''); setPassword('');
       setShowForm(false);
       reload();
     } catch (err) {
@@ -121,6 +123,10 @@ export default function AdminEquipePage() {
               <input className="profil-input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="j.martin@mnfermetures.fr" />
             </label>
             <label className="profil-label">
+              Téléphone <span style={{ fontWeight: 400, color: 'var(--muted)' }}>(affiché à ses clients)</span>
+              <input className="profil-input" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="06 xx xx xx xx" />
+            </label>
+            <label className="profil-label">
               Mot de passe *
               <input className="profil-input" type="password" required autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="8 caractères min." />
             </label>
@@ -140,18 +146,20 @@ export default function AdminEquipePage() {
               <tr>
                 <th>Nom</th>
                 <th>Email</th>
+                <th>Téléphone</th>
                 <th>Clients assignés</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {team.length === 0 && (
-                <tr className="adm-tr"><td colSpan={4} style={{ color: 'var(--muted)' }}>Aucun commercial. Créez le premier compte ci-dessus.</td></tr>
+                <tr className="adm-tr"><td colSpan={5} style={{ color: 'var(--muted)' }}>Aucun commercial. Créez le premier compte ci-dessus.</td></tr>
               )}
               {team.map((c) => (
                 <tr key={c.id} className="adm-tr">
                   <td><strong>{c.name}</strong></td>
                   <td><span className="adm-slug">{c.email}</span></td>
+                  <td>{c.phone ?? <span className="adm-muted">—</span>}</td>
                   <td>{c.clients > 0 ? <strong>{c.clients}</strong> : <span className="adm-muted">0</span>}</td>
                   <td>
                     <button className="adm-action-btn del" type="button" onClick={() => setConfirmDelete(c)}>

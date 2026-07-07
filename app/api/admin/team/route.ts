@@ -15,7 +15,7 @@ export async function GET() {
 
   const supabase = createAdminClient();
   const [{ data: commercials }, { data: { users } }, { data: assigned }] = await Promise.all([
-    supabase.from('profiles').select('id, name').eq('role', 'commercial').order('name'),
+    supabase.from('profiles').select('id, name, phone').eq('role', 'commercial').order('name'),
     supabase.auth.admin.listUsers({ perPage: 1000 }),
     supabase.from('profiles').select('commercial_id').not('commercial_id', 'is', null),
   ]);
@@ -29,6 +29,7 @@ export async function GET() {
   return NextResponse.json((commercials ?? []).map((c) => ({
     id: c.id,
     name: c.name,
+    phone: c.phone ?? null,
     email: emailById[c.id] ?? '',
     clients: clientCount.get(c.id) ?? 0,
   })));
@@ -39,8 +40,8 @@ export async function POST(req: NextRequest) {
   const guard = await requireAdmin();
   if (!guard.ok) return guard.response;
 
-  const { name = '', email = '', password = '' } = await req.json() as {
-    name?: string; email?: string; password?: string;
+  const { name = '', email = '', password = '', phone = '' } = await req.json() as {
+    name?: string; email?: string; password?: string; phone?: string;
   };
 
   if (!name.trim() || !email.trim()) {
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
   // Le trigger handle_new_user crée le profil en b2c → on le passe commercial
   const { error: updErr } = await supabase
     .from('profiles')
-    .update({ name: name.trim(), role: 'commercial' })
+    .update({ name: name.trim(), role: 'commercial', phone: phone.trim() || null })
     .eq('id', created.user.id);
   if (updErr) return NextResponse.json({ error: updErr.message }, { status: 400 });
 

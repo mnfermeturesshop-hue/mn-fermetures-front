@@ -90,6 +90,9 @@ export default function ComptePage() {
   // Onglet actif — une seule rubrique affichée à la fois
   const [tab, setTab] = useState<CompteTab>('commandes');
 
+  // Commercial référent assigné (affiché dans l'onglet Tarifs)
+  const [commercial, setCommercial] = useState<{ name?: string; phone?: string | null; email?: string | null } | null>(null);
+
   // Filtres (même outil que l'admin)
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatus, setOrderStatus] = useState('');
@@ -120,6 +123,12 @@ export default function ComptePage() {
 
     const supabase = createClient();
     if (isPro()) {
+      // Commercial référent (pour l'onglet Tarifs)
+      fetch('/api/account/commercial')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((c) => { if (c?.name) setCommercial(c); })
+        .catch(() => {});
+
       supabase
         .from('devis')
         .select('id, devis_number, created_at, valid_until, total_ht, total_ttc, lines, status, source, pdf_path')
@@ -701,7 +710,11 @@ export default function ComptePage() {
                 </div>
                 <div className="tarif-row">
                   <span>Commercial référent</span>
-                  <strong>Est-Hérault — 06 52 96 52 14</strong>
+                  <strong>
+                    {commercial?.name
+                      ? [commercial.name, commercial.phone || commercial.email].filter(Boolean).join(' — ')
+                      : 'Nous contacter — 04 67 78 06 63'}
+                  </strong>
                 </div>
               </div>
             </section>
