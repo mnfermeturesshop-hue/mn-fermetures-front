@@ -2595,3 +2595,12 @@ html { -webkit-text-size-adjust: 100%; }
   .stats-bar-value { font-size: 8.5px; }
   .stats-bar-month { font-size: 8.5px; }
 }
+
+/* ── Dashboard admin — pilotage commercial ────────────────────────────── */
+.adm-dash-cols { display: grid; grid-template-columns: 3fr 2fr; gap: 16px; margin-bottom: 28px; }
+.adm-dash-table-head { display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; font-size: 12px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--muted); border-bottom: 1px solid var(--line); }
+@media (max-width: 900px) {
+  .adm-dash-cols { grid-template-columns: 1fr; }
+}
