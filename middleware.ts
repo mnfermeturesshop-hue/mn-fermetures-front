@@ -71,14 +71,16 @@ export async function middleware(request: NextRequest) {
       return redirectWithCookies('/admin/login', request, supabaseResponse);
     }
 
-    // Un commercial est cantonné à SES rubriques : toute autre page /admin
-    // (produits, import, inventaire, demandes pro, équipe, dashboard…)
-    // le renvoie vers ses clients — blocage serveur, pas seulement la nav.
+    // Un commercial est cantonné à SES rubriques : dashboard (filtré sur ses
+    // clients), clients, devis, commandes. Toute autre page /admin (produits,
+    // import, inventaire, demandes pro, équipe…) le renvoie vers le dashboard
+    // — blocage serveur, pas seulement la nav.
     if (profile.role === 'commercial') {
       const allowed = ['/admin/clients', '/admin/devis', '/admin/commandes'];
-      const isAllowed = allowed.some((p) => pathname === p || pathname.startsWith(p + '/'));
+      const isAllowed = pathname === '/admin'
+        || allowed.some((p) => pathname === p || pathname.startsWith(p + '/'));
       if (!isAllowed) {
-        return redirectWithCookies('/admin/clients', request, supabaseResponse);
+        return redirectWithCookies('/admin', request, supabaseResponse);
       }
     }
   }

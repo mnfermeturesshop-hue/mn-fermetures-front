@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 interface NavItem { href: string; label: string; icon: string }
@@ -19,11 +19,10 @@ const NAV: NavItem[] = [
 ];
 
 /** Rubriques accessibles à un commercial (droits restreints à ses clients). */
-const COMMERCIAL_NAV = new Set(['/admin/clients', '/admin/devis', '/admin/commandes']);
+const COMMERCIAL_NAV = new Set(['/admin', '/admin/clients', '/admin/devis', '/admin/commandes']);
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [role, setRole] = useState<'admin' | 'commercial' | null>(null);
 
   const isLogin = pathname === '/admin/login';
@@ -35,13 +34,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       .then((data) => { if (data?.role) setRole(data.role); })
       .catch(() => {});
   }, [isLogin]);
-
-  // Un commercial n'a pas de dashboard : on l'amène directement à ses clients
-  useEffect(() => {
-    if (role === 'commercial' && pathname === '/admin') {
-      router.replace('/admin/clients');
-    }
-  }, [role, pathname, router]);
 
   if (isLogin) return <>{children}</>;
 

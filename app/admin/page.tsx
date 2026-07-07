@@ -12,6 +12,7 @@ interface Stats {
 }
 
 interface DashboardData {
+  viewerRole: 'admin' | 'commercial';
   kpis: {
     ca12m: number;
     caMonth: number;
@@ -78,13 +79,17 @@ export default function AdminDashboard() {
   const [dash, setDash] = useState<DashboardData | null>(null);
 
   useEffect(() => {
-    fetchStats().then(setStats);
     fetch('/api/admin/dashboard')
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => { if (data?.kpis) setDash(data); })
+      .then((data) => {
+        if (data?.kpis) setDash(data);
+        // Les KPIs catalogue ne concernent que l'admin
+        if (data?.viewerRole !== 'commercial') fetchStats().then(setStats);
+      })
       .catch(() => {});
   }, []);
 
+  const isCommercial = dash?.viewerRole === 'commercial';
   const months: MonthPoint[] = (dash?.monthly ?? []).map((m) => ({
     date: new Date(m.year, m.month, 1),
     total: m.ca,
@@ -97,7 +102,8 @@ export default function AdminDashboard() {
         <span className="adm-date">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
       </div>
 
-      {/* KPIs */}
+      {/* KPIs catalogue & commandes — admin uniquement */}
+      {!isCommercial && (
       <div className="adm-kpis">
         <div className="adm-kpi">
           <div className="adm-kpi-value">{stats?.totalProducts ?? '—'}</div>
@@ -120,11 +126,14 @@ export default function AdminDashboard() {
           <div className="adm-kpi-label">Catégories</div>
         </div>
       </div>
+      )}
 
       {/* ── Pilotage commercial (12 mois glissants) ── */}
       {dash && (
         <>
-          <h2 className="adm-section-title">Pilotage commercial — 12 derniers mois</h2>
+          <h2 className="adm-section-title">
+            {isCommercial ? 'Mon portefeuille — 12 derniers mois' : 'Pilotage commercial — 12 derniers mois'}
+          </h2>
           <div className="adm-kpis">
             <div className="adm-kpi">
               <div className="adm-kpi-value">{euro(Math.round(dash.kpis.ca12m))}</div>
@@ -144,8 +153,14 @@ export default function AdminDashboard() {
             </div>
             <div className="adm-kpi">
               <div className="adm-kpi-value">{dash.kpis.clientsB2B}</div>
-              <div className="adm-kpi-label">Clients pro</div>
+              <div className="adm-kpi-label">{isCommercial ? 'Mes clients' : 'Clients pro'}</div>
             </div>
+            {isCommercial && (
+              <div className={`adm-kpi ${dash.kpis.pendingOrders > 0 ? 'adm-kpi-warn' : ''}`}>
+                <div className="adm-kpi-value">{dash.kpis.pendingOrders}</div>
+                <div className="adm-kpi-label">Commandes en attente</div>
+              </div>
+            )}
           </div>
 
           <div style={{ margin: '16px 0 24px' }}>
@@ -156,11 +171,11 @@ export default function AdminDashboard() {
             />
           </div>
 
-          <div className="adm-dash-cols">
+          <div className="adm-dash-cols" style={isCommercial ? { gridTemplateColumns: '1fr' } : undefined}>
             {/* Top clients */}
             <div className="adm-table-wrap">
               <div className="adm-dash-table-head">
-                <span>Top clients — CA validé 12 mois</span>
+                <span>{isCommercial ? 'Mes clients — CA validé 12 mois' : 'Top clients — CA validé 12 mois'}</span>
                 <Link href="/admin/clients" className="adm-alert-link">Voir tous →</Link>
               </div>
               <table className="adm-table">
@@ -199,7 +214,8 @@ export default function AdminDashboard() {
               </table>
             </div>
 
-            {/* Par commercial */}
+            {/* Par commercial — admin uniquement */}
+            {!isCommercial && (
             <div className="adm-table-wrap">
               <div className="adm-dash-table-head">
                 <span>CA par commercial</span>
@@ -227,11 +243,14 @@ export default function AdminDashboard() {
                 </tbody>
               </table>
             </div>
+            )}
           </div>
         </>
       )}
 
-      {/* Actions rapides */}
+      {/* Actions rapides — admin uniquement (pages hors périmètre commercial) */}
+      {!isCommercial && (
+      <>
       <h2 className="adm-section-title">Actions rapides</h2>
       <div className="adm-quick-actions">
         {QUICK_ACTIONS.map((a) => (
@@ -241,9 +260,11 @@ export default function AdminDashboard() {
           </Link>
         ))}
       </div>
+      </>
+      )}
 
       {/* Alertes stock */}
-      {(stats?.outOfStock ?? 0) > 0 && (
+      {!isCommercial && (stats?.outOfStock ?? 0) > 0 && (
         <div className="adm-alert">
           <span className="adm-alert-icon">⚠</span>
           <span>{stats!.outOfStock} référence{stats!.outOfStock > 1 ? 's' : ''} en rupture de stock.</span>

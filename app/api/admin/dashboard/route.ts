@@ -1,16 +1,18 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { requireAdmin } from '@/lib/auth/guards';
+import { requireStaff, getCommercialClientIds } from '@/lib/auth/guards';
 import { isValidatedBC } from '@/lib/loyalty';
 
 /**
- * Agrégats commerciaux du tableau de bord admin (évolution #15).
+ * Agrégats commerciaux du tableau de bord (évolution #15).
+ * - Admin : périmètre global.
+ * - Commercial : STRICTEMENT ses clients assignés (filtrage serveur).
  * Mêmes règles que le reste du site : CA « validé » = bons de commande
  * expédiés/livrés, fenêtre 12 mois glissants, paliers sur l'année civile.
  * Volumes faibles → agrégation en mémoire, service_role.
  */
 export async function GET() {
-  const guard = await requireAdmin();
+  const guard = await requireStaff();
   if (!guard.ok) return guard.response;
 
   const supabase = createAdminClient();
@@ -20,6 +22,49 @@ export async function GET() {
   // Le CA « année civile » (paliers) peut commencer avant la fenêtre 12 mois
   const dataStart = new Date(Math.min(windowStart.getTime(), yearStart.getTime()));
 
+  // Périmètre commercial : uniquement ses clients assignés
+  const scopeIds = guard.role === 'commercial'
+    ? [...await getCommercialClientIds(guard.userId)]
+    : null;
+
+  if (scopeIds && scopeIds.length === 0) {
+    // Aucun client assigné : réponse vide propre (pas d'erreur)
+    return NextResponse.json({
+      viewerRole: guard.role,
+      kpis: { ca12m: 0, caMonth: 0, totalOrders: 0, pendingOrders: 0, devisActifs: 0, conversionPct: null, clientsB2B: 0 },
+      monthly: Array.from({ length: 12 }, (_, i) => {
+        const date = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1);
+        return { year: date.getFullYear(), month: date.getMonth(), ca: 0 };
+      }),
+      topClients: [],
+      byCommercial: [],
+    });
+  }
+
+  let ordersQuery = supabase
+    .from('orders')
+    .select('user_id, total_ht, status, payment_method, created_at')
+    .gte('created_at', dataStart.toISOString());
+  let totalOrdersQuery = supabase.from('orders').select('*', { count: 'exact', head: true });
+  let pendingOrdersQuery = supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+  let devisQuery = supabase
+    .from('devis')
+    .select('user_id, status, created_at')
+    .gte('created_at', windowStart.toISOString());
+  let devisActifsQuery = supabase
+    .from('devis')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'draft')
+    .gte('valid_until', now.toISOString());
+
+  if (scopeIds) {
+    ordersQuery = ordersQuery.in('user_id', scopeIds);
+    totalOrdersQuery = totalOrdersQuery.in('user_id', scopeIds);
+    pendingOrdersQuery = pendingOrdersQuery.in('user_id', scopeIds);
+    devisQuery = devisQuery.in('user_id', scopeIds);
+    devisActifsQuery = devisActifsQuery.in('user_id', scopeIds);
+  }
+
   const [
     { data: orders },
     { count: totalOrders },
@@ -28,27 +73,19 @@ export async function GET() {
     { count: devisActifs },
     { data: allProfiles },
   ] = await Promise.all([
-    supabase
-      .from('orders')
-      .select('user_id, total_ht, status, payment_method, created_at')
-      .gte('created_at', dataStart.toISOString()),
-    supabase.from('orders').select('*', { count: 'exact', head: true }),
-    supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-    supabase
-      .from('devis')
-      .select('user_id, status, created_at')
-      .gte('created_at', windowStart.toISOString()),
-    supabase
-      .from('devis')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'draft')
-      .gte('valid_until', now.toISOString()),
+    ordersQuery,
+    totalOrdersQuery,
+    pendingOrdersQuery,
+    devisQuery,
+    devisActifsQuery,
     // Tous les profils : les libellés du top clients doivent résoudre aussi
     // les commandes passées par un compte non-b2b (ex. tests avec le compte admin)
     supabase.from('profiles').select('id, name, company, role, commercial_id'),
   ]);
 
-  const clients = (allProfiles ?? []).filter((p) => p.role === 'b2b');
+  const clients = (allProfiles ?? []).filter((p) =>
+    p.role === 'b2b' && (!scopeIds || p.commercial_id === guard.userId)
+  );
   const commercials = (allProfiles ?? []).filter((p) => p.role === 'commercial');
 
   const inWindow = (iso: string) => new Date(iso) >= windowStart;
@@ -121,6 +158,7 @@ export async function GET() {
   }
 
   return NextResponse.json({
+    viewerRole: guard.role,
     kpis: {
       ca12m,
       caMonth,
@@ -132,6 +170,9 @@ export async function GET() {
     },
     monthly,
     topClients,
-    byCommercial: [...byCommercial.values()].sort((a, b) => b.ca12m - a.ca12m),
+    // Sans objet pour un commercial (une seule ligne : lui-même)
+    byCommercial: guard.role === 'commercial'
+      ? []
+      : [...byCommercial.values()].sort((a, b) => b.ca12m - a.ca12m),
   });
 }
