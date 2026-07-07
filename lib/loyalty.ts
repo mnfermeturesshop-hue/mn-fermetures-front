@@ -59,8 +59,16 @@ export function computeLoyalty(caHT: number): LoyaltyStatus {
   };
 }
 
-/** Statuts de commande comptés dans le CA fidélité (livré/expédié). */
-const LOYALTY_STATUSES = new Set(['shipped', 'delivered']);
+/** Statuts de commande comptés comme « validés » (expédié/livré). */
+const VALIDATED_STATUSES = new Set(['shipped', 'delivered']);
+
+/**
+ * Bon de commande « validé » : expédié ou livré. Règle commune à la jauge
+ * de fidélité et aux statistiques de l'espace client.
+ */
+export function isValidatedBC(o: { payment_method?: string; status?: string }): boolean {
+  return o.payment_method === 'bon_de_commande' && VALIDATED_STATUSES.has(o.status ?? '');
+}
 
 /** Une commande compte-t-elle dans le CA fidélité de l'année donnée ? */
 export function orderCountsForLoyalty(
@@ -68,8 +76,7 @@ export function orderCountsForLoyalty(
   year: number,
 ): boolean {
   return (
-    o.payment_method === 'bon_de_commande' &&
-    LOYALTY_STATUSES.has(o.status ?? '') &&
+    isValidatedBC(o) &&
     !!o.created_at &&
     new Date(o.created_at).getFullYear() === year
   );

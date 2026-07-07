@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { CartLine } from '@/lib/catalog/types';
 import { orderCountsForLoyalty } from '@/lib/loyalty';
 import { LoyaltyGauge } from '@/components/compte/LoyaltyGauge';
+import { ClientStats } from '@/components/compte/ClientStats';
 
 interface OrderLine { name: string; quantity: number; unitPriceHT: number }
 
@@ -76,7 +77,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   cancelled:  { label: 'Annulé',         cls: 'status-rupture' },
 };
 
-type CompteTab = 'commandes' | 'devis' | 'profil' | 'tarifs';
+type CompteTab = 'commandes' | 'devis' | 'stats' | 'profil' | 'tarifs';
 
 export default function ComptePage() {
   const { user, isPro, logout } = useAuthStore();
@@ -276,6 +277,9 @@ export default function ComptePage() {
             <button type="button" className={`compte-nav-item ${tab === 'commandes' ? 'active' : ''}`} onClick={() => setTab('commandes')}>Mes commandes</button>
             {isPro() && (
               <button type="button" className={`compte-nav-item ${tab === 'devis' ? 'active' : ''}`} onClick={() => setTab('devis')}>Mes devis</button>
+            )}
+            {isPro() && (
+              <button type="button" className={`compte-nav-item ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>Statistiques</button>
             )}
             <button type="button" className={`compte-nav-item ${tab === 'profil' ? 'active' : ''}`} onClick={() => setTab('profil')}>Mon profil</button>
             {isPro() && (
@@ -533,6 +537,21 @@ export default function ComptePage() {
                     );
                   })}
                 </div>
+              )}
+            </section>
+          )}
+
+          {/* Statistiques PRO */}
+          {tab === 'stats' && isPro() && (
+            <section id="stats" className="compte-section">
+              <div className="compte-section-head">
+                <h2>Mes statistiques</h2>
+                <span style={{ fontSize: 12, color: 'var(--muted)' }}>12 derniers mois</span>
+              </div>
+              {loading ? (
+                <p style={{ color: 'var(--muted)', fontSize: 14, padding: '16px 0' }}>Chargement…</p>
+              ) : (
+                <ClientStats orders={orders} devis={devis} />
               )}
             </section>
           )}
