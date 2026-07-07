@@ -2604,3 +2604,26 @@ html { -webkit-text-size-adjust: 100%; }
 @media (max-width: 900px) {
   .adm-dash-cols { grid-template-columns: 1fr; }
 }
+
+/* ── Fil de commentaires devis / bon de commande ──────────────────────── */
+.cmt-thread { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 12px; }
+.cmt-empty { font-size: 13px; color: var(--muted); margin: 0 0 10px; }
+.cmt-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px;
+  max-height: 320px; overflow-y: auto; }
+.cmt-msg { max-width: 85%; background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: 10px; padding: 8px 12px; align-self: flex-start; }
+.cmt-msg--mine { align-self: flex-end; background: #eef4fb; border-color: #d3e2f2; }
+.cmt-meta { display: flex; align-items: center; gap: 8px; font-size: 11px;
+  color: var(--muted); margin-bottom: 3px; flex-wrap: wrap; }
+.cmt-meta strong { color: var(--navy-700); font-size: 12px; }
+.cmt-badge { background: var(--navy-700); color: #fff; border-radius: 999px;
+  padding: 1px 8px; font-size: 10px; font-weight: 700; }
+.cmt-date { margin-left: auto; }
+.cmt-body { font-size: 13.5px; line-height: 1.5; color: var(--ink); white-space: pre-wrap;
+  word-break: break-word; }
+.cmt-form textarea { width: 100%; border: 1px solid var(--line); border-radius: 8px;
+  padding: 9px 12px; font-family: inherit; font-size: 14px; resize: vertical; }
+.cmt-form textarea:focus { outline: none; border-color: var(--steel-600); }
+.cmt-form-foot { display: flex; align-items: center; justify-content: space-between;
+  margin-top: 6px; gap: 10px; }
+.cmt-count { font-size: 11px; color: var(--muted); }

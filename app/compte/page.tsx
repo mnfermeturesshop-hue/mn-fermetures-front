@@ -12,6 +12,7 @@ import type { CartLine } from '@/lib/catalog/types';
 import { orderCountsForLoyalty } from '@/lib/loyalty';
 import { LoyaltyGauge } from '@/components/compte/LoyaltyGauge';
 import { ClientStats } from '@/components/compte/ClientStats';
+import { CommentThread } from '@/components/comments/CommentThread';
 
 interface OrderLine { name: string; quantity: number; unitPriceHT: number }
 
@@ -92,6 +93,10 @@ export default function ComptePage() {
 
   // Commercial référent assigné (affiché dans l'onglet Tarifs)
   const [commercial, setCommercial] = useState<{ name?: string; phone?: string | null; email?: string | null } | null>(null);
+
+  // Fil de commentaires ouvert (clé : `${type}-${numéro}`)
+  const [openThread, setOpenThread] = useState<string | null>(null);
+  const toggleThread = (key: string) => setOpenThread((cur) => (cur === key ? null : key));
 
   // Filtres (même outil que l'admin)
   const [orderSearch, setOrderSearch] = useState('');
@@ -426,8 +431,18 @@ export default function ComptePage() {
                               Facture PDF
                             </button>
                           )}
+                          <button
+                            className="btn ghost sm"
+                            type="button"
+                            onClick={() => toggleThread(`order-${o.order_number}`)}
+                          >
+                            💬 Commentaires
+                          </button>
                         </div>
                       </div>
+                      {openThread === `order-${o.order_number}` && (
+                        <CommentThread targetType="order" targetNumber={o.order_number} />
+                      )}
                     </div>
                   );
                 })}
@@ -536,6 +551,13 @@ export default function ComptePage() {
                                 Voir / PDF
                               </Link>
                             )}
+                            <button
+                              className="btn ghost sm"
+                              type="button"
+                              onClick={() => toggleThread(`devis-${d.devis_number}`)}
+                            >
+                              💬 Commentaires
+                            </button>
                             {!isExpired && d.status !== 'converted' && (
                               <button
                                 className="btn solid sm"
@@ -547,6 +569,9 @@ export default function ComptePage() {
                             )}
                           </div>
                         </div>
+                        {openThread === `devis-${d.devis_number}` && (
+                          <CommentThread targetType="devis" targetNumber={d.devis_number} />
+                        )}
                       </div>
                     );
                   })}

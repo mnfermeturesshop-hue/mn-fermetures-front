@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from '@/components/ui/Toast';
+import { CommentThread } from '@/components/comments/CommentThread';
 
 interface Client {
   id: string;
@@ -37,6 +38,9 @@ export default function AdminDevisPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [devis, setDevis]     = useState<DevisRow[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Fil de commentaires déplié (n° de devis)
+  const [openThread, setOpenThread] = useState<string | null>(null);
 
   // Filtres (même outil que l'onglet Commandes)
   const [search, setSearch]             = useState('');
@@ -198,13 +202,15 @@ export default function AdminDevisPage() {
                 <th>Statut</th>
                 <th>Créé le</th>
                 <th>PDF</th>
+                <th>💬</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr className="adm-tr"><td colSpan={7} style={{ color: 'var(--muted)' }}>Aucun devis.</td></tr>
+                <tr className="adm-tr"><td colSpan={8} style={{ color: 'var(--muted)' }}>Aucun devis.</td></tr>
               )}
               {filtered.map((d) => (
+                <>
                 <tr key={d.id} className="adm-tr">
                   <td className="ref">{d.devis_number}</td>
                   <td>
@@ -228,7 +234,25 @@ export default function AdminDevisPage() {
                       <span style={{ color: 'var(--muted)', fontSize: 12 }}>—</span>
                     )}
                   </td>
+                  <td>
+                    <button
+                      className="btn ghost sm"
+                      type="button"
+                      onClick={() => setOpenThread((cur) => cur === d.devis_number ? null : d.devis_number)}
+                      title="Commentaires avec le client"
+                    >
+                      💬
+                    </button>
+                  </td>
                 </tr>
+                {openThread === d.devis_number && (
+                  <tr key={`${d.id}-thread`} className="adm-tr-detail">
+                    <td colSpan={8} style={{ padding: '0 14px 14px' }}>
+                      <CommentThread targetType="devis" targetNumber={d.devis_number} />
+                    </td>
+                  </tr>
+                )}
+                </>
               ))}
             </tbody>
           </table>

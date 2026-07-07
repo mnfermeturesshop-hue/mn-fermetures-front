@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { toast } from '@/components/ui/Toast';
+import { CommentThread } from '@/components/comments/CommentThread';
 
 const STATUS_LABELS: Record<string, string> = {
   pending:    'En attente',
@@ -346,6 +347,12 @@ export default function AdminCommandes() {
                                   </div>
                                 </div>
                               </div>
+                            </div>
+
+                            {/* Commentaires client ↔ commercial */}
+                            <div className="adm-order-detail-section">
+                              <div className="adm-order-detail-title">Commentaires client</div>
+                              <CommentThread targetType="order" targetNumber={o.order_number ?? o.id} />
                             </div>
 
                             {/* Documents ERP — uniquement pour les bons de commande */}
