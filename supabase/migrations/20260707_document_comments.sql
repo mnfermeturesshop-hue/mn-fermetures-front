@@ -19,3 +19,7 @@ CREATE INDEX IF NOT EXISTS document_comments_target_idx
 -- Aucune policy volontairement : lecture/écriture uniquement via l'API
 -- (service_role + gardes applicatives : propriétaire, commercial assigné, admin)
 ALTER TABLE public.document_comments ENABLE ROW LEVEL SECURITY;
+
+-- Selon le rôle sous lequel tourne le SQL Editor, les privilèges par défaut
+-- peuvent ne pas s'appliquer -> GRANT explicite pour l'API (service_role).
+GRANT ALL ON TABLE public.document_comments TO service_role;
