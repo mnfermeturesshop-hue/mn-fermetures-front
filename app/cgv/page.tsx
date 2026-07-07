@@ -4,14 +4,13 @@ import { CGV_VERSION } from '@/lib/config';
 
 export const metadata: Metadata = {
   title: 'Conditions générales de vente — MN Fermetures',
-  description: 'Conditions générales de vente de MN Fermetures SARL — vente aux professionnels.',
+  description: 'Conditions générales de vente de MN Fermetures — vente aux professionnels.',
 };
 
 /*
- * ⚠️ TEXTE À COMPLÉTER : structure type fournie en attendant le texte
- * définitif des CGV (PDG/juriste). À chaque révision du texte, incrémenter
- * CGV_VERSION dans lib/config.ts — la preuve d'acceptation des clients
- * référence cette version.
+ * Texte officiel fourni par MN Fermetures (juillet 2026).
+ * À chaque révision du texte, incrémenter CGV_VERSION dans lib/config.ts —
+ * la preuve d'acceptation des clients (clickwrap) référence cette version.
  */
 export default function CgvPage() {
   return (
@@ -22,96 +21,178 @@ export default function CgvPage() {
         Conditions générales de vente
       </h1>
       <p style={{ color: 'var(--muted)', fontSize: 13, margin: '0 0 28px' }}>
-        Version du {new Date(CGV_VERSION).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} · MN FERMETURES SARL — vente réservée aux professionnels
+        Version du {new Date(CGV_VERSION).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} · MN FERMETURES
       </p>
 
       <div className="cgv-body">
         <section>
-          <h2>1. Objet et champ d&apos;application</h2>
+          <h2>1. Acceptation des conditions</h2>
           <p>
-            Les présentes conditions générales de vente (CGV) régissent l&apos;ensemble des ventes
-            conclues entre MN FERMETURES SARL (Chemin du Mas de Pastrou, 34560 Villeveyrac —
-            SIRET 123 456 789 00014, RCS Montpellier) et ses clients professionnels, via le site
-            ou tout autre canal de commande. Toute ouverture de compte professionnel et toute
-            commande impliquent l&apos;acceptation sans réserve des présentes CGV.
+            Toute vente implique l’acceptation expresse et sans réserve des présentes conditions
+            générales, quelles que soient les clauses pouvant figurer sur les documents du client.
           </p>
         </section>
 
         <section>
-          <h2>2. Prix</h2>
+          <h2>2. Commandes</h2>
           <p>
-            Les prix sont exprimés en euros hors taxes (HT), TVA en sus au taux en vigueur.
-            Ils sont réservés aux clients professionnels titulaires d&apos;un compte approuvé et
-            peuvent être révisés à tout moment ; les commandes sont facturées au tarif en vigueur
-            au jour de la commande, ou aux conditions du devis accepté pendant sa durée de validité.
+            Les commandes doivent être transmises sur un document au format validé par MN Fermetures,
+            revêtu de la signature du client et de son cachet commercial. Les documents transmis par
+            mail ou télécopie ont valeur d’écrit. Aucune commande verbale ne sera considérée comme
+            valable sans confirmation écrite. Toute modification de commande après validation pourra
+            entraîner des frais supplémentaires ou être refusée si la fabrication est engagée.
           </p>
         </section>
 
         <section>
-          <h2>3. Commandes et devis</h2>
+          <h2>3. Produits sur mesure</h2>
           <p>
-            Les commandes sont passées en ligne (bon de commande) ou sur devis. Un devis est
-            valable 30 jours à compter de son émission, sauf mention contraire. Les produits
-            fabriqués sur mesure (tabliers, dimensions spécifiques) ne peuvent être ni repris
-            ni échangés.
+            Toutes nos fabrications étant réalisées sur mesure, toute annulation ou retour de commande
+            donnera lieu, par décision de MN Fermetures, à la facturation totale ou partielle de la
+            commande initiale.
           </p>
         </section>
 
         <section>
           <h2>4. Livraison</h2>
           <p>
-            Livraison offerte en Occitanie à partir de 400 € HT de commande ; forfait de
-            26 € HT en deçà, livraison express 24 h : 42 € HT. Les délais indiqués courent à
-            réception du paiement ou de la validation de la commande et sont donnés à titre
-            indicatif. Le client vérifie l&apos;état des marchandises à réception et formule ses
-            réserves sur le bon de livraison.
+            Les marchandises sont livrées franco de port en Occitanie pour toute commande supérieure
+            à 400 € HT. En dessous de ce montant, un forfait de 26 € HT est appliqué. Au-delà de cette
+            zone une tarification supplémentaire sera exigée. Une tarification additionnelle de
+            50 € HT sera appliquée pour le transport des produits de grande dimension.
+          </p>
+          <p>
+            Nos fournitures, même franco, voyagent aux risques et périls du destinataire. En cas
+            d’avarie ou perte, il appartient au client de faire toutes réserves et d’exercer tout
+            recours auprès du transporteur.
+          </p>
+          <p>
+            Les délais de livraison sont donnés à titre indicatif. Les retards, grèves, épidémies,
+            intempéries, pénuries, cas de force majeure ne peuvent donner lieu ni à pénalités, ni à
+            dommages et intérêts, ni à annulation de commande.
+          </p>
+          <h3>Livraison en l’absence du client</h3>
+          <p>
+            En cas d’absence du client lors de la livraison, MN Fermetures est autorisée, sauf
+            indication contraire écrite préalable, à déposer la marchandise à l’adresse indiquée,
+            dans un lieu accessible réputé sécurisé. Ce dépôt vaut livraison conforme. Les risques
+            sont alors transférés au client, et MN Fermetures décline toute responsabilité en cas de
+            vol, perte ou détérioration postérieure.
+          </p>
+          <h3>Frais de stockage</h3>
+          <p>
+            En cas d’impossibilité de livraison du fait du client ou de report supérieur à 15 jours,
+            des frais de stockage seront facturés à hauteur de 20 € HT/m³ par semaine entamée.
           </p>
         </section>
 
         <section>
-          <h2>5. Paiement</h2>
+          <h2>5. Réclamations</h2>
           <p>
-            Sauf conditions particulières accordées, le paiement s&apos;effectue par virement à
-            30 jours fin de mois. Tout retard de paiement entraîne de plein droit l&apos;application
-            de pénalités au taux légal et de l&apos;indemnité forfaitaire de recouvrement de 40 €
-            (art. L441-10 du Code de commerce).
+            Toute réclamation (hors transport) doit être formulée par écrit dans les 8 jours suivant
+            la réception. Passé ce délai, aucune réclamation ne sera prise en compte.
           </p>
         </section>
 
         <section>
-          <h2>6. Réserve de propriété</h2>
+          <h2>6. Retours</h2>
           <p>
-            Les marchandises demeurent la propriété de MN FERMETURES jusqu&apos;au paiement intégral
-            du prix. Le transfert des risques intervient à la livraison.
+            Aucun retour ne pourra être effectué sans accord écrit préalable. Ce consentement
+            n’implique pas reconnaissance de responsabilité.
           </p>
         </section>
 
         <section>
-          <h2>7. Garanties</h2>
+          <h2>7. Tolérances de fabrication</h2>
           <p>
-            Les produits bénéficient des garanties fabricant (jusqu&apos;à 7 ans selon les gammes,
-            voir documentation produit). La garantie ne couvre ni l&apos;usure normale, ni les
-            défauts résultant d&apos;une pose non conforme aux règles de l&apos;art ou d&apos;une utilisation
-            anormale.
+            Les produits fabriqués peuvent présenter des tolérances dimensionnelles de ±3 mm, ainsi
+            que de légères variations de teinte ou d’aspect, qui ne sauraient constituer un motif de
+            refus ou réclamation.
           </p>
         </section>
 
         <section>
-          <h2>8. Données personnelles</h2>
+          <h2>8. Prix et règlement</h2>
           <p>
-            Les données collectées à l&apos;ouverture du compte (identité, coordonnées, SIRET,
-            Kbis le cas échéant) sont utilisées pour la gestion de la relation commerciale et
-            conservées pendant la durée de celle-ci. Conformément au RGPD, le client dispose
-            d&apos;un droit d&apos;accès, de rectification et de suppression en écrivant à
-            contact@mmfermetures.fr.
+            Les factures sont payables à Villeveyrac (34560) et le paiement du client doit intervenir
+            le jour où il valide sa commande. Dans le cas où le client a reçu une notification écrite
+            l’autorisant à bénéficier d’un paiement à 30 jours par traite directe avec autorisation de
+            prélèvement le client devra respecter ce délai. Les paiements s’imputent sur la dette la
+            plus ancienne. Aucun escompte, compensation ou retenue ne peut être appliqué par le client.
+          </p>
+          <p>Tout défaut de paiement entraîne :</p>
+          <ul>
+            <li>Exigibilité immédiate de toutes les sommes dues,</li>
+            <li>Facturation par MN Fermetures de frais à hauteur de 20 € HT par incident,</li>
+            <li>Intérêts de retard au taux de base bancaire majoré de 2 %,</li>
+            <li>Une clause pénale de 15 % des sommes dues en cas de recouvrement contentieux,</li>
+            <li>Possibilité pour MN Fermetures d’exiger des garanties ou d’annuler les commandes en cours,</li>
+            <li>En cas de non-paiement, les marchandises livrées doivent être restituées aux frais du client, MN Fermetures se réservant le droit d’en reprendre possession.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>9. Réserve de propriété — Loi n°80-335 du 12/05/1980</h2>
+          <p>
+            La propriété des marchandises reste à MN Fermetures jusqu’au paiement intégral.
+            Toutefois, le client en assume les risques dès la livraison. En cas de revente, la
+            créance est réputée nous être cédée.
           </p>
         </section>
 
         <section>
-          <h2>9. Droit applicable et litiges</h2>
+          <h2>10. Garanties</h2>
           <p>
-            Les présentes CGV sont soumises au droit français. À défaut d&apos;accord amiable,
-            tout litige relève de la compétence exclusive du tribunal de commerce de Montpellier.
+            Nos produits sont garantis 2 ans contre tout défaut de matière ou de fabrication.
+            La garantie couvre uniquement l’échange des pièces reconnues défectueuses.
+          </p>
+          <p>
+            Les moteurs de volets roulants sont garantis 5 ans, extensible à 7 ans pour les modèles
+            Somfy RS 100 io et RS 100 Solar io. D’autres produits peuvent bénéficier de garanties
+            complémentaires (nous consulter).
+          </p>
+          <p>Sont exclus de la garantie :</p>
+          <ul>
+            <li>Négligence ou mauvaise utilisation,</li>
+            <li>Non-respect des règles de pose,</li>
+            <li>Dépassement des abaques,</li>
+            <li>Usure normale, défaut d’entretien, exposition à des produits chimiques ou à l’air marin,</li>
+            <li>Intempéries extrêmes, incendie, foudre.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>11. Utilisation commerciale des marques</h2>
+          <p>
+            Toute utilisation commerciale de nos marques ou produits est interdite sans accord écrit
+            préalable de MN Fermetures.
+          </p>
+        </section>
+
+        <section>
+          <h2>12. Traitement des données personnelles (RGPD)</h2>
+          <p>
+            Les données personnelles collectées sont utilisées uniquement pour le traitement des
+            commandes et la gestion commerciale. Conformément au RGPD, le client dispose d’un droit
+            d’accès, de rectification, d’opposition ou de suppression sur simple demande écrite.
+            Aucune donnée n’est cédée à des tiers à des fins commerciales.
+          </p>
+        </section>
+
+        <section>
+          <h2>13. Médiation — Règlement des litiges</h2>
+          <p>
+            En cas de différend, les parties s’engagent à recourir à un médiateur avant toute
+            procédure judiciaire. À défaut d’accord amiable dans un délai de 30 jours, le litige
+            pourra être porté devant les tribunaux compétents.
+          </p>
+        </section>
+
+        <section>
+          <h2>14. Juridiction compétente</h2>
+          <p>
+            En cas de contestation, le Tribunal de commerce de Montpellier est seul compétent,
+            même en cas d’appel en garantie ou de pluralité de défendeurs.
           </p>
         </section>
       </div>

@@ -2511,3 +2511,7 @@ html { -webkit-text-size-adjust: 100%; }
   line-height: 1.5; color: var(--ink); cursor: pointer; margin: 4px 0; }
 .cgv-check input { margin-top: 2px; flex-shrink: 0; width: 16px; height: 16px; }
 .cgv-check a { color: var(--steel-600); text-decoration: underline; font-weight: 600; }
+.cgv-body p + p { margin-top: 10px; }
+.cgv-body h3 { font-size: 14px; color: var(--navy-700); margin: 14px 0 6px; }
+.cgv-body ul { margin: 8px 0 0; padding-left: 22px; display: flex; flex-direction: column; gap: 4px; }
+.cgv-body li { font-size: 14px; line-height: 1.6; color: var(--ink); }
