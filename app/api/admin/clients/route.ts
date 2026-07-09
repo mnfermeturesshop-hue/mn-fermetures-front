@@ -12,7 +12,7 @@ export async function GET() {
 
     let profilesQuery = supabase
       .from('profiles')
-      .select('id, name, role, company, discounts, commercial_id')
+      .select('id, name, role, company, discounts, commercial_id, email_optout')
       .in('role', ['b2b', 'blocked'])
       .order('name');
     if (guard.role === 'commercial') {
@@ -27,7 +27,7 @@ export async function GET() {
         .select('id, name, role, company, discounts')
         .in('role', ['b2b', 'blocked'])
         .order('name');
-      profiles = (fallback ?? []).map((p) => ({ ...p, commercial_id: null }));
+      profiles = (fallback ?? []).map((p) => ({ ...p, commercial_id: null, email_optout: false }));
     }
 
     const loyaltyYear = new Date().getFullYear();
@@ -72,6 +72,7 @@ export async function GET() {
         banned: userDataById[p.id]?.banned ?? false,
         loyaltyCaHT: loyaltyCaByUser.get(p.id) ?? 0,
         commercialId: p.commercial_id ?? null,
+        emailOptout: p.email_optout ?? false,
       };
     });
 

@@ -13,13 +13,14 @@ const NAV: NavItem[] = [
   { href: '/admin/pro-requests', label: 'Demandes pro', icon: '📋' },
   { href: '/admin/devis',        label: 'Devis',        icon: '📝' },
   { href: '/admin/commandes',    label: 'Commandes',    icon: '🧾' },
+  { href: '/admin/mailing',      label: 'Mailing',      icon: '✉️' },
   { href: '/admin/inventaire',   label: 'Inventaire',   icon: '📦' },
   { href: '/admin/import',       label: 'Import Excel', icon: '⬆' },
   { href: '/admin/equipe',       label: 'Équipe',       icon: '🤝' },
 ];
 
 /** Rubriques accessibles à un commercial (droits restreints à ses clients). */
-const COMMERCIAL_NAV = new Set(['/admin', '/admin/clients', '/admin/devis', '/admin/commandes']);
+const COMMERCIAL_NAV = new Set(['/admin', '/admin/clients', '/admin/devis', '/admin/commandes', '/admin/mailing']);
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

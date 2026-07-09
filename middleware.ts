@@ -76,7 +76,7 @@ export async function middleware(request: NextRequest) {
     // import, inventaire, demandes pro, équipe…) le renvoie vers le dashboard
     // — blocage serveur, pas seulement la nav.
     if (profile.role === 'commercial') {
-      const allowed = ['/admin/clients', '/admin/devis', '/admin/commandes'];
+      const allowed = ['/admin/clients', '/admin/devis', '/admin/commandes', '/admin/mailing'];
       const isAllowed = pathname === '/admin'
         || allowed.some((p) => pathname === p || pathname.startsWith(p + '/'));
       if (!isAllowed) {
