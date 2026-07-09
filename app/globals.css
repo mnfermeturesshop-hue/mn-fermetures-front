@@ -2650,3 +2650,8 @@ html { -webkit-text-size-adjust: 100%; }
 @media (max-width: 900px) {
   .mailing-layout { grid-template-columns: 1fr; }
 }
+
+/* Bouton Accueil dans la barre de navigation */
+.nav-home { display: inline-flex; align-items: center; gap: 6px; }
+.nav-home svg { flex-shrink: 0; }
+.mi-home { margin-right: 4px; }

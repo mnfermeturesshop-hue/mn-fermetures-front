@@ -183,6 +183,10 @@ export function MobileMenu({ isOpen, onClose }: Props) {
 
         {/* Catalogue */}
         <div className="mob-cats">
+          <Link href="/" className="mob-cat-btn" onClick={onClose}>
+            <span>🏠 Accueil</span>
+          </Link>
+
           <div className="mob-section-label">Catalogue</div>
 
           {MENU.map((top) => {
