@@ -241,6 +241,10 @@ export default function ComptePage() {
     router.push('/');
   };
 
+  // Confirmation avant transformation d'un devis en bon de commande
+  const [confirmConvert, setConfirmConvert] = useState<DevisRow | null>(null);
+  const [converting, setConverting] = useState(false);
+
   const convertDevisToBc = async (d: DevisRow) => {
     // Devis ERP (PDF importé par nos équipes) : l'acceptation vaut bon de
     // commande — l'équipe MN est notifiée et traite la commande dans l'ERP.
@@ -312,6 +316,54 @@ export default function ComptePage() {
 
   return (
     <div className="wrap compte-page">
+      {/* Confirmation : transformer un devis en bon de commande */}
+      {confirmConvert && (
+        <div className="adm-overlay">
+          <div className="adm-confirm-box">
+            <h3 className="adm-confirm-title">Transformer en bon de commande ?</h3>
+            <p className="adm-confirm-body">
+              {confirmConvert.source === 'erp' ? (
+                <>
+                  Le devis <strong className="ref">{confirmConvert.devis_number}</strong>
+                  {Number(confirmConvert.total_ht) > 0 && <> ({euro(Number(confirmConvert.total_ht))} HT)</>}
+                  {' '}sera transformé en <strong>bon de commande ferme</strong>.
+                  Notre équipe le traitera et vous recontactera sous 24&nbsp;h ouvrées.
+                </>
+              ) : (
+                <>
+                  Les articles du devis <strong className="ref">{confirmConvert.devis_number}</strong>
+                  {' '}seront chargés dans votre panier pour finaliser votre bon de commande
+                  (adresse et validation). Le devis sera marqué comme converti.
+                </>
+              )}
+            </p>
+            <div className="adm-confirm-actions">
+              <button
+                className="btn ghost"
+                type="button"
+                disabled={converting}
+                onClick={() => setConfirmConvert(null)}
+              >
+                Annuler
+              </button>
+              <button
+                className="btn solid"
+                type="button"
+                disabled={converting}
+                onClick={async () => {
+                  setConverting(true);
+                  await convertDevisToBc(confirmConvert);
+                  setConverting(false);
+                  setConfirmConvert(null);
+                }}
+              >
+                {converting ? 'Transformation…' : 'Confirmer la commande'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Breadcrumb crumbs={[{ label: 'Accueil', href: '/' }, { label: 'Mon compte' }]} />
 
       <div className="compte-layout">
@@ -633,7 +685,7 @@ export default function ComptePage() {
                               <button
                                 className="btn solid sm"
                                 type="button"
-                                onClick={() => convertDevisToBc(d)}
+                                onClick={() => setConfirmConvert(d)}
                               >
                                 {d.source === 'erp' ? 'Commander ce devis →' : 'Créer un bon de commande →'}
                               </button>
