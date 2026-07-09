@@ -51,6 +51,8 @@ interface DevisRow {
   status: string;
   source?: string;
   pdf_path?: string | null;
+  reminder_at?: string | null;
+  reminder_sent_at?: string | null;
 }
 
 interface Order {
@@ -97,6 +99,31 @@ export default function ComptePage() {
   // Fil de commentaires ouvert (clé : `${type}-${numéro}`)
   const [openThread, setOpenThread] = useState<string | null>(null);
   const toggleThread = (key: string) => setOpenThread((cur) => (cur === key ? null : key));
+
+  // Rappel automatique à 15 jours sur un devis (activer/annuler)
+  const [togglingReminder, setTogglingReminder] = useState<string | null>(null);
+  const toggleReminder = async (d: DevisRow, enable: boolean) => {
+    setTogglingReminder(d.devis_number);
+    try {
+      const res = await fetch(`/api/devis/${d.devis_number}/reminder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enable }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Erreur inconnue');
+      setDevis((prev) => prev.map((x) =>
+        x.id === d.id ? { ...x, reminder_at: data.reminderAt ?? null, reminder_sent_at: null } : x
+      ));
+      toast.success(enable
+        ? `Rappel programmé le ${new Date(data.reminderAt).toLocaleDateString('fr-FR')}`
+        : 'Rappel annulé');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erreur');
+    } finally {
+      setTogglingReminder(null);
+    }
+  };
 
   // Pastilles "non lu" par document (clé : `${type}:${numéro}`)
   const [unread, setUnread] = useState<Record<string, number>>({});
@@ -147,11 +174,11 @@ export default function ComptePage() {
 
       supabase
         .from('devis')
-        .select('id, devis_number, created_at, valid_until, total_ht, total_ttc, lines, status, source, pdf_path')
+        .select('id, devis_number, created_at, valid_until, total_ht, total_ttc, lines, status, source, pdf_path, reminder_at, reminder_sent_at')
         .order('created_at', { ascending: false })
         .then(({ data, error }) => {
           if (!error) { setDevis((data as DevisRow[]) ?? []); return; }
-          // Migration 20260706_devis_erp pas encore jouée — fallback sans les colonnes ERP
+          // Migrations 20260706/20260709 pas encore jouées — fallback minimal
           supabase
             .from('devis')
             .select('id, devis_number, created_at, valid_until, total_ht, total_ttc, lines, status')
@@ -568,6 +595,29 @@ export default function ComptePage() {
                               >
                                 Voir / PDF
                               </Link>
+                            )}
+                            {!isExpired && d.status !== 'converted' && (
+                              d.reminder_at && !d.reminder_sent_at ? (
+                                <button
+                                  className="btn ghost sm"
+                                  type="button"
+                                  disabled={togglingReminder === d.devis_number}
+                                  onClick={() => toggleReminder(d, false)}
+                                  title="Rappel programmé — cliquer pour annuler"
+                                >
+                                  ⏰ Rappel le {new Date(d.reminder_at).toLocaleDateString('fr-FR')} ✕
+                                </button>
+                              ) : (
+                                <button
+                                  className="btn ghost sm"
+                                  type="button"
+                                  disabled={togglingReminder === d.devis_number}
+                                  onClick={() => toggleReminder(d, true)}
+                                  title="Recevoir un email de rappel dans 15 jours"
+                                >
+                                  ⏰ Rappel dans 15 j
+                                </button>
+                              )
                             )}
                             <button
                               className="btn ghost sm"
