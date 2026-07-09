@@ -19,9 +19,24 @@ export async function GET() {
       profilesQuery = profilesQuery.eq('commercial_id', guard.userId);
     }
     let { data: profiles } = await profilesQuery;
+    if (!profiles) {
+      // Migration 20260709_mailings pas encore jouée (email_optout absent) —
+      // retenter SANS cette colonne mais en conservant commercial_id,
+      // sinon les assignations de commerciaux disparaîtraient de l'affichage.
+      let retryQuery = supabase
+        .from('profiles')
+        .select('id, name, role, company, discounts, commercial_id')
+        .in('role', ['b2b', 'blocked'])
+        .order('name');
+      if (guard.role === 'commercial') {
+        retryQuery = retryQuery.eq('commercial_id', guard.userId);
+      }
+      const { data: retry } = await retryQuery;
+      if (retry) profiles = retry.map((p) => ({ ...p, email_optout: false }));
+    }
     if (!profiles && guard.role === 'admin') {
-      // Migration 20260707_role_commercial pas encore jouée — fallback sans la
-      // colonne (sans risque : aucun compte commercial ne peut exister avant elle)
+      // Migration 20260707_role_commercial pas encore jouée — fallback minimal
+      // (sans risque : aucun compte commercial ne peut exister avant elle)
       const { data: fallback } = await supabase
         .from('profiles')
         .select('id, name, role, company, discounts')
