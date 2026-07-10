@@ -1,0 +1,54 @@
+name: Sauvegarde Storage Supabase vers Backblaze B2
+
+# Copie quotidienne des FICHIERS du Storage Supabase (PDF de documents,
+# images produits...) vers Backblaze B2. Complète la sauvegarde de la base
+# (backup-supabase.yml), qui ne couvre que les tables.
+#
+# Utilise rclone en mode "copy" (additif : ne supprime jamais côté B2 —
+# un fichier effacé/corrompu dans Supabase reste récupérable dans la copie).
+#
+# Secrets supplémentaires à créer dans GitHub (les B2_* existent déjà) :
+#   SUPABASE_S3_KEY_ID   : clé d'accès S3 du Storage
+#   SUPABASE_S3_SECRET   : secret d'accès S3 du Storage
+#   SUPABASE_S3_ENDPOINT : endpoint S3 du Storage
+#                          (ex. https://bovvvbxwskldoyybhohk.storage.supabase.co/storage/v1/s3)
+#   SUPABASE_S3_REGION   : région du projet (ex. eu-central-1)
+# → Tout se trouve dans Supabase : Project Settings → Storage → section
+#   "S3 Connection" (endpoint + région) et "S3 access keys" (générer une clé).
+
+on:
+  schedule:
+    - cron: '30 3 * * *'   # 03:30 UTC, juste après la sauvegarde de la base
+  workflow_dispatch: {}
+
+jobs:
+  storage-backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Installer rclone
+        run: curl -fsSL https://rclone.org/install.sh | sudo bash
+
+      - name: Copier les buckets Storage vers B2
+        env:
+          # Remote source : Storage Supabase (S3)
+          RCLONE_CONFIG_SUPABASE_TYPE: s3
+          RCLONE_CONFIG_SUPABASE_PROVIDER: Other
+          RCLONE_CONFIG_SUPABASE_ACCESS_KEY_ID: ${{ secrets.SUPABASE_S3_KEY_ID }}
+          RCLONE_CONFIG_SUPABASE_SECRET_ACCESS_KEY: ${{ secrets.SUPABASE_S3_SECRET }}
+          RCLONE_CONFIG_SUPABASE_ENDPOINT: ${{ secrets.SUPABASE_S3_ENDPOINT }}
+          RCLONE_CONFIG_SUPABASE_REGION: ${{ secrets.SUPABASE_S3_REGION }}
+          # Remote cible : Backblaze B2 (S3)
+          RCLONE_CONFIG_B2_TYPE: s3
+          RCLONE_CONFIG_B2_PROVIDER: Other
+          RCLONE_CONFIG_B2_ACCESS_KEY_ID: ${{ secrets.B2_KEY_ID }}
+          RCLONE_CONFIG_B2_SECRET_ACCESS_KEY: ${{ secrets.B2_APP_KEY }}
+          RCLONE_CONFIG_B2_ENDPOINT: ${{ secrets.B2_ENDPOINT }}
+          RCLONE_CONFIG_B2_REGION: ${{ secrets.B2_REGION }}
+        run: |
+          set -euo pipefail
+          for BUCKET in product-images order-documents devis-documents kbis-documents; do
+            echo "→ Copie du bucket $BUCKET"
+            rclone copy "supabase:$BUCKET" "b2:${{ secrets.B2_BUCKET }}/storage/$BUCKET" \
+              --transfers 8 --checkers 16 --fast-list --stats-one-line
+          done
+          echo "Sauvegarde Storage terminée."
