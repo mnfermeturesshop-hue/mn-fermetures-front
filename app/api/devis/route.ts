@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { verifyCartLines } from '@/lib/catalog/verifyCart';
+import { getUserDiscounts } from '@/lib/pricing/discounts';
+import { computeOrderTotals, type ShippingMethod } from '@/lib/pricing/shipping';
 
 export async function POST(req: NextRequest) {
   // user_id/email issus EXCLUSIVEMENT de la session (audit S5) — jamais du body
@@ -18,22 +21,35 @@ export async function POST(req: NextRequest) {
     customerName: string;
     company?: string;
     lines: unknown[];
-    totalHT: number;
-    totalTTC: number;
-    fraisHT: number;
+    shippingMethod?: ShippingMethod;
   };
+
+  if (!body.devisNumber?.trim()) {
+    return NextResponse.json({ error: 'Numéro de devis manquant.' }, { status: 400 });
+  }
+
+  // Re-tarification autoritaire côté serveur (audit S2) : prix, remises et
+  // totaux recalculés à partir du catalogue — jamais les montants du body,
+  // qui alimenteraient sinon un bon de commande via /convert (cf. audit devis).
+  const discounts = await getUserDiscounts(userId);
+  const verified = await verifyCartLines(body.lines, discounts, { userId });
+  if (!verified.ok) {
+    return NextResponse.json({ error: verified.error }, { status: 400 });
+  }
+  const method: ShippingMethod = body.shippingMethod === 'express' ? 'express' : 'standard';
+  const totals = computeOrderTotals(verified.productsHT, method);
 
   const adminClient = createAdminClient();
   const { error } = await adminClient.from('devis').insert({
-    devis_number:  body.devisNumber,
+    devis_number:  body.devisNumber.trim(),
     user_id:       userId,
     email,
     customer_name: body.customerName,
     company:       body.company ?? null,
-    lines:         body.lines,
-    total_ht:      body.totalHT,
-    total_ttc:     body.totalTTC,
-    frais_ht:      body.fraisHT,
+    lines:         verified.lines,
+    total_ht:      totals.totalHT,
+    total_ttc:     totals.totalTTC,
+    frais_ht:      totals.fraisHT,
   });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });

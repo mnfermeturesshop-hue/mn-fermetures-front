@@ -6,6 +6,7 @@ import { verifyCartLines } from '@/lib/catalog/verifyCart';
 import { getUserDiscounts } from '@/lib/pricing/discounts';
 import { computeOrderTotals, type ShippingMethod } from '@/lib/pricing/shipping';
 import { escapeHtml } from '@/lib/security/escapeHtml';
+import { rateLimit } from '@/lib/security/rateLimit';
 
 interface OrderLine {
   key: string;
@@ -260,6 +261,26 @@ export async function POST(req: NextRequest) {
   const { data: { user: sessionUser } } = await serverClient.auth.getUser();
   if (!sessionUser) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+  }
+
+  // Anti-abus : plafonne les soumissions par utilisateur (audit S7)
+  if (!rateLimit(`bon-de-commande:${sessionUser.id}`, 10, 60_000)) {
+    return NextResponse.json({ error: 'Trop de soumissions. Patientez un instant.' }, { status: 429 });
+  }
+
+  // Réservé aux professionnels APPROUVÉS (rôle b2b) : un compte 'pending'
+  // (inscrit mais pas encore validé par l'admin) ne peut pas commander.
+  const buyerClient = createAdminClient();
+  const { data: buyer } = await buyerClient
+    .from('profiles')
+    .select('role')
+    .eq('id', sessionUser.id)
+    .single();
+  if (!buyer || (buyer.role !== 'b2b' && buyer.role !== 'admin')) {
+    return NextResponse.json(
+      { error: 'Votre compte professionnel doit être validé avant de pouvoir commander.' },
+      { status: 403 },
+    );
   }
 
   // Re-tarification autoritaire (audit S2) — remises pro lues en base, pas du client.
