@@ -1,0 +1,49 @@
+name: Sauvegarde Supabase → Backblaze B2
+
+# Sauvegarde quotidienne de la base Postgres Supabase vers un bucket
+# Backblaze B2 (stockage S3-compatible), hors de Supabase.
+#
+# Prérequis — Secrets à créer dans GitHub (Settings → Secrets and variables
+# → Actions → New repository secret) :
+#   SUPABASE_DB_URL : chaîne de connexion "Session pooler" (port 5432) —
+#                     Supabase → Project Settings → Database → Connection string
+#                     → onglet "Session pooler". (⚠️ PAS le "Transaction pooler"
+#                     port 6543, incompatible avec pg_dump.)
+#   B2_KEY_ID       : identifiant de clé d'application Backblaze
+#   B2_APP_KEY      : clé d'application Backblaze (secret)
+#   B2_BUCKET       : nom du bucket B2 (ex. mn-backups)
+#   B2_ENDPOINT     : endpoint S3 du bucket (ex. https://s3.us-west-004.backblazeb2.com)
+#   B2_REGION       : région du bucket (ex. us-west-004)
+
+on:
+  schedule:
+    - cron: '0 3 * * *'   # tous les jours à 03:00 UTC (~5 h Paris)
+  workflow_dispatch: {}    # + bouton "Run workflow" pour tester à la demande
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dump de la base Postgres
+        env:
+          PGCONN: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          FILE="supabase_$(date +%Y-%m-%d_%H%M).sql.gz"
+          # pg_dump via l'image Postgres officielle (version >= serveur Supabase).
+          # -e PGCONN transmet la chaîne de connexion sans l'exposer en clair.
+          docker run --rm -e PGCONN postgres:17-alpine \
+            sh -c 'pg_dump --no-owner --no-privileges "$PGCONN"' | gzip > "$FILE"
+          echo "FILE=$FILE" >> "$GITHUB_ENV"
+          echo "Dump créé : $FILE ($(du -h "$FILE" | cut -f1))"
+
+      - name: Envoi vers Backblaze B2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.B2_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.B2_APP_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.B2_REGION }}
+        run: |
+          set -euo pipefail
+          aws s3 cp "$FILE" "s3://${{ secrets.B2_BUCKET }}/db/$FILE" \
+            --endpoint-url "${{ secrets.B2_ENDPOINT }}"
+          echo "Sauvegarde envoyée : s3://${{ secrets.B2_BUCKET }}/db/$FILE"
