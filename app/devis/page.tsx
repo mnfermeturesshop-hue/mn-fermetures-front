@@ -348,6 +348,13 @@ function DevisContent() {
           )}
         </div>
 
+        {!isOrderMode && (
+          <div className="devis-mentions">
+            <p>Les informations présentées sont susceptibles d&apos;évoluer en fonction de la configuration technique retenue et de la disponibilité des produits.</p>
+            <p>Seul l&apos;Accusé de Réception de Commande (ARC) fait foi. En cas de différence entre les présentes informations et l&apos;ARC, ce dernier prévaut.</p>
+          </div>
+        )}
+
         <div className="devis-footer">
           MN FERMETURES SARL · SIRET 123 456 789 00014 · RCS Montpellier · NAF 4669B
         </div>
