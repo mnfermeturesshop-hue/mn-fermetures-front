@@ -13,6 +13,7 @@ import { Footer } from '@/components/layout/Footer';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { ToastContainer } from '@/components/ui/Toast';
 import { OrganizationJsonLd } from '@/components/seo/JsonLd';
+import { AuthSync } from '@/components/auth/AuthSync';
 
 const archivo = Archivo({
   subsets: ['latin'],
@@ -62,6 +63,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr" className={`${archivo.variable} ${inter.variable} ${jetbrainsMono.variable}`}>
       <body>
+        <AuthSync />
         <Header />
         <TrustBar />
         <main>{children}</main>

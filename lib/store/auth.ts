@@ -25,6 +25,8 @@ interface AuthStore {
 
   login: (email: string, password: string) => Promise<{ error?: string }>;
   logout: () => void;
+  /** Écrit l'utilisateur depuis la vraie session Supabase (voir AuthSync). */
+  setUser: (user: AuthUser | null) => void;
 
   _devLoginPro: () => void;
   _devLoginB2C: () => void;
@@ -113,6 +115,8 @@ export const useAuthStore = create<AuthStore>()(
         }
         set({ user: null });
       },
+
+      setUser: (user) => set({ user }),
 
       _devLoginPro: () =>
         set({
