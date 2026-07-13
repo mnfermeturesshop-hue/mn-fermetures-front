@@ -189,7 +189,8 @@ export function MobileMenu({ isOpen, onClose }: Props) {
 
           <div className="mob-section-label">Catalogue</div>
 
-          {MENU.map((top) => {
+          {/* Documentation est affichée à part dans « Ressources » (ci-dessous) — on l'exclut ici pour éviter le doublon */}
+          {MENU.filter((top) => top.href !== '/documentation').map((top) => {
             const isTopOpen = openTop === top.href;
             const hasChildren = top.children && top.children.length > 0;
 
