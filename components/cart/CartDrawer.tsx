@@ -99,10 +99,10 @@ export function CartDrawer() {
         {lines.length > 0 && (
           <div className="drawer-foot">
             {franco ? (
-              <div className="franco-badge">✓ Livraison offerte !</div>
+              <div className="franco-badge">✓ Franco de port !</div>
             ) : (
               <div className="franco-hint">
-                Encore {euro(400 - ht)} HT pour la livraison offerte
+                Encore {euro(400 - ht)} HT pour le franco de port
                 <span className="franco-bar">
                   <span style={{ width: `${Math.min(100, (ht / 400) * 100)}%` }} />
                 </span>

@@ -33,7 +33,7 @@ export function Footer() {
           </div>
         </div>
         <div className="legal">
-          Prix HT · Livraison offerte en Occitanie dès 400 € HT (forfait 26 € HT en deçà).
+          Prix HT · Franco de port en Occitanie dès 400 € HT (forfait 26 € HT en deçà).
           <Link href="/cgv" style={{ marginLeft: 12, color: '#6b8fa8' }}>
             CGV
           </Link>

@@ -445,7 +445,7 @@ function ProPageContent() {
                 ['💰', 'Tarifs préférentiels HT', 'Accès aux prix négociés et remises volume'],
                 ['📋', 'Devis PDF instantané', 'Générez et téléchargez vos devis en un clic'],
                 ['📦', 'Suivi des commandes', 'Historique complet, statuts en temps réel'],
-                ['🚚', 'Livraison offerte dès 400 € HT', 'En Occitanie — délai 24/48h'],
+                ['🚚', 'Franco de port dès 400 € HT', 'En Occitanie — délai 24/48h'],
                 ['💳', 'Paiement différé', 'Règlement par virement à 30 jours fin de mois'],
                 ['🤝', 'Accès à votre commercial', 'Contact direct avec votre interlocuteur dédié'],
               ].map(([icon, title, desc]) => (

@@ -46,7 +46,7 @@ export function HomeEspaces({ standalone = false }: { standalone?: boolean }) {
           <ul className="espace-list">
             <li>Prix HT &amp; remises volume</li>
             <li>Paiement virement 30 jours</li>
-            <li>Livraison offerte dès 400 € HT</li>
+            <li>Franco de port dès 400 € HT</li>
           </ul>
         </div>
         <div className="espace-actions">

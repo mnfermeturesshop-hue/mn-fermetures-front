@@ -853,7 +853,7 @@ export default function ComptePage() {
                   <strong>{user.proDiscounts && Object.keys(user.proDiscounts).length > 0 ? 'Par famille' : '—'}</strong>
                 </div>
                 <div className="tarif-row">
-                  <span>Livraison offerte</span>
+                  <span>Franco de port</span>
                   <strong>Dès 400 € HT</strong>
                 </div>
                 <div className="tarif-row">

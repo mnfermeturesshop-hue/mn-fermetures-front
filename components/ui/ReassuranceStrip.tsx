@@ -20,7 +20,7 @@ const ITEMS: Item[] = [
   },
   {
     icon: <Icon d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8zM5.5 21a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM18.5 21a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z" />,
-    label: 'Livraison offerte dès 400 € HT',
+    label: 'Franco de port dès 400 € HT',
     sub: 'Livraison gratuite en Occitanie',
   },
   {
