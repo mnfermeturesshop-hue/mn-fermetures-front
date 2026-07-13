@@ -92,12 +92,24 @@ export function MobileMenu({ isOpen, onClose }: Props) {
     return () => { document.body.style.overflow = prev; };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  // Garde le panneau monté le temps de l'animation de fermeture (glissement
+  // vers la gauche) au lieu de le retirer sèchement du DOM.
+  const [mounted, setMounted] = useState(isOpen);
+  const [closing, setClosing] = useState(false);
+  useEffect(() => {
+    if (isOpen) { setMounted(true); setClosing(false); return; }
+    if (!mounted) return;
+    setClosing(true);
+    const t = setTimeout(() => { setMounted(false); setClosing(false); }, 230);
+    return () => clearTimeout(t);
+  }, [isOpen, mounted]);
+
+  if (!mounted) return null;
 
   return (
     <>
-      <div className="mob-overlay" onClick={onClose} aria-hidden />
-      <nav className="mob-menu" aria-label="Navigation mobile">
+      <div className={`mob-overlay${closing ? ' closing' : ''}`} onClick={onClose} aria-hidden />
+      <nav className={`mob-menu${closing ? ' closing' : ''}`} aria-label="Navigation mobile">
 
         <div className="mob-head">
           <Link href="/" onClick={onClose} className="logo-pill">
