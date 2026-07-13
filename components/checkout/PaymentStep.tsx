@@ -14,7 +14,7 @@ function VirementForm({ onConfirm, paying }: { onConfirm: () => void; paying: bo
   return (
     <div className="virement-form">
       <div className="virement-info">
-        <div className="virement-row"><span>Titulaire</span><strong>MN FERMETURES SARL</strong></div>
+        <div className="virement-row"><span>Titulaire</span><strong>MN FERMETURES SAS</strong></div>
         <div className="virement-row"><span>IBAN</span><strong className="ref">FR76 3000 4004 0300 0100 1234 567</strong></div>
         <div className="virement-row"><span>BIC</span><strong className="ref">BNPAFRPPXXX</strong></div>
         <div className="virement-row virement-ref">

@@ -163,7 +163,7 @@ export default function ConfirmationPage({ params }: Props) {
               <div className="virement-reminder">
                 <strong>Rappel — virement à effectuer :</strong>
                 <div className="virement-info" style={{ marginTop: 10 }}>
-                  <div className="virement-row"><span>Titulaire</span><strong>MN FERMETURES SARL</strong></div>
+                  <div className="virement-row"><span>Titulaire</span><strong>MN FERMETURES SAS</strong></div>
                   <div className="virement-row"><span>IBAN</span><strong className="ref">FR76 3000 4004 0300 0100 1234 567</strong></div>
                   <div className="virement-row"><span>Référence</span><strong className="ref">{order.id}</strong></div>
                 </div>

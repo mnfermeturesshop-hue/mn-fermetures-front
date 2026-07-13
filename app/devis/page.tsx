@@ -259,7 +259,7 @@ function DevisContent() {
           <div className="devis-emetteur">
             <div className="devis-party-label">Émetteur</div>
             <address>
-              <strong>MN FERMETURES SARL</strong><br />
+              <strong>MN FERMETURES SAS</strong><br />
               Chemin du Mas de Pastrou<br />
               34560 Villeveyrac<br />
               04 67 78 06 63<br />
@@ -356,7 +356,7 @@ function DevisContent() {
         )}
 
         <div className="devis-footer">
-          MN FERMETURES SARL · SIRET 123 456 789 00014 · RCS Montpellier · NAF 4669B
+          MN FERMETURES SAS · SIRET 790 910 574 00033 · RCS Montpellier 790 910 574 · APE 25.12Z
         </div>
       </div>
     </div>

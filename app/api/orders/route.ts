@@ -71,7 +71,7 @@ function buildEmailHtml(payload: OrderPayload): string {
     <div style="margin-top:24px;padding:16px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;">
       <p style="margin:0 0 12px;font-weight:700;color:#1e3a5f;">Virement à effectuer sous 5 jours ouvrés</p>
       <table style="width:100%;font-size:13px;border-collapse:collapse;">
-        <tr><td style="padding:4px 0;color:#6b7280;">Titulaire</td><td style="font-weight:600;">MN FERMETURES SARL</td></tr>
+        <tr><td style="padding:4px 0;color:#6b7280;">Titulaire</td><td style="font-weight:600;">MN FERMETURES SAS</td></tr>
         <tr><td style="padding:4px 0;color:#6b7280;">IBAN</td><td style="font-family:monospace;font-weight:600;">FR76 3000 4004 0300 0100 1234 567</td></tr>
         <tr><td style="padding:4px 0;color:#6b7280;">BIC</td><td style="font-family:monospace;font-weight:600;">BNPAFRPPXXX</td></tr>
         <tr><td style="padding:4px 0;color:#6b7280;">Référence</td><td style="font-family:monospace;font-weight:700;color:#1e3a5f;">${orderNumber}</td></tr>
