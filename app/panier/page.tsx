@@ -5,7 +5,6 @@ import { useCartStore, euro } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
 import type { CartLine } from '@/lib/catalog/types';
 import { ReassuranceStrip } from '@/components/ui/ReassuranceStrip';
-import { DevisActions } from '@/components/cart/DevisActions';
 import { B2C_ENABLED } from '@/lib/config';
 
 function LineRow({ line }: { line: CartLine }) {
@@ -132,8 +131,6 @@ export default function CartPage() {
           <Link className="btn ghost full" href="/">
             Continuer mes achats
           </Link>
-
-          <DevisActions />
 
           <ReassuranceStrip compact />
         </aside>
