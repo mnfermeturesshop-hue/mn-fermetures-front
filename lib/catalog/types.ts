@@ -130,6 +130,16 @@ export type LinePricing =
       avecVerrou: boolean;
     }
   | {
+      kind: 'configurateur';
+      slug: string;
+      axes: Record<string, string>;
+      layer: 'filaire' | 'radio';
+      largeur: number;
+      hauteur: number;
+      colorCode: string;
+      options: string[];
+    }
+  | {
       kind: 'devis';
       devisNumber: string;
       line: number;

@@ -3,6 +3,9 @@ node_modules/
 *.tsbuildinfo
 next-env.d.ts
 
+# Fichiers de verrou temporaires Office (Excel/Word)
+~$*
+
 # Variables d'environnement (ne jamais commiter les clés)
 .env
 .env.local

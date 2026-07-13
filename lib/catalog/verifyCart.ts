@@ -3,6 +3,8 @@ import { resolveMatrixPrice } from './resolvePrice';
 import { isMatrix, isUnit, isKit, type Product, type CartLine, type Uom } from './types';
 import { applyDiscount, getDiscount, type DiscountMap, type FamilleSlug } from '@/lib/familles';
 import { resoudrePrix } from '@/lib/tablier/engine';
+import { loadConfiguratorDef } from '@/lib/configurateur/loader';
+import { resolveConfiguratorPrice } from '@/lib/configurateur/engine';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 /**
@@ -139,6 +141,24 @@ export async function verifyCartLines(
       base = res.total;
       name = res.lame.nom;
       // Le générateur n'applique pas de remise famille → parité avec l'affichage.
+    } else if (raw?.pricing?.kind === 'configurateur') {
+      // Configurateur produit générique — le serveur recharge la définition
+      // et recalcule le prix depuis les dimensions/options brutes (audit S2).
+      const pr = raw.pricing;
+      const def = await loadConfiguratorDef(String(pr.slug));
+      if (!def) return { ok: false, error: `Configurateur introuvable : ${pr.slug}` };
+      const res = resolveConfiguratorPrice(def, {
+        axes: pr.axes ?? {},
+        layer: pr.layer === 'radio' ? 'radio' : 'filaire',
+        largeur: Number(pr.largeur),
+        hauteur: Number(pr.hauteur),
+        colorCode: String(pr.colorCode ?? ''),
+        optionCodes: Array.isArray(pr.options) ? pr.options.map(String) : [],
+      });
+      if (!res) return { ok: false, error: `Configuration hors barème : ${def.name}` };
+      base = res.total;
+      name = raw.name ? String(raw.name) : def.name;
+      famille = def.famille as FamilleSlug;
     } else if (raw?.reference) {
       const hit = byRef.get(raw.reference);
       if (!hit) return { ok: false, error: `Référence introuvable : ${raw.reference}` };

@@ -16,6 +16,7 @@ const NAV: NavItem[] = [
   { href: '/admin/mailing',      label: 'Mailing',      icon: '✉️' },
   { href: '/admin/inventaire',   label: 'Inventaire',   icon: '📦' },
   { href: '/admin/import',       label: 'Import Excel', icon: '⬆' },
+  { href: '/admin/configurateurs', label: 'Configurateurs', icon: '⚙' },
   { href: '/admin/equipe',       label: 'Équipe',       icon: '🤝' },
 ];
 
