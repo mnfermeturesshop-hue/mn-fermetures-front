@@ -844,7 +844,7 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 .order-card-foot { display: flex; justify-content: space-between; align-items: center;
   padding: 10px 14px; border-top: 1px solid var(--line); }
 .order-total { font-family: var(--font-display); font-weight: 800; color: var(--navy-700); }
-.order-actions { display: flex; gap: 6px; }
+.order-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .btn.sm { padding: 6px 12px; font-size: 12px; }
 .profil-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .profil-field { display: flex; flex-direction: column; gap: 4px; padding: 12px; background:
@@ -1179,6 +1179,16 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
   .devis-doc { padding: 28px 20px; }
   .devis-conditions { grid-template-columns: 1fr; }
   .compte-kpis { grid-template-columns: 1fr; }
+
+  /* Espace compte — cartes commande/devis + barre d'outils lisibles sur mobile */
+  .compte-section { padding: 16px 14px; }
+  .order-card-foot { flex-direction: column; align-items: stretch; gap: 10px; }
+  .order-actions { width: 100%; }
+  .order-actions .order-docs { width: 100%; }
+  .order-actions .btn { flex: 1 1 auto; justify-content: center; text-align: center; }
+  .compte-toolbar input[type='search'], .compte-toolbar select { flex: 1 1 100%; width: 100%; }
+  .compte-count { margin-left: 0; }
+
   .payment-tabs { flex-direction: column; }
   .mob-menu { width: 100vw; }
   .stepbar { gap: 0; }
