@@ -1127,6 +1127,15 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
   .profil-grid { grid-template-columns: 1fr; }
   .devis-parties { grid-template-columns: 1fr; }
 
+  /* Compte — sidebar compacte + nav horizontale sur mobile
+     (évite le pavé quasi plein écran et le sticky qui recouvre le contenu au défilement) */
+  .compte-sidebar { position: static; top: auto; min-height: 0; gap: 12px; padding: 14px 16px; }
+  .compte-nav { flex-direction: row; flex-wrap: nowrap; overflow-x: auto; gap: 6px;
+    scrollbar-width: none; padding-bottom: 2px; }
+  .compte-nav::-webkit-scrollbar { display: none; }
+  .compte-nav-item { white-space: nowrap; flex-shrink: 0; padding: 8px 12px; }
+  .compte-sidebar .btn.ghost.full { margin-top: 0 !important; }
+
   /* Admin — sidebar horizontale sur tablette */
   .adm-shell { flex-direction: column; }
   .adm-sidebar { width: 100%; height: auto; position: static; flex-direction: row;
