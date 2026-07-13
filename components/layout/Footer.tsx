@@ -20,7 +20,7 @@ export function Footer() {
             <p>www.mnfermetures.com · 04 67 78 06 63</p>
           </div>
           <div>
-            <h5>Production</h5>
+            <h5>2 sites de production</h5>
             <p>Chemin du Mas de Pastrou — 34560 Villeveyrac</p>
             <p>2066 Av. Marcel Pagnol — 34470 Pérols</p>
           </div>
