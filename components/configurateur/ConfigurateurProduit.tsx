@@ -13,6 +13,33 @@ const euro = (n: number) =>
 
 interface Props { slug: string }
 
+/** Valeurs possibles d'un axe compte tenu des axes déjà choisis (déduit des grilles existantes). */
+function availableFor(def: ConfiguratorDef, selId: string, order: string[], prefix: Record<string, string>): Set<string> {
+  const constrained = def.grids.some((g) => selId in g.key);
+  if (!constrained) return new Set(def.selectors.find((s) => s.id === selId)?.options.map((o) => o.value) ?? []);
+  const prior = order.slice(0, order.indexOf(selId));
+  const set = new Set<string>();
+  for (const g of def.grids) {
+    if (prior.every((pid) => !(pid in g.key) || g.key[pid] === prefix[pid]) && selId in g.key) set.add(g.key[selId]);
+  }
+  return set;
+}
+
+/** Répare une sélection d'axes pour qu'elle reste une combinaison existante (cascade pose→lame→moteur). */
+function repairAxes(def: ConfiguratorDef, order: string[], axes: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const sel of def.selectors) {
+    const avail = availableFor(def, sel.id, order, out);
+    out[sel.id] = avail.has(axes[sel.id]) ? axes[sel.id] : (sel.options.find((o) => avail.has(o.value))?.value ?? sel.options[0]?.value ?? '');
+  }
+  return out;
+}
+
+/** Grille correspondant exactement aux axes choisis. */
+function findGrid(def: ConfiguratorDef, order: string[], axes: Record<string, string>) {
+  return def.grids.find((g) => order.every((id) => !(id in g.key) || g.key[id] === axes[id])) ?? null;
+}
+
 export function ConfigurateurProduit({ slug }: Props) {
   const addLine = useCartStore((s) => s.addLine);
   const openCart = useCartStore((s) => s.openCart);
@@ -44,13 +71,22 @@ export function ConfigurateurProduit({ slug }: Props) {
       .then((d) => {
         if (!alive || !d) return;
         setDef(d);
-        setAxes(Object.fromEntries(d.selectors.map((s) => [s.id, s.options[0]?.value ?? ''])));
+        const order = d.selectors.map((s) => s.id);
+        const initial = Object.fromEntries(d.selectors.map((s) => [s.id, s.options[0]?.value ?? '']));
+        setAxes(repairAxes(d, order, initial));
         setColorCode(d.colors[0]?.code ?? '');
         setStatus('ok');
       })
       .catch(() => { if (alive) setStatus('error'); });
     return () => { alive = false; };
   }, [slug, user]);
+
+  // La couche filaire/radio choisie doit exister dans la grille courante (robustesse).
+  useEffect(() => {
+    if (!def) return;
+    const g = findGrid(def, def.selectors.map((s) => s.id), axes);
+    if (g && !g.layers[layer]) setLayer(g.layers.filaire ? 'filaire' : 'radio');
+  }, [def, axes, layer]);
 
   const largeur = parseInt(largeurStr, 10) || 0;
   const hauteur = parseInt(hauteurStr, 10) || 0;
@@ -95,30 +131,44 @@ export function ConfigurateurProduit({ slug }: Props) {
     .filter((a, i, arr) => arr.findIndex((x) => x.code === a.code) === i);
   const currentLimit = def.limits.find((l) => l.lame === axes.lame);
 
+  // Sélecteurs en cascade : chaque choix ne propose que les valeurs qui ont
+  // encore une grille compatible ; un changement amont répare les axes aval.
+  const order = def.selectors.map((s) => s.id);
+  const chooseAxis = (id: string, value: string) => setAxes((a) => repairAxes(def, order, { ...a, [id]: value }));
+  const currentGrid = findGrid(def, order, axes);
+  const layerAvailable = (l: MotorLayer) => !currentGrid || !!currentGrid.layers[l];
+
   return (
     <div className="cfg-wrap">
       {/* ── Colonne gauche ── */}
       <div className="cfg-left">
 
-        {/* Axes de choix (pose, lame, motorisation…) */}
-        {def.selectors.map((sel, i) => (
-          <section className="cfg-section" key={sel.id}>
-            <h3 className="cfg-title">{i + 1}. {sel.label}</h3>
-            <div className="cfg-tabs">
-              {sel.options.map((o) => (
-                <button
-                  key={o.value}
-                  type="button"
-                  className={`cfg-tab${axes[sel.id] === o.value ? ' active' : ''}`}
-                  onClick={() => setAxes((a) => ({ ...a, [sel.id]: o.value }))}
-                  title={o.hint}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-          </section>
-        ))}
+        {/* Axes de choix (pose, lame, motorisation…) — en cascade */}
+        {def.selectors.map((sel, i) => {
+          const avail = availableFor(def, sel.id, order, axes);
+          return (
+            <section className="cfg-section" key={sel.id}>
+              <h3 className="cfg-title">{i + 1}. {sel.label}</h3>
+              <div className="cfg-tabs">
+                {sel.options.map((o) => {
+                  const disabled = !avail.has(o.value);
+                  return (
+                    <button
+                      key={o.value}
+                      type="button"
+                      disabled={disabled}
+                      className={`cfg-tab${axes[sel.id] === o.value ? ' active' : ''}`}
+                      onClick={() => chooseAxis(sel.id, o.value)}
+                      title={disabled ? 'Non disponible pour ce choix' : o.hint}
+                    >
+                      {o.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
 
         {/* Type de commande (filaire / radio) */}
         <section className="cfg-section">
@@ -128,6 +178,7 @@ export function ConfigurateurProduit({ slug }: Props) {
               <button
                 key={l}
                 type="button"
+                disabled={!layerAvailable(l)}
                 className={`cfg-tab${layer === l ? ' active' : ''}`}
                 onClick={() => setLayer(l)}
               >

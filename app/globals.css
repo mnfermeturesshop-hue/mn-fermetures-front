@@ -1822,6 +1822,8 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 }
 .cfg-tab.active { border-color: var(--steel-600); background: var(--steel-600); color: #fff; }
 .cfg-tab:not(.active):hover { border-color: var(--steel-600); color: var(--steel-600); }
+.cfg-tab:disabled { opacity: .38; cursor: not-allowed; background: var(--surface-2); }
+.cfg-tab:disabled:hover { border-color: var(--line); color: var(--ink); }
 
 /* Lame cards */
 .cfg-lames { display: flex; flex-direction: column; gap: 8px; }
