@@ -211,7 +211,13 @@ if (Object.keys(coffrePv).length) {
     ],
   });
 }
-adjustments.push({ code: 'manoeuvre_manuelle', label: 'Manoeuvre manuelle (tringle oscillante)', scope: { pose: 'independant' }, layer: 'filaire', optional: true, baremeParLargeur: { 450: -72, 3000: -13 } });
+// Manoeuvre manuelle (moins-value sur grille Filaire) — seuils/valeurs par pose (tarif p10/26/34).
+const MANOEUVRE = [
+  { scope: { pose: 'independant' }, bareme: { 450: -72, 3000: -13 } }, // < 451 -72 / >= 451 -13
+  { scope: { pose: 'coffre' },      bareme: { 450: -41, 3000: -3 } },  // < 451 -41 / >= 451 -3
+  { scope: { pose: 'express' },     bareme: { 535: -90, 3000: -28 } }, // < 535 -90 / >= 535 -28
+];
+for (const m of MANOEUVRE) adjustments.push({ code: 'manoeuvre_manuelle', label: 'Manoeuvre manuelle (tringle oscillante)', scope: m.scope, layer: 'filaire', optional: true, baremeParLargeur: m.bareme });
 
 // Coffre tunnel : plus-value par largeur selon le type de coffre (base = Thermic'elite),
 // + option sous-face coloris 7016. Extrait des grilles coffre.
