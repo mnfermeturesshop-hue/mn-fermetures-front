@@ -240,22 +240,44 @@ const options = [
   { code: 'flasque_guidage', label: 'Flasques de guidage 188', priceHT: 18, group: 'divers' },
   { code: 'kit_inverseur_secours', label: 'Kit inverseur + contact a cle + telerupteur', priceHT: 139, group: 'divers' },
 ];
-const colors = [
-  { code: 'blanc-9010', label: 'Blanc 9010', hex: '#F1F0EA' },
-  { code: 'ivoire-1015', label: 'Ivoire 1015', hex: '#E6D2B5' },
-  { code: 'gris-7016', label: 'Gris 7016', hex: '#383E42' },
-  { code: 'gris-7035', label: 'Gris 7035', hex: '#D7D7D7' },
-  { code: 'gris-7038', label: 'Gris 7038', hex: '#B5B8B1' },
-  { code: 'alu-9006', label: 'Alu AS 9006', hex: '#A5A8A8' },
-  { code: 'marron-8019', label: 'Marron 8019', hex: '#3D2B24' },
-  { code: 'noir-9005', label: 'Noir 9005', hex: '#0A0A0A' },
-  { code: 'rouge-3004', label: 'Rouge 3004', hex: '#6B1C23' },
-  { code: 'bleu-5011', label: 'Bleu 5011', hex: '#1F3049' },
-  { code: 'vert-6005', label: 'Vert 6005', hex: '#2E4C3B' },
-  { code: 'gris-9007', label: 'Gris 9007', hex: '#8A8B8A' },
-  { code: 'chene-dore', label: 'Chene dore', hex: '#7A5A2E' },
+// ── Coloris : matrice disponibilite/prix par lame (tarif p39 « DISPONIBILITE ET
+//    PRIX DES COLORIS », fusions resolues). Par lame : T = tarif (standard, +0) ·
+//    P = +14 EUR/m2 (coloris laque RAL) · '' = indisponible pour cette lame.
+//    Le forfait laquage 77 EUR est PAR COMMANDE (< 2000 EUR HT), pas par volet :
+//    il n'est donc pas integre au prix unitaire (note affichee dans l'UI).
+//                       code            libelle              hex        942  56  55
+const COLOR_DEFS = [
+  ['blanc-9010',   'Blanc 9010',        '#F1F0EA', 'T', 'T', 'T'],
+  ['ivoire-1015',  'Ivoire 1015',       '#E4D5B7', 'T', 'T', 'T'],
+  ['gris-7035',    'Gris 7035',         '#D5D8D2', 'T', 'T', 'T'],
+  ['gris-7038',    'Gris 7038',         '#B4B8B1', 'T', 'T', 'T'],
+  ['gris-7016',    'Gris anthracite 7016', '#383E42', 'T', 'T', 'T'],
+  ['alu-9006',     'Alu AS 9006',       '#A1A2A1', 'T', 'T', 'T'],
+  ['marron-8019',  'Marron 8019',       '#3D3635', 'T', 'T', 'T'],
+  ['noir-9005',    'Noir 9005',         '#0E0E10', 'T', 'T', 'T'],
+  ['rouge-3004',   'Rouge 3004',        '#672324', 'P', 'P', 'P'],
+  ['bleu-5011',    'Bleu 5011',         '#232C3B', 'P', 'P', '' ],
+  ['vert-6005',    'Vert 6005',         '#114232', 'P', 'P', '' ],
+  ['vert-6009',    'Vert 6009',         '#27352A', 'P', '',  '' ],
+  ['vert-6021',    'Vert 6021',         '#7E9B6C', 'P', 'P', '' ],
+  ['gris-7011',    'Gris 7011',         '#434B4D', '',  'P', 'P'],
+  ['gris-7012',    'Gris 7012',         '#4E5451', '',  'P', 'P'],
+  ['gris-7021',    'Gris 7021',         '#2E3234', 'P', '',  '' ],
+  ['gris-7022',    'Gris 7022',         '#4B4D46', 'P', '',  '' ],
+  ['gris-7039',    'Gris 7039',         '#6C6960', 'T', 'T', '' ],
+  ['marron-8014',  'Marron 8014',       '#432F1D', 'P', 'P', 'P'],
+  ['gris-9007',    'Gris 9007',         '#8A8B86', 'P', 'P', '' ],
+  ['noir-2100',    'Noir 2100 sable',   '#1A1A1A', 'T', 'T', '' ],
+  ['gris-2900',    'Gris 2900 sable',   '#6E6E6E', 'T', 'T', '' ],
+  ['chene-dore',   'Chene dore',        '#8A6A38', 'P', 'P', '' ],
 ];
-const colorPolicies = [{ lame: '*', standard: ['blanc-9010', 'ivoire-1015', 'gris-7016', 'gris-7035', 'gris-7038', 'alu-9006', 'marron-8019', 'noir-9005'], pvM2: { codes: ['rouge-3004', 'bleu-5011', 'vert-6005', 'gris-9007', 'chene-dore'], montantParM2: 14 } }];
+const colors = COLOR_DEFS.map(([code, label, hex]) => ({ code, label, hex }));
+const LAME_COL = { cd942: 3, 56: 4, 55: 5 };
+const colorPolicies = Object.entries(LAME_COL).map(([lame, idx]) => {
+  const standard = [], pv = [];
+  for (const r of COLOR_DEFS) { if (r[idx] === 'T') standard.push(r[0]); else if (r[idx] === 'P') pv.push(r[0]); }
+  return { lame, standard, pvM2: { codes: pv, montantParM2: 14 } };
+});
 const limits = [
   { lame: 'cd942', surfaceMaxM2: 8, largeurMin: 300, largeurMax: 3000, hauteurMax: 3300 },
   { lame: '56', surfaceMaxM2: 10, largeurMin: 300, largeurMax: 4000, hauteurMax: 4100 },

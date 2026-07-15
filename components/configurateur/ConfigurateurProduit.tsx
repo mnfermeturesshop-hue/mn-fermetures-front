@@ -88,6 +88,19 @@ export function ConfigurateurProduit({ slug }: Props) {
     if (g && !g.layers[layer]) setLayer(g.layers.filaire ? 'filaire' : 'radio');
   }, [def, axes, layer]);
 
+  // Le coloris choisi doit être disponible pour la lame courante (la matrice
+  // coloris × lame varie : certaines teintes n'existent pas en lame 55, etc.).
+  useEffect(() => {
+    if (!def) return;
+    const pol = def.colorPolicies.find((p) => p.lame === axes.lame) ?? def.colorPolicies.find((p) => p.lame === '*');
+    if (!pol) return;
+    const ok = pol.standard.includes(colorCode) || !!pol.pvM2?.codes.includes(colorCode);
+    if (!ok) {
+      const first = def.colors.find((c) => pol.standard.includes(c.code) || !!pol.pvM2?.codes.includes(c.code));
+      if (first) setColorCode(first.code);
+    }
+  }, [def, axes, colorCode]);
+
   const largeur = parseInt(largeurStr, 10) || 0;
   const hauteur = parseInt(hauteurStr, 10) || 0;
 
@@ -130,6 +143,17 @@ export function ConfigurateurProduit({ slug }: Props) {
     .filter((a) => a.optional && (!a.layer || a.layer === layer) && scopeOk(a.scope))
     .filter((a, i, arr) => arr.findIndex((x) => x.code === a.code) === i);
   const currentLimit = def.limits.find((l) => l.lame === axes.lame);
+
+  // Coloris disponibles pour la lame courante + niveau de prix (standard / laqué +€/m²).
+  const colorPol = def.colorPolicies.find((p) => p.lame === axes.lame) ?? def.colorPolicies.find((p) => p.lame === '*');
+  const colorTier = (code: string): 'standard' | 'pv' | null =>
+    !colorPol ? 'standard'
+      : colorPol.standard.includes(code) ? 'standard'
+        : colorPol.pvM2?.codes.includes(code) ? 'pv'
+          : null;
+  const visibleColors = def.colors.filter((c) => colorTier(c.code) !== null);
+  const colorPvM2 = colorPol?.pvM2?.montantParM2 ?? 0;
+  const selectedColorIsPv = colorTier(colorCode) === 'pv';
 
   // Sélecteurs en cascade : chaque choix ne propose que les valeurs qui ont
   // encore une grille compatible ; un changement amont répare les axes aval.
@@ -225,14 +249,26 @@ export function ConfigurateurProduit({ slug }: Props) {
         <section className="cfg-section">
           <h3 className="cfg-title">{nStep +3}. Coloris</h3>
           <div className="cfg-coloris-row">
-            {def.colors.map((c) => (
-              <button key={c.code} type="button" title={c.label}
-                className={`cfg-swatch${colorCode === c.code ? ' active' : ''}`}
-                style={{ background: c.hex }} aria-label={c.label}
-                onClick={() => setColorCode(c.code)} />
-            ))}
-            <span className="cfg-coloris-label">{def.colors.find((c) => c.code === colorCode)?.label ?? ''}</span>
+            {visibleColors.map((c) => {
+              const pv = colorTier(c.code) === 'pv';
+              return (
+                <button key={c.code} type="button"
+                  title={pv ? `${c.label} — laqué +${colorPvM2} €/m²` : c.label}
+                  className={`cfg-swatch${colorCode === c.code ? ' active' : ''}${pv ? ' pv' : ''}`}
+                  style={{ background: c.hex }} aria-label={c.label}
+                  onClick={() => setColorCode(c.code)} />
+              );
+            })}
+            <span className="cfg-coloris-label">
+              {visibleColors.find((c) => c.code === colorCode)?.label ?? ''}
+              {selectedColorIsPv && <em className="cfg-coloris-pv"> · laqué +{colorPvM2} €/m²</em>}
+            </span>
           </div>
+          {selectedColorIsPv && (
+            <p className="cfg-snap-note">
+              Coloris laqué RAL : <strong>forfait laquage 77 € HT par commande</strong> (offert dès 2 000 € HT de commande) — non compté dans le prix unitaire.
+            </p>
+          )}
         </section>
 
         {/* Options */}
