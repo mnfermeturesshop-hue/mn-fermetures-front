@@ -1,0 +1,235 @@
+/* Convertit "docs/TARIF TRADI 2026 VF.xlsx" (export PDF -> Excel du fabricant)
+   en definition de configurateur JSON. Reprend les chiffres EXACTS du tarif.
+   - detection d'entete generique (ligne avec le plus de largeurs plausibles)
+   - bande "petite largeur" propre a chaque couche
+   - 2e moitie de grille alignee ligne-a-ligne sur la 1ere (certaines n'ont pas
+     de colonnes couche/hauteur)
+   - controles: largeurs strictement croissantes + ancres PDF
+   Usage: NODE_PATH=./node_modules node scripts/build-vr-tradi.cjs            */
+const XLSX = require('xlsx');
+const fs = require('fs');
+const path = require('path');
+
+const wb = XLSX.readFile('docs/TARIF TRADI 2026 VF.xlsx', { cellFormula: false });
+const num = (v) => { if (v === '' || v == null) return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
+const widthLike = (v) => { const n = num(v); return n != null && n >= 200 && n <= 4600; };
+
+const GRIDS = [
+  { key: { pose: 'independant', lame: 'cd942', moteur: 'mn' },    tables: ['Table 9', 'Table 10'] },
+  { key: { pose: 'independant', lame: 'cd942', moteur: 'somfy' }, tables: ['Table 11', 'Table 12'] },
+  { key: { pose: 'independant', lame: '56', moteur: 'mn' },       tables: ['Table 13', 'Table 14'] },
+  { key: { pose: 'independant', lame: '56', moteur: 'somfy' },    tables: ['Table 15', 'Table 16'] },
+  { key: { pose: 'independant', lame: '55', moteur: 'mn' },       tables: ['Table 17', 'Table 18'] },
+  { key: { pose: 'independant', lame: '55', moteur: 'somfy' },    tables: ['Table 19', 'Table 20'] },
+  { key: { pose: 'coffre', lame: 'cd942', moteur: 'mn' },         tables: ['Table 25', 'Table 26'] },
+  { key: { pose: 'coffre', lame: 'cd942', moteur: 'somfy' },      tables: ['Table 27', 'Table 28'] },
+  { key: { pose: 'coffre', lame: '56', moteur: 'mn' },            tables: ['Table 29', 'Table 30'] },
+  { key: { pose: 'coffre', lame: '56', moteur: 'somfy' },         tables: ['Table 31', 'Table 32'] },
+  { key: { pose: 'express', lame: 'cd942', moteur: 'mn' },        tables: ['Table 33', 'Table 34'] },
+  { key: { pose: 'express', lame: 'cd942', moteur: 'somfy' },     tables: ['Table 35', 'Table 36'] },
+];
+
+/** Parse une demi-grille : largeurs + lignes de prix (avec couche/hauteur si presentes) + ligne AR. */
+function parseHalf(name) {
+  const aoa = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, blankrows: false, defval: '' });
+  // Entete = ligne avec le plus de largeurs "rondes" (multiples de 100) : les
+  // lignes de PRIX ont autant de nombres mais quasi aucun multiple de 100.
+  const mult100 = (v) => { const n = num(v); return n != null && n >= 200 && n <= 4600 && n % 100 === 0; };
+  let hr = -1, best = -1;
+  for (let i = 0; i < Math.min(aoa.length, 8); i++) {
+    const cnt = aoa[i].filter(mult100).length;
+    if (cnt > best) { best = cnt; hr = i; }
+  }
+  if (best < 3) throw new Error(name + ': ligne de largeurs introuvable');
+  const header = aoa[hr];
+  let widthCols = [];
+  for (let c = 0; c < header.length; c++) if (widthLike(header[c])) widthCols.push({ c, w: num(header[c]) });
+
+  // Ligne "bornes hautes" des petites largeurs = ligne suivante avec valeurs dans <=2 colonnes largeur.
+  const next = aoa[hr + 1] || [];
+  const nextCnt = widthCols.filter(({ c }) => widthLike(next[c])).length;
+  const hasUpper = nextCnt > 0 && nextCnt <= 2;
+  if (hasUpper) widthCols = widthCols.map(({ c, w }) => (widthLike(next[c]) ? { c, w: num(next[c]) } : { c, w }));
+
+  // Tronque a la reapparition d'une largeur inferieure (bloc "Axe 70" repete du
+  // lame 55), en tolerant la non-monotonie des 2 petites bandes de tete.
+  let cut = widthCols.length;
+  for (let k = 2; k < widthCols.length; k++) if (widthCols[k].w <= widthCols[k - 1].w) { cut = k; break; }
+  widthCols = widthCols.slice(0, cut);
+
+  const widthStart = widthCols[0].c;
+  const layerCol = widthStart >= 2 ? widthStart - 2 : -1;
+  const heightCol = widthStart >= 1 ? widthStart - 1 : -1;
+
+  const rows = []; let mv = null, curH = null;
+  for (let i = hr + (hasUpper ? 2 : 1); i < aoa.length; i++) {
+    const r = aoa[i];
+    const vals = widthCols.map(({ c }) => num(r[c]));
+    const present = vals.filter((v) => v != null);
+    if (present.length < 3) continue;
+    if (present.every((v) => v < 0)) { // ligne "Moins value AR"
+      mv = {}; widthCols.forEach(({ w }, k) => { if (vals[k] != null) mv[w] = vals[k]; });
+      continue;
+    }
+    let layer = null, height = null;
+    if (layerCol >= 0) {
+      const lc = String(r[layerCol] == null ? '' : r[layerCol]).toLowerCase();
+      if (/fil/.test(lc)) layer = 'filaire';
+      else if (/radio|rs100|io/.test(lc)) layer = 'radio';
+      const h = num(r[heightCol]); if (h != null) curH = h; height = curH;
+    }
+    rows.push({ layer, height, vals });
+  }
+  // Table etiquetee (avec Filaire/Radio) -> on ecarte les lignes parasites sans
+  // couche (PV coffre Briquelite/NeoThermic...). Table nue -> on garde tout
+  // (l'identite couche/hauteur vient de la 1ere moitie, par index).
+  const labeled = rows.some((r) => r.layer != null);
+  const clean = labeled ? rows.filter((r) => r.layer != null) : rows;
+  return { widths: widthCols.map((x) => x.w), rows: clean, mv };
+}
+
+function buildGrid(g) {
+  const h1 = parseHalf(g.tables[0]);
+  let h2 = parseHalf(g.tables[1]);
+  // Dedoublonne le chevauchement de largeurs entre les 2 moities (ex. Somfy: 2100 repete).
+  const h1max = Math.max(...h1.widths);
+  const keep2 = [];
+  h2.widths.forEach((w, i) => { if (w > h1max) keep2.push(i); });
+  h2 = { widths: keep2.map((i) => h2.widths[i]), rows: h2.rows.map((r) => ({ layer: r.layer, height: r.height, vals: keep2.map((i) => r.vals[i]) })), mv: h2.mv };
+  if (h1.rows.some((r) => r.layer == null)) throw new Error(g.tables[0] + ': 1ere moitie sans couches');
+  if (h1.rows.length !== h2.rows.length) {
+    console.warn(`  ! ${g.key.pose}/${g.key.lame}/${g.key.moteur}: ${h1.rows.length} vs ${h2.rows.length} lignes (2 moities)`);
+  }
+  const combinedWidths = [...h1.widths, ...h2.widths];
+  const perLayer = { filaire: [], radio: [] }; // {height, vals[]}
+  for (let i = 0; i < h1.rows.length; i++) {   // 1ere moitie autoritaire ; 2e completee (pad si manquante)
+    const layer = h1.rows[i].layer;
+    const v2 = h2.rows[i] ? h2.rows[i].vals : h2.widths.map(() => null);
+    perLayer[layer].push({ height: h1.rows[i].height, vals: [...h1.rows[i].vals, ...v2] });
+  }
+  const layers = {};
+  for (const layer of ['filaire', 'radio']) {
+    const list = perLayer[layer];
+    if (!list.length) continue;
+    // largeurs propres a la couche = colonnes non nulles sur au moins une hauteur
+    const keep = [];
+    for (let k = 0; k < combinedWidths.length; k++) if (list.some((row) => row.vals[k] != null)) keep.push(k);
+    const widths = keep.map((k) => combinedWidths[k]);
+    const rows = {};
+    for (const row of list) rows[row.height] = keep.map((k) => row.vals[k]);
+    layers[layer] = { widths, rows };
+  }
+  const heights = [...new Set([...(perLayer.filaire), ...(perLayer.radio)].map((r) => r.height))].sort((a, b) => a - b);
+  const mv = { ...(h1.mv || {}), ...(h2.mv || {}) };
+  return { grid: { key: g.key, heights, layers }, mv };
+}
+
+// ── Construction + controles ──
+const grids = [], adjustments = [];
+const errs = [];
+for (const g of GRIDS) {
+  let built;
+  try { built = buildGrid(g); }
+  catch (e) { errs.push(`${g.tables.join('+')}: ${e.message}`); continue; }
+  const { grid, mv } = built;
+  const tag = `${g.key.pose}/${g.key.lame}/${g.key.moteur}`;
+  for (const layer of ['filaire', 'radio']) {
+    const lg = grid.layers[layer];
+    if (!lg) { errs.push(`${tag}: couche ${layer} absente`); continue; }
+    for (let k = 1; k < lg.widths.length; k++) if (lg.widths[k] <= lg.widths[k - 1]) errs.push(`${tag}/${layer}: largeurs non croissantes ${lg.widths[k - 1]}>=${lg.widths[k]}`);
+  }
+  grids.push(grid);
+  if (Object.keys(mv).length) adjustments.push({ code: 'attaches_rigides', label: 'Attaches rigides (au lieu des verrous)', scope: g.key, optional: true, baremeParLargeur: mv });
+}
+
+// Ancres PDF (CD942 independant, sur)
+function cell(key, layer, w, h) {
+  const g = grids.find((x) => x.key.pose === key.pose && x.key.lame === key.lame && x.key.moteur === key.moteur);
+  const lg = g && g.layers[layer]; if (!lg) return null;
+  const wi = lg.widths.indexOf(w); if (wi < 0) return null;
+  return lg.rows[h] ? lg.rows[h][wi] : null;
+}
+const K = { pose: 'independant', lame: 'cd942' };
+const anchors = [
+  [cell({ ...K, moteur: 'mn' }, 'filaire', 700, 850), 309],
+  [cell({ ...K, moteur: 'mn' }, 'radio', 700, 850), 528],
+  [cell({ ...K, moteur: 'mn' }, 'filaire', 1400, 850), 380],
+  [cell({ ...K, moteur: 'somfy' }, 'filaire', 700, 850), 403],
+  [cell({ ...K, moteur: 'somfy' }, 'radio', 700, 850), 612],
+  [cell({ pose: 'independant', lame: '56', moteur: 'mn' }, 'filaire', 800, 850), 361],
+  [cell({ pose: 'coffre', lame: 'cd942', moteur: 'mn' }, 'filaire', 700, 850), 446],
+  [cell({ pose: 'express', lame: 'cd942', moteur: 'mn' }, 'filaire', 700, 850), 313],
+  [cell({ pose: 'express', lame: 'cd942', moteur: 'mn' }, 'radio', 700, 850), 527],
+];
+anchors.forEach(([got, want], i) => { if (got !== want) errs.push(`ancre #${i}: ${got} != ${want}`); });
+
+// ── Reste de la definition ──
+const selectors = [
+  { id: 'pose', label: 'Type de pose', options: [
+    { value: 'independant', label: 'Traditionnel independant' },
+    { value: 'coffre', label: 'Monte dans coffre tunnel' },
+    { value: 'express', label: 'Tradi express' },
+  ] },
+  { id: 'lame', label: 'Lame', options: [
+    { value: 'cd942', label: 'Aluminium CD942', hint: 'Surface max 8 m2' },
+    { value: '56', label: 'Aluminium 56', hint: 'Surface max 10 m2' },
+    { value: '55', label: 'Aluminium 55', hint: 'Surface max 12 m2' },
+  ] },
+  { id: 'moteur', label: 'Motorisation', options: [
+    { value: 'mn', label: 'Moteur MN' },
+    { value: 'somfy', label: 'Moteur Somfy (LT50 / RS100 io)' },
+  ] },
+];
+adjustments.push({ code: 'manoeuvre_manuelle', label: 'Manoeuvre manuelle (tringle oscillante)', scope: { pose: 'independant' }, layer: 'filaire', optional: true, baremeParLargeur: { 450: -72, 3000: -13 } });
+const options = [
+  { code: 'inverseur', label: 'Inverseur (applique ou encastre)', priceHT: 21, group: 'commande' },
+  { code: 'emetteur_portatif_5c', label: 'Emetteur portatif 5 canaux', priceHT: 80, group: 'commande', scope: { moteur: 'mn' } },
+  { code: 'emetteur_mural_5c', label: 'Emetteur mural 5 canaux', priceHT: 80, group: 'commande', scope: { moteur: 'mn' } },
+  { code: 'amy_4c_io', label: 'Emetteur Amy 4 canaux IO', priceHT: 131, group: 'commande', scope: { moteur: 'somfy' } },
+  { code: 'situo_io_1c', label: 'Emetteur Situo IO 1 canal', priceHT: 100, group: 'commande', scope: { moteur: 'somfy' } },
+  { code: 'situo_io_5c', label: 'Emetteur Situo IO 5 canaux', priceHT: 135, group: 'commande', scope: { moteur: 'somfy' } },
+  { code: 'genouillere_60a', label: 'Genouillere 60 aimantee', priceHT: 41, group: 'manoeuvre' },
+  { code: 'genouillere_90', label: 'Genouillere 90', priceHT: 18, group: 'manoeuvre' },
+  { code: 'genouillere_90a', label: 'Genouillere 90 aimantee', priceHT: 59, group: 'manoeuvre' },
+  { code: 'serrure_lame_finale', label: 'Serrure sur lame finale', priceHT: 135, group: 'divers' },
+  { code: 'flasque_guidage', label: 'Flasques de guidage 188', priceHT: 18, group: 'divers' },
+  { code: 'kit_inverseur_secours', label: 'Kit inverseur + contact a cle + telerupteur', priceHT: 139, group: 'divers' },
+];
+const colors = [
+  { code: 'blanc-9010', label: 'Blanc 9010', hex: '#F1F0EA' },
+  { code: 'ivoire-1015', label: 'Ivoire 1015', hex: '#E6D2B5' },
+  { code: 'gris-7016', label: 'Gris 7016', hex: '#383E42' },
+  { code: 'gris-7035', label: 'Gris 7035', hex: '#D7D7D7' },
+  { code: 'gris-7038', label: 'Gris 7038', hex: '#B5B8B1' },
+  { code: 'alu-9006', label: 'Alu AS 9006', hex: '#A5A8A8' },
+  { code: 'marron-8019', label: 'Marron 8019', hex: '#3D2B24' },
+  { code: 'noir-9005', label: 'Noir 9005', hex: '#0A0A0A' },
+  { code: 'rouge-3004', label: 'Rouge 3004', hex: '#6B1C23' },
+  { code: 'bleu-5011', label: 'Bleu 5011', hex: '#1F3049' },
+  { code: 'vert-6005', label: 'Vert 6005', hex: '#2E4C3B' },
+  { code: 'gris-9007', label: 'Gris 9007', hex: '#8A8B8A' },
+  { code: 'chene-dore', label: 'Chene dore', hex: '#7A5A2E' },
+];
+const colorPolicies = [{ lame: '*', standard: ['blanc-9010', 'ivoire-1015', 'gris-7016', 'gris-7035', 'gris-7038', 'alu-9006', 'marron-8019', 'noir-9005'], pvM2: { codes: ['rouge-3004', 'bleu-5011', 'vert-6005', 'gris-9007', 'chene-dore'], montantParM2: 14 } }];
+const limits = [
+  { lame: 'cd942', surfaceMaxM2: 8, largeurMin: 300, largeurMax: 3000, hauteurMax: 3300 },
+  { lame: '56', surfaceMaxM2: 10, largeurMin: 300, largeurMax: 4000, hauteurMax: 4100 },
+  { lame: '55', surfaceMaxM2: 12, largeurMin: 300, largeurMax: 4500, hauteurMax: 4600 },
+];
+
+const def = { slug: 'volet-roulant-traditionnel', name: 'Volet roulant traditionnel', famille: 'volet-roulant', selectors, grids, adjustments, options, colors, colorPolicies, limits };
+
+console.log('Grilles construites: ' + grids.length + '/' + GRIDS.length);
+for (const g of grids) {
+  const f = g.layers.filaire, r = g.layers.radio;
+  console.log('  ' + `${g.key.pose}/${g.key.lame}/${g.key.moteur}`.padEnd(28) +
+    ' H=' + String(g.heights.length).padStart(2) +
+    ' | fil ' + (f ? f.widths.length + 'L ' + f.widths[0] + '..' + f.widths[f.widths.length - 1] : '-').padEnd(16) +
+    ' | rad ' + (r ? r.widths.length + 'L ' + r.widths[0] + '..' + r.widths[r.widths.length - 1] : '-'));
+}
+if (errs.length) { console.log('\nPROBLEMES (' + errs.length + '):'); errs.slice(0, 40).forEach((e) => console.log('  - ' + e)); }
+else console.log('\nContoles OK (largeurs croissantes + ancres PDF).');
+
+const out = path.join('lib', 'configurateur', 'data', 'volet-roulant-traditionnel.json');
+fs.writeFileSync(out, JSON.stringify(def));
+console.log('Ecrit ' + out + ' (' + (fs.statSync(out).size / 1024).toFixed(0) + ' Ko)');

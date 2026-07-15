@@ -64,20 +64,19 @@ export function resolveConfiguratorPrice(
     if (surfaceM2 > limit.surfaceMaxM2) return null;
   }
 
-  // 2. Grille + snap-up
+  // 2. Grille + couche + snap-up (largeurs propres à la couche)
   const grid = findGrid(def, sel.axes);
   if (!grid) return null;
+  const layerGrid = grid.layers[sel.layer];
+  if (!layerGrid) return null;
 
-  const largeurSnap = snapUp(sel.largeur, grid.widths);
+  const largeurSnap = snapUp(sel.largeur, layerGrid.widths);
   const hauteurSnap = snapUp(sel.hauteur, grid.heights);
   if (largeurSnap === null || hauteurSnap === null) return null;
 
-  const layerCells = grid.cells[sel.layer];
-  if (!layerCells) return null;
-  const row = layerCells[hauteurSnap];
+  const row = layerGrid.rows[hauteurSnap];
   if (!row) return null;
-  const wi = grid.widths.indexOf(largeurSnap);
-  const base = row[wi];
+  const base = row[layerGrid.widths.indexOf(largeurSnap)];
   if (base == null) return null;
 
   // 3. Ajustements (moins-values / suppléments par largeur)
@@ -135,8 +134,8 @@ function colorSurcharge(
 export function priceFrom(def: ConfiguratorDef): MoneyHT {
   let min = Infinity;
   for (const g of def.grids) {
-    for (const layer of Object.values(g.cells)) {
-      for (const row of Object.values(layer)) {
+    for (const lg of Object.values(g.layers)) {
+      for (const row of Object.values(lg.rows)) {
         for (const v of row) if (v != null && v < min) min = v;
       }
     }

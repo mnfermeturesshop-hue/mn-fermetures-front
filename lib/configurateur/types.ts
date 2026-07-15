@@ -35,16 +35,25 @@ export interface Selector {
 export type BaremeParLargeur = Record<number, MoneyHT>;
 
 /**
+ * Grille d'UNE couche moteur (filaire ou radio). `widths` = bornes hautes
+ * de bande (snap-up), PROPRES à la couche : le tarif a des petites largeurs
+ * différentes selon filaire/radio (ex. MN filaire ≤450, radio ≤600).
+ * `rows[hauteur]` est aligné sur `widths` ; `null` = hors abaque.
+ */
+export interface LayerGrid {
+  widths: number[];
+  rows: Record<number, (MoneyHT | null)[]>;
+}
+
+/**
  * Grille de prix pour UNE combinaison d'axes (ex: pose=indépendant,
- * lame=cd942, moteur=mn). `widths`/`heights` sont les bornes hautes de
- * bande (snap-up, comme le tablier). `cells[layer][hauteur]` est un
- * tableau aligné sur `widths` ; `null` = hors abaque pour cette case.
+ * lame=cd942, moteur=mn). Les hauteurs (snap-up) sont communes aux couches ;
+ * chaque couche a ses propres largeurs.
  */
 export interface PriceGrid {
   key: Record<string, string>;                 // { pose, lame, moteur }
-  widths: number[];
   heights: number[];
-  cells: Partial<Record<MotorLayer, Record<number, (MoneyHT | null)[]>>>;
+  layers: Partial<Record<MotorLayer, LayerGrid>>;
 }
 
 /* ---------- Ajustements (moins-values / suppléments par largeur) ---------- */

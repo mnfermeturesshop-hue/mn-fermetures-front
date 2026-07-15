@@ -104,7 +104,7 @@ export function parseWorkbook(data: ArrayBuffer | Uint8Array): ParseResult {
 
     const aoa = sheetAoa(wb, name)!;
     const widths = aoa[0].slice(2).map(num).filter((v): v is number => v != null);
-    const cells: PriceGrid['cells'] = {};
+    const tmp: Partial<Record<MotorLayer, Record<number, (number | null)[]>>> = {};
     let arBareme: BaremeParLargeur | null = null;
 
     for (const r of aoa.slice(1)) {
@@ -112,8 +112,7 @@ export function parseWorkbook(data: ArrayBuffer | Uint8Array): ParseResult {
       if (layer) {
         const h = num(r[0]);
         if (h == null) continue;
-        const prices = widths.map((_, i) => num(r[2 + i]));
-        (cells[layer] ??= {})[h] = prices;
+        (tmp[layer] ??= {})[h] = widths.map((_, i) => num(r[2 + i]));
       } else if (isArRow(r[0], r[1])) {
         arBareme = {};
         widths.forEach((w, i) => { const m = num(r[2 + i]); if (m != null) arBareme![w] = m; });
@@ -121,9 +120,23 @@ export function parseWorkbook(data: ArrayBuffer | Uint8Array): ParseResult {
     }
 
     if (!widths.length) errors.push(`Grille « ${name} » : ligne d'entête des largeurs vide.`);
-    if (!cells.filaire && !cells.radio) errors.push(`Grille « ${name} » : aucune ligne filaire/radio.`);
+    if (!tmp.filaire && !tmp.radio) errors.push(`Grille « ${name} » : aucune ligne filaire/radio.`);
 
-    grids.push({ key, widths, heights: Object.keys(cells.filaire ?? cells.radio ?? {}).map(Number).sort((a, b) => a - b), cells });
+    // Largeurs propres à chaque couche : on écarte les colonnes vides pour la
+    // couche (ex. petite bande filaire ≤450 vide en radio, et inversement).
+    const heights = [...new Set([...Object.keys(tmp.filaire ?? {}), ...Object.keys(tmp.radio ?? {})].map(Number))].sort((a, b) => a - b);
+    const layers: PriceGrid['layers'] = {};
+    for (const layer of ['filaire', 'radio'] as MotorLayer[]) {
+      const rowsByH = tmp[layer];
+      if (!rowsByH) continue;
+      const keep: number[] = [];
+      for (let k = 0; k < widths.length; k++) if (Object.values(rowsByH).some((row) => row[k] != null)) keep.push(k);
+      const rows: Record<number, (number | null)[]> = {};
+      for (const [h, row] of Object.entries(rowsByH)) rows[Number(h)] = keep.map((k) => row[k]);
+      layers[layer] = { widths: keep.map((k) => widths[k]), rows };
+    }
+
+    grids.push({ key, heights, layers });
     if (arBareme && Object.keys(arBareme).length) {
       adjustments.push({
         code: 'attaches_rigides', label: 'Attaches rigides (au lieu des verrous)',
