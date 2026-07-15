@@ -27,6 +27,8 @@ export interface Selector {
   id: string;           // ex: 'pose' | 'lame' | 'moteur'
   label: string;        // ex: 'Type de lame'
   options: SelectorOption[];
+  /** Affiché seulement si les axes courants matchent (ex. { pose: 'coffre' }). */
+  scope?: Record<string, string>;
 }
 
 /* ---------- Grilles de prix (Largeur × Hauteur) ---------- */

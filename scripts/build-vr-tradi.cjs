@@ -61,7 +61,7 @@ function parseHalf(name) {
   const layerCol = widthStart >= 2 ? widthStart - 2 : -1;
   const heightCol = widthStart >= 1 ? widthStart - 1 : -1;
 
-  const rows = []; let mv = null, curH = null;
+  const rows = []; let mv = null, curH = null; const pv = {};
   for (let i = hr + (hasUpper ? 2 : 1); i < aoa.length; i++) {
     const r = aoa[i];
     const vals = widthCols.map(({ c }) => num(r[c]));
@@ -70,6 +70,13 @@ function parseHalf(name) {
     if (present.every((v) => v < 0)) { // ligne "Moins value AR"
       mv = {}; widthCols.forEach(({ w }, k) => { if (vals[k] != null) mv[w] = vals[k]; });
       continue;
+    }
+    // Plus-values coffre (par largeur) : Briquelite / NeoThermic / NeoBric / sous-face 7016.
+    if (layerCol >= 0) {
+      const lbl = String(r[layerCol] == null ? '' : r[layerCol]).toLowerCase();
+      const t = /briquel/.test(lbl) ? 'briquelite' : /neotherm/.test(lbl) ? 'neothermic'
+        : /neobric/.test(lbl) ? 'neobric' : (/sous ?face/.test(lbl) || /7016/.test(lbl)) ? 'sousface7016' : null;
+      if (t) { pv[t] = pv[t] || {}; widthCols.forEach(({ w }, k) => { if (vals[k] != null) pv[t][w] = vals[k]; }); continue; }
     }
     let layer = null, height = null;
     if (layerCol >= 0) {
@@ -85,7 +92,7 @@ function parseHalf(name) {
   // (l'identite couche/hauteur vient de la 1ere moitie, par index).
   const labeled = rows.some((r) => r.layer != null);
   const clean = labeled ? rows.filter((r) => r.layer != null) : rows;
-  return { widths: widthCols.map((x) => x.w), rows: clean, mv };
+  return { widths: widthCols.map((x) => x.w), rows: clean, mv, pv };
 }
 
 function buildGrid(g) {
@@ -121,17 +128,21 @@ function buildGrid(g) {
   }
   const heights = [...new Set([...(perLayer.filaire), ...(perLayer.radio)].map((r) => r.height))].sort((a, b) => a - b);
   const mv = { ...(h1.mv || {}), ...(h2.mv || {}) };
-  return { grid: { key: g.key, heights, layers }, mv };
+  const pv = {};
+  for (const src of [h1.pv, h2.pv]) for (const [t, b] of Object.entries(src || {})) pv[t] = { ...(pv[t] || {}), ...b };
+  return { grid: { key: g.key, heights, layers }, mv, pv };
 }
 
 // ── Construction + controles ──
 const grids = [], adjustments = [];
 const errs = [];
+const coffrePv = {};
 for (const g of GRIDS) {
   let built;
   try { built = buildGrid(g); }
   catch (e) { errs.push(`${g.tables.join('+')}: ${e.message}`); continue; }
-  const { grid, mv } = built;
+  const { grid, mv, pv } = built;
+  if (grid.key.pose === 'coffre') for (const [t, b] of Object.entries(pv)) coffrePv[t] = { ...(coffrePv[t] || {}), ...b };
   const tag = `${g.key.pose}/${g.key.lame}/${g.key.moteur}`;
   for (const layer of ['filaire', 'radio']) {
     const lg = grid.layers[layer];
@@ -163,6 +174,15 @@ const anchors = [
 ];
 anchors.forEach(([got, want], i) => { if (got !== want) errs.push(`ancre #${i}: ${got} != ${want}`); });
 
+// Ancres plus-values coffre (Table 25, largeur 700)
+const pvAnchors = [
+  [coffrePv.briquelite && coffrePv.briquelite[700], 37, 'Briquelite'],
+  [coffrePv.neothermic && coffrePv.neothermic[700], 25, 'Neothermic'],
+  [coffrePv.neobric && coffrePv.neobric[700], 59, 'Neobric'],
+  [coffrePv.sousface7016 && coffrePv.sousface7016[700], 12, 'sous-face 7016'],
+];
+pvAnchors.forEach(([got, want, lbl]) => { if (got !== want) errs.push(`PV coffre ${lbl}[700]: ${got} != ${want}`); });
+
 // ── Reste de la definition ──
 const selectors = [
   { id: 'pose', label: 'Type de pose', options: [
@@ -180,7 +200,26 @@ const selectors = [
     { value: 'somfy', label: 'Moteur Somfy (LT50 / RS100 io)' },
   ] },
 ];
+if (Object.keys(coffrePv).length) {
+  selectors.push({
+    id: 'coffre', label: 'Type de coffre', scope: { pose: 'coffre' },
+    options: [
+      { value: 'thermic', label: "Thermic'elite (standard)" },
+      ...(coffrePv.briquelite ? [{ value: 'briquelite', label: 'Briquelite' }] : []),
+      ...(coffrePv.neothermic ? [{ value: 'neothermic', label: 'Neothermic' }] : []),
+      ...(coffrePv.neobric ? [{ value: 'neobric', label: 'Neobric' }] : []),
+    ],
+  });
+}
 adjustments.push({ code: 'manoeuvre_manuelle', label: 'Manoeuvre manuelle (tringle oscillante)', scope: { pose: 'independant' }, layer: 'filaire', optional: true, baremeParLargeur: { 450: -72, 3000: -13 } });
+
+// Coffre tunnel : plus-value par largeur selon le type de coffre (base = Thermic'elite),
+// + option sous-face coloris 7016. Extrait des grilles coffre.
+const COFFRE_LABELS = { briquelite: 'Briquelite', neothermic: 'Neothermic', neobric: 'Neobric' };
+for (const [t, label] of Object.entries(COFFRE_LABELS)) {
+  if (coffrePv[t]) adjustments.push({ code: 'coffre_' + t, label: 'Coffre ' + label, scope: { pose: 'coffre', coffre: t }, optional: false, baremeParLargeur: coffrePv[t] });
+}
+if (coffrePv.sousface7016) adjustments.push({ code: 'sous_face_7016', label: 'Sous-face coloris 7016', scope: { pose: 'coffre' }, optional: true, baremeParLargeur: coffrePv.sousface7016 });
 const options = [
   { code: 'inverseur', label: 'Inverseur (applique ou encastre)', priceHT: 21, group: 'commande' },
   { code: 'emetteur_portatif_5c', label: 'Emetteur portatif 5 canaux', priceHT: 80, group: 'commande', scope: { moteur: 'mn' } },

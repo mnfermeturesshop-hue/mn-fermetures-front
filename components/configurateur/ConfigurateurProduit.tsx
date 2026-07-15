@@ -137,14 +137,17 @@ export function ConfigurateurProduit({ slug }: Props) {
   const chooseAxis = (id: string, value: string) => setAxes((a) => repairAxes(def, order, { ...a, [id]: value }));
   const currentGrid = findGrid(def, order, axes);
   const layerAvailable = (l: MotorLayer) => !currentGrid || !!currentGrid.layers[l];
+  // Sélecteurs conditionnels (ex. « Type de coffre » visible seulement en pose coffre).
+  const visibleSelectors = def.selectors.filter((s) => scopeOk(s.scope));
+  const nStep = visibleSelectors.length;
 
   return (
     <div className="cfg-wrap">
       {/* ── Colonne gauche ── */}
       <div className="cfg-left">
 
-        {/* Axes de choix (pose, lame, motorisation…) — en cascade */}
-        {def.selectors.map((sel, i) => {
+        {/* Axes de choix (pose, lame, motorisation…) — en cascade, conditionnels */}
+        {visibleSelectors.map((sel, i) => {
           const avail = availableFor(def, sel.id, order, axes);
           return (
             <section className="cfg-section" key={sel.id}>
@@ -172,7 +175,7 @@ export function ConfigurateurProduit({ slug }: Props) {
 
         {/* Type de commande (filaire / radio) */}
         <section className="cfg-section">
-          <h3 className="cfg-title">{def.selectors.length + 1}. Type de commande</h3>
+          <h3 className="cfg-title">{nStep +1}. Type de commande</h3>
           <div className="cfg-tabs">
             {(['filaire', 'radio'] as MotorLayer[]).map((l) => (
               <button
@@ -190,7 +193,7 @@ export function ConfigurateurProduit({ slug }: Props) {
 
         {/* Dimensions */}
         <section className="cfg-section">
-          <h3 className="cfg-title">{def.selectors.length + 2}. Dimensions (en mm)</h3>
+          <h3 className="cfg-title">{nStep +2}. Dimensions (en mm)</h3>
           <div className="cfg-dims">
             <div className="cfg-field">
               <label>Largeur dos de coulisse</label>
@@ -220,7 +223,7 @@ export function ConfigurateurProduit({ slug }: Props) {
 
         {/* Coloris */}
         <section className="cfg-section">
-          <h3 className="cfg-title">{def.selectors.length + 3}. Coloris</h3>
+          <h3 className="cfg-title">{nStep +3}. Coloris</h3>
           <div className="cfg-coloris-row">
             {def.colors.map((c) => (
               <button key={c.code} type="button" title={c.label}
@@ -235,7 +238,7 @@ export function ConfigurateurProduit({ slug }: Props) {
         {/* Options */}
         {(optionalAdjustments.length > 0 || def.options.length > 0) && (
           <section className="cfg-section">
-            <h3 className="cfg-title">{def.selectors.length + 4}. Options</h3>
+            <h3 className="cfg-title">{nStep +4}. Options</h3>
             <div className="cfg-options">
               {optionalAdjustments.map((a) => (
                 <label className="cfg-check" key={a.code}>
