@@ -140,6 +140,10 @@ Configurateur **réservé aux pros connectés** : `/configurateur/volet-roulant-
 | CF20 | Régler **filaire MN** puis saisir largeur **410 mm** | Refus « hors barème » (mini 420 en filaire MN) ; l'intervalle autorisé est affiché sous les dimensions | ☐ | |
 | CF21 | Cocher **Manœuvre manuelle** puis largeur **400 mm** | Accepté (mini tringle 400) — l'intervalle mini s'adapte au mode | ☐ | |
 | CF22 | Section **Fabrication** : régler **Enroulement INT/EXT** | Le choix apparaît dans le détail de la ligne panier (et sur le bon de commande / email atelier) | ☐ | |
+| CF23 | Dérouler l'**assistant pas-à-pas** (Suivant/Précédent + fil d'étapes cliquable) | Une étape à la fois ; le **prix reste affiché** (panneau à droite desktop, barre en bas mobile) | ☐ | |
+| CF24 | À l'étape **Dimensions**, saisir des dimensions **hors barème** | Le bouton **Suivant est désactivé** tant que le prix n'est pas calculable | ☐ | |
+| CF25 | Aller jusqu'au **Récapitulatif** | Tous les choix récapitulés + quantité ; **« Ajouter au panier »** seulement à la dernière étape ; ligne identique au panier | ☐ | |
+| CF26 | Refaire le parcours sur **mobile** | Une étape par écran, barre de prix collante en bas, pas de débordement | ☐ | |
 
 ### 3.5 Forfait laquage (coloris RAL) — au niveau commande
 

@@ -1962,11 +1962,49 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 
 .cfg-summary-empty { padding: 32px 20px; text-align: center; font-size: 13px; color: var(--muted); }
 
+/* ── Assistant pas-à-pas (wizard) ── */
+.cfg-stepper { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; padding: 0; margin: 0 0 20px; }
+.cfg-stepper-btn {
+  display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px;
+  border: 1px solid var(--line); border-radius: 999px; background: #fff;
+  cursor: pointer; font-size: 13px; color: var(--muted); transition: all .15s;
+}
+.cfg-stepper-btn:hover { border-color: var(--steel-600); }
+.cfg-stepper-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 50%; background: var(--surface-2);
+  color: var(--muted); font-size: 12px; font-weight: 700;
+}
+.cfg-stepper-item.current .cfg-stepper-btn { border-color: var(--steel-600); color: var(--ink); font-weight: 600; background: #eef2f7; }
+.cfg-stepper-item.current .cfg-stepper-num { background: var(--steel-600); color: #fff; }
+.cfg-stepper-item.done .cfg-stepper-num { background: var(--success, #16a34a); color: #fff; }
+.cfg-step { min-height: 180px; }
+.cfg-step .cfg-section:first-child { padding-top: 0; }
+.cfg-step .cfg-section:last-child { border-bottom: none; }
+.cfg-nav { display: flex; justify-content: space-between; gap: 12px; padding-top: 20px; border-top: 1px solid var(--line); }
+.cfg-nav .btn { min-width: 140px; }
+.cfg-recap-list { list-style: none; padding: 0; margin: 0 0 16px; }
+.cfg-recap-list li { display: flex; justify-content: space-between; gap: 16px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.cfg-recap-list li span { color: var(--muted); }
+.cfg-recap-list li strong { text-align: right; }
+.cfg-mobar { display: none; }
+
 /* Responsive */
 @media (max-width: 900px) {
   .cfg-wrap { grid-template-columns: 1fr; }
-  .cfg-right { position: static; }
+  .cfg-right { display: none; }              /* prix via la barre collante mobile */
+  .cfg-left { padding-bottom: 80px; }
   .cfg-dims { grid-template-columns: 1fr 1fr; }
+  .cfg-stepper { justify-content: center; }
+  .cfg-stepper-label { display: none; }      /* pastilles numérotées seules */
+  .cfg-mobar {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    padding: 12px 16px; background: #fff; border-top: 1px solid var(--line);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, .06);
+  }
+  .cfg-mobar-price { font-weight: 800; font-size: 17px; color: var(--ink); }
+  .cfg-mobar .btn { min-width: 130px; }
 }
 @media (max-width: 500px) {
   .cfg-dims { grid-template-columns: 1fr; }
