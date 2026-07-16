@@ -247,7 +247,7 @@ export async function POST(req: NextRequest) {
     // Montant TTC = ce que Stripe a réellement encaissé (montant serveur du PaymentIntent).
     const paidTTC = pi.amount / 100;
     if (verified.ok) {
-      const t = computeOrderTotals(verified.productsHT, method);
+      const t = computeOrderTotals(verified.productsHT, method, verified.laquageHT);
       lines = verified.lines;
       totals = { fraisHT: t.fraisHT, totalHT: t.totalHT, totalTTC: paidTTC };
     } else {
@@ -260,7 +260,7 @@ export async function POST(req: NextRequest) {
     if (!verified.ok) {
       return NextResponse.json({ error: verified.error }, { status: 400 });
     }
-    const t = computeOrderTotals(verified.productsHT, method);
+    const t = computeOrderTotals(verified.productsHT, method, verified.laquageHT);
     lines = verified.lines;
     totals = t;
   }

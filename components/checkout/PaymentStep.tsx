@@ -46,7 +46,7 @@ export function PaymentStep({ onBack }: Props) {
     setPendingOrderPayload, setPlacedOrder,
   } = useCheckoutStore();
   const { user, isPro } = useAuthStore();
-  const { lines, totalHT, totalTTC, isFranco, clearCart } = useCartStore();
+  const { lines, totalHT, isFranco, laquageForfait, clearCart } = useCartStore();
   const [paying, setPaying] = useState(false);
 
   const defaultMethod: PaymentMethod = isPro() ? 'virement' : 'card';
@@ -55,8 +55,9 @@ export function PaymentStep({ onBack }: Props) {
   }
 
   const fraisHT  = shippingCostHT(shippingMethod, isFranco());
-  const grandHT  = totalHT() + fraisHT;
-  const grandTTC = totalTTC() + fraisHT * 1.2;
+  const laquageHT = laquageForfait();
+  const grandHT  = totalHT() + fraisHT + laquageHT;
+  const grandTTC = grandHT * 1.2;
 
   const email        = guestMode ? guestEmail : (user?.email ?? '');
   const customerName = guestMode

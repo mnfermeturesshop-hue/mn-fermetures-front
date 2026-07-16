@@ -7,6 +7,8 @@ import type { CartLine, Uom } from '@/lib/catalog/types';
 const TVA = 0.20;
 const FRANCO_SEUIL = 400;
 const FRANCO_FORFAIT = 26;
+const LAQUAGE_FORFAIT = 77;   // forfait laquage RAL par commande…
+const LAQUAGE_FRANCO = 2000;  // …offert dès 2000 € HT de commande
 
 interface CartStore {
   lines: CartLine[];
@@ -27,6 +29,8 @@ interface CartStore {
   tva: () => number;
   fraisLivraison: () => number;
   isFranco: () => boolean;
+  hasLaquage: () => boolean;
+  laquageForfait: () => number;
   totalLines: () => number;
 }
 
@@ -77,6 +81,10 @@ export const useCartStore = create<CartStore>()(
       totalTTC: () => get().totalHT() * (1 + TVA),
       isFranco: () => get().totalHT() >= FRANCO_SEUIL,
       fraisLivraison: () => (get().isFranco() ? 0 : FRANCO_FORFAIT),
+      hasLaquage: () =>
+        get().lines.some((l) => l.pricing?.kind === 'configurateur' && l.pricing.laque === true),
+      laquageForfait: () =>
+        get().hasLaquage() && get().totalHT() < LAQUAGE_FRANCO ? LAQUAGE_FORFAIT : 0,
       totalLines: () => get().lines.reduce((s, l) => s + l.quantity, 0),
     }),
     {

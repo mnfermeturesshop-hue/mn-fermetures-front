@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
   }
 
   const method: ShippingMethod = shippingMethod === 'express' ? 'express' : 'standard';
-  const { totalTTC } = computeOrderTotals(verified.productsHT, method);
+  const { totalTTC } = computeOrderTotals(verified.productsHT, method, verified.laquageHT);
   if (totalTTC <= 0) {
     return NextResponse.json({ error: 'Montant invalide' }, { status: 400 });
   }

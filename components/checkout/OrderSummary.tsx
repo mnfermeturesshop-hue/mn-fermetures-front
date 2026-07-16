@@ -4,15 +4,15 @@ import { useCartStore, euro } from '@/lib/store/cart';
 import { useCheckoutStore, shippingCostHT } from '@/lib/store/checkout';
 
 export function OrderSummary() {
-  const { lines, totalHT, totalTTC, tva, isFranco, fraisLivraison } = useCartStore();
+  const { lines, totalHT, isFranco, laquageForfait } = useCartStore();
   const { shippingMethod } = useCheckoutStore();
 
   const ht = totalHT();
   const franco = isFranco();
   const fraisHT = shippingCostHT(shippingMethod, franco);
-  const fraisTTC = fraisHT * 1.2;
-  const grandTotalHT = ht + fraisHT;
-  const grandTotalTTC = totalTTC() + fraisTTC;
+  const laquageHT = laquageForfait();
+  const grandTotalHT = ht + fraisHT + laquageHT;
+  const grandTotalTTC = grandTotalHT * 1.2;
 
   return (
     <aside className="order-summary">
@@ -36,7 +36,10 @@ export function OrderSummary() {
           <span>Livraison HT</span>
           <span>{franco && shippingMethod === 'standard' ? <span className="green">Offerte</span> : euro(fraisHT)}</span>
         </div>
-        <div className="os-row muted"><span>TVA 20 %</span><span>{euro(tva() + fraisHT * 0.2)}</span></div>
+        {laquageHT > 0 && (
+          <div className="os-row muted"><span>Forfait laquage</span><span>{euro(laquageHT)}</span></div>
+        )}
+        <div className="os-row muted"><span>TVA 20 %</span><span>{euro((ht + fraisHT + laquageHT) * 0.2)}</span></div>
         <div className="os-row os-total-ht"><span>Total HT</span><span>{euro(grandTotalHT)}</span></div>
         <div className="os-row os-total-ttc"><span>Total TTC</span><span>{euro(grandTotalTTC)}</span></div>
       </div>

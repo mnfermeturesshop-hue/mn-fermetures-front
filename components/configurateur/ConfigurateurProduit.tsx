@@ -368,7 +368,7 @@ export function ConfigurateurProduit({ slug }: Props) {
                   quantity: qty,
                   uom: 'unite',
                   // Re-tarification serveur (audit S2) : dimensions/options brutes.
-                  pricing: { kind: 'configurateur', slug, axes, layer, largeur, hauteur, colorCode, options: [...opts] },
+                  pricing: { kind: 'configurateur', slug, axes, layer, largeur, hauteur, colorCode, options: [...opts], laque: selectedColorIsPv },
                 });
                 openCart();
                 toast.success('Produit ajouté au panier');

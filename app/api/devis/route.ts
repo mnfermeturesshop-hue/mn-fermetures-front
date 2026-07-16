@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: verified.error }, { status: 400 });
   }
   const method: ShippingMethod = body.shippingMethod === 'express' ? 'express' : 'standard';
-  const totals = computeOrderTotals(verified.productsHT, method);
+  const totals = computeOrderTotals(verified.productsHT, method, verified.laquageHT);
 
   const adminClient = createAdminClient();
   const { error } = await adminClient.from('devis').insert({

@@ -33,13 +33,14 @@ function LineRow({ line }: { line: CartLine }) {
 }
 
 export default function CartPage() {
-  const { lines, totalHT, totalTTC, tva, fraisLivraison, isFranco, clearCart, showTTC, toggleTTC } = useCartStore();
+  const { lines, totalHT, tva, fraisLivraison, isFranco, laquageForfait, clearCart, showTTC, toggleTTC } = useCartStore();
   const { isPro } = useAuthStore();
 
   const ht = totalHT();
   const franco = isFranco();
   const frais = fraisLivraison();
-  const ttc = totalTTC();
+  const laquage = laquageForfait();
+  const grandHT = ht + frais + laquage;
 
   if (lines.length === 0) {
     return (
@@ -106,8 +107,11 @@ export default function CartPage() {
               <span>Frais de livraison HT</span>
               <span>{franco ? <span className="green">Offerts</span> : euro(frais)}</span>
             </div>
-            <div className="summary-row summary-ht"><span>Total HT</span><span>{euro(ht + frais)}</span></div>
-            <div className="summary-row summary-ttc"><span>Total TTC</span><span>{euro(ttc + frais * 1.2)}</span></div>
+            {laquage > 0 && (
+              <div className="summary-row muted"><span>Forfait laquage HT</span><span>{euro(laquage)}</span></div>
+            )}
+            <div className="summary-row summary-ht"><span>Total HT</span><span>{euro(grandHT)}</span></div>
+            <div className="summary-row summary-ttc"><span>Total TTC</span><span>{euro(grandHT * 1.2)}</span></div>
           </div>
 
           {isPro() ? (

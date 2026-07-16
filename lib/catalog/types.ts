@@ -138,6 +138,9 @@ export type LinePricing =
       hauteur: number;
       colorCode: string;
       options: string[];
+      /** Coloris laqué RAL → déclenche le forfait laquage commande (affichage ;
+       *  le serveur le recalcule depuis la définition, cf. verifyCart). */
+      laque?: boolean;
     }
   | {
       kind: 'devis';

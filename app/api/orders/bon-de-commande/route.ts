@@ -290,7 +290,7 @@ export async function POST(req: NextRequest) {
   if (!verified.ok) {
     return NextResponse.json({ error: verified.error }, { status: 400 });
   }
-  const totals = computeOrderTotals(verified.productsHT, method);
+  const totals = computeOrderTotals(verified.productsHT, method, verified.laquageHT);
 
   // Payload corrigé (lignes + totaux serveur) pour persistance ET emails
   const finalPayload: BonDeCommandePayload = {

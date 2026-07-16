@@ -2,6 +2,7 @@ import { getAllProducts } from './db';
 import { resolveMatrixPrice } from './resolvePrice';
 import { isMatrix, isUnit, isKit, type Product, type CartLine, type Uom } from './types';
 import { applyDiscount, getDiscount, type DiscountMap, type FamilleSlug } from '@/lib/familles';
+import { laquageForfaitHT } from '@/lib/pricing/shipping';
 import { resoudrePrix } from '@/lib/tablier/engine';
 import { loadConfiguratorDef } from '@/lib/configurateur/loader';
 import { resolveConfiguratorPrice } from '@/lib/configurateur/engine';
@@ -28,7 +29,7 @@ export interface VerifiedLine {
 }
 
 export type VerifyResult =
-  | { ok: true; lines: VerifiedLine[]; productsHT: number }
+  | { ok: true; lines: VerifiedLine[]; productsHT: number; laquageHT: number }
   | { ok: false; error: string };
 
 const MAX_QTY = 999;
@@ -84,6 +85,7 @@ export async function verifyCartLines(
 
   const verified: VerifiedLine[] = [];
   let productsHT = 0;
+  let hasLaque = false;   // ≥1 ligne configurateur en coloris laqué RAL
 
   for (const raw of clientLines as CartLine[]) {
     const qty = Number(raw?.quantity);
@@ -159,6 +161,12 @@ export async function verifyCartLines(
       base = res.total;
       name = raw.name ? String(raw.name) : def.name;
       famille = def.famille as FamilleSlug;
+      // Coloris laqué (RAL) → forfait laquage par commande (recalcul autoritaire,
+      // on ignore un éventuel flag client).
+      const cLame = String((pr.axes ?? {}).lame ?? '');
+      const cCode = String(pr.colorCode ?? '');
+      const pol = def.colorPolicies.find((p) => p.lame === cLame) ?? def.colorPolicies.find((p) => p.lame === '*');
+      if (pol?.pvM2?.codes.includes(cCode)) hasLaque = true;
     } else if (raw?.reference) {
       const hit = byRef.get(raw.reference);
       if (!hit) return { ok: false, error: `Référence introuvable : ${raw.reference}` };
@@ -187,5 +195,11 @@ export async function verifyCartLines(
     });
   }
 
-  return { ok: true, lines: verified, productsHT: Math.round(productsHT * 100) / 100 };
+  const roundedProductsHT = Math.round(productsHT * 100) / 100;
+  return {
+    ok: true,
+    lines: verified,
+    productsHT: roundedProductsHT,
+    laquageHT: laquageForfaitHT(roundedProductsHT, hasLaque),
+  };
 }
