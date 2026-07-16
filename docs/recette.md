@@ -112,7 +112,41 @@ Cahier de tests à dérouler avant mise en production. Il couvre l'ensemble des 
 | C28 | Vérifier les emails de conversion (client + équipe) | « Devis accepté » (équipe) + confirmation (client) reçus | ☐ | |
 | C29 | Programmer un **rappel de devis** (J+15) | Confirmation d'activation du rappel | ☐ | |
 
-### 3.4 Documents & commentaires
+### 3.4 Configurateur volet roulant traditionnel (prix instantané)
+
+Configurateur **réservé aux pros connectés** : `/configurateur/volet-roulant-traditionnel` (menu « Volet sur mesure »). Prix HT instantané, remise pro appliquée, recalcul serveur au panier.
+
+| # | Action à réaliser | Résultat attendu | OK/KO | Remarque |
+|---|---|---|---|---|
+| CF1 | Non connecté, ouvrir le configurateur | Écran « réservé aux professionnels » (prix masqués) | ☐ | |
+| CF2 | Connecté (A), sélectionner **Tradi express** | Les lames **Aluminium 56 et 55 sont grisées** ; la lame bascule sur CD942 | ☐ | |
+| CF3 | Sélectionner **Monté dans coffre tunnel** | La lame **55 est grisée** ; un sélecteur **« Type de coffre »** apparaît | ☐ | |
+| CF4 | Sélectionner **Traditionnel indépendant** | Les **3 lames** sont disponibles ; pas de sélecteur coffre | ☐ | |
+| CF5 | Changer **Type de coffre** (Thermic'élite → Briquélite/Néothermic/Néobric) | Le prix augmente de la **plus-value coffre** correspondante | ☐ | |
+| CF6 | Cocher **Sous-face coloris 7016** (coffre) | +12 € (selon largeur) au prix | ☐ | |
+| CF7 | Basculer **Filaire / Radio** | Le prix de base change ; en filaire, l'option **Manœuvre manuelle** est proposée | ☐ | |
+| CF8 | Cocher **Manœuvre manuelle** (filaire) | Le prix **baisse** (moins-value selon la pose) | ☐ | |
+| CF9 | Choisir **Moteur Somfy** puis couche **Radio** | Un sélecteur **« Motorisation radio Somfy »** (RS100 io / RTS / Solaire) apparaît **sous** le choix filaire/radio | ☐ | |
+| CF10 | Sélectionner **RTS** puis **Solaire** | +55 € (RTS) puis +232 € (Solaire) ; options **Amy 4 canaux / Alim. dépannage** proposées | ☐ | |
+| CF11 | Repasser en **Filaire** | Le sélecteur radio Somfy et ses options **disparaissent** ; leur plus-value n'est plus comptée | ☐ | |
+| CF12 | Ouvrir la section **Coloris** pour la lame CD942 | ~21 coloris proposés ; teintes laquées marquées d'une **pastille « + »** | ☐ | |
+| CF13 | Passer à la **lame 55** | La liste de coloris se **réduit** (12) ; si le coloris courant devient indispo, il **se réinitialise** | ☐ | |
+| CF14 | Choisir un coloris **laqué** (ex. Rouge 3004) | Ligne **« Supplément coloris » (+14 €/m²)** au récapitulatif + note **forfait laquage** | ☐ | |
+| CF15 | Saisir des **dimensions hors barème** (ex. 3000 × 3000 en CD942) | Message **« hors barème »**, pas de prix ni d'ajout possible | ☐ | |
+| CF16 | **Ajouter au panier** une config valide | Ligne créée avec le détail (lame, couche, dimensions, coloris, options) et le bon prix remisé | ☐ | |
+| CF17 | Vérifier la **remise pro** sur le prix | Le prix unitaire reflète la remise famille « volet-roulant » de A | ☐ | |
+
+### 3.5 Forfait laquage (coloris RAL) — au niveau commande
+
+| # | Action à réaliser | Résultat attendu | OK/KO | Remarque |
+|---|---|---|---|---|
+| CL1 | Panier avec **1 ligne coloris laqué** (< 2 000 € HT) | Ligne **« Forfait laquage » +77 € HT** dans le tiroir, `/panier` et le récap checkout | ☐ | |
+| CL2 | Ajouter **plusieurs** lignes laquées (< 2 000 € HT) | Le forfait reste **77 € une seule fois** (par commande, pas par ligne) | ☐ | |
+| CL3 | Atteindre **≥ 2 000 € HT** de produits | Le forfait laquage passe à **Offert** (n'apparaît plus) | ☐ | |
+| CL4 | Panier **sans coloris laqué** (que des standards) | **Aucun** forfait laquage | ☐ | |
+| CL5 | Aller au **paiement** (ou bon de commande) avec un forfait actif | Le **montant débité / total commande** inclut bien les 77 € (parité avec l'affichage) | ☐ | |
+
+### 3.6 Documents & commentaires
 
 | # | Action à réaliser | Résultat attendu | OK/KO | Remarque |
 |---|---|---|---|---|
