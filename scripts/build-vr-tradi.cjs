@@ -211,6 +211,16 @@ if (Object.keys(coffrePv).length) {
     ],
   });
 }
+// Motorisation radio Somfy : IO (incluse) / RTS / Solaire — mutuellement exclusives,
+// affichees seulement en radio + moteur Somfy. Plus-values sur la grille radio RS100 io.
+selectors.push({
+  id: 'radio_somfy', label: 'Motorisation radio Somfy', scope: { moteur: 'somfy' }, layer: 'radio',
+  options: [
+    { value: 'io', label: 'RS100 io (emetteur Amy inclus)' },
+    { value: 'rts', label: 'RTS — emetteur Smoove (+55 EUR)' },
+    { value: 'solaire', label: 'Solaire — kit batterie + panneau (+232 EUR)', hint: 'Largeur mini 433 mm' },
+  ],
+});
 // Manoeuvre manuelle (moins-value sur grille Filaire) — seuils/valeurs par pose (tarif p10/26/34).
 const MANOEUVRE = [
   { scope: { pose: 'independant' }, bareme: { 450: -72, 3000: -13 } }, // < 451 -72 / >= 451 -13
@@ -226,13 +236,17 @@ for (const [t, label] of Object.entries(COFFRE_LABELS)) {
   if (coffrePv[t]) adjustments.push({ code: 'coffre_' + t, label: 'Coffre ' + label, scope: { pose: 'coffre', coffre: t }, optional: false, baremeParLargeur: coffrePv[t] });
 }
 if (coffrePv.sousface7016) adjustments.push({ code: 'sous_face_7016', label: 'Sous-face coloris 7016', scope: { pose: 'coffre' }, optional: true, baremeParLargeur: coffrePv.sousface7016 });
+// Motorisation radio Somfy : RTS / solaire = plus-value sur grille radio RS100 io (tarif p11/12).
+adjustments.push({ code: 'somfy_rts', label: 'Motorisation RTS', scope: { moteur: 'somfy', radio_somfy: 'rts' }, layer: 'radio', optional: false, baremeParLargeur: { 99999: 55 } });
+adjustments.push({ code: 'somfy_solaire', label: 'Motorisation solaire', scope: { moteur: 'somfy', radio_somfy: 'solaire' }, layer: 'radio', optional: false, baremeParLargeur: { 99999: 232 } });
 const options = [
   { code: 'inverseur', label: 'Inverseur (applique ou encastre)', priceHT: 21, group: 'commande' },
-  { code: 'emetteur_portatif_5c', label: 'Emetteur portatif 5 canaux', priceHT: 80, group: 'commande', scope: { moteur: 'mn' } },
-  { code: 'emetteur_mural_5c', label: 'Emetteur mural 5 canaux', priceHT: 80, group: 'commande', scope: { moteur: 'mn' } },
-  { code: 'amy_4c_io', label: 'Emetteur Amy 4 canaux IO', priceHT: 131, group: 'commande', scope: { moteur: 'somfy' } },
-  { code: 'situo_io_1c', label: 'Emetteur Situo IO 1 canal', priceHT: 100, group: 'commande', scope: { moteur: 'somfy' } },
-  { code: 'situo_io_5c', label: 'Emetteur Situo IO 5 canaux', priceHT: 135, group: 'commande', scope: { moteur: 'somfy' } },
+  { code: 'emetteur_portatif_5c', label: 'Emetteur portatif 5 canaux', priceHT: 80, group: 'commande', scope: { moteur: 'mn' }, layer: 'radio' },
+  { code: 'emetteur_mural_5c', label: 'Emetteur mural 5 canaux', priceHT: 80, group: 'commande', scope: { moteur: 'mn' }, layer: 'radio' },
+  { code: 'amy_4c_io', label: 'Emetteur Amy 4 canaux IO', priceHT: 131, group: 'commande', scope: { moteur: 'somfy' }, layer: 'radio' },
+  { code: 'situo_io_1c', label: 'Emetteur Situo IO 1 canal', priceHT: 100, group: 'commande', scope: { moteur: 'somfy' }, layer: 'radio' },
+  { code: 'situo_io_5c', label: 'Emetteur Situo IO 5 canaux', priceHT: 135, group: 'commande', scope: { moteur: 'somfy' }, layer: 'radio' },
+  { code: 'alim_depannage', label: 'Alimentation de depannage (solaire)', priceHT: 83, group: 'commande', scope: { moteur: 'somfy', radio_somfy: 'solaire' }, layer: 'radio' },
   { code: 'genouillere_60a', label: 'Genouillere 60 aimantee', priceHT: 41, group: 'manoeuvre' },
   { code: 'genouillere_90', label: 'Genouillere 90', priceHT: 18, group: 'manoeuvre' },
   { code: 'genouillere_90a', label: 'Genouillere 90 aimantee', priceHT: 59, group: 'manoeuvre' },

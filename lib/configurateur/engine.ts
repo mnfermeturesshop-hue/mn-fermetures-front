@@ -95,6 +95,7 @@ export function resolveConfiguratorPrice(
   for (const opt of def.options) {
     if (!sel.optionCodes.includes(opt.code)) continue;
     if (!matches(opt.scope, sel.axes)) continue;
+    if (opt.layer && opt.layer !== sel.layer) continue;
     if (opt.priceHT !== 0) options.push({ code: opt.code, label: opt.label, montant: opt.priceHT });
   }
 

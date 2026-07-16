@@ -161,45 +161,52 @@ export function ConfigurateurProduit({ slug }: Props) {
   const chooseAxis = (id: string, value: string) => setAxes((a) => repairAxes(def, order, { ...a, [id]: value }));
   const currentGrid = findGrid(def, order, axes);
   const layerAvailable = (l: MotorLayer) => !currentGrid || !!currentGrid.layers[l];
-  // Sélecteurs conditionnels (ex. « Type de coffre » visible seulement en pose coffre).
-  const visibleSelectors = def.selectors.filter((s) => scopeOk(s.scope));
+  // Sélecteurs conditionnels : par axes (« Type de coffre » → pose coffre) ET par
+  // couche (« Motorisation radio Somfy » → radio seulement). Les sélecteurs liés à
+  // une couche sont rendus APRÈS le choix filaire/radio.
+  const visibleSelectors = def.selectors.filter((s) => scopeOk(s.scope) && (!s.layer || s.layer === layer));
+  const baseSelectors = visibleSelectors.filter((s) => !s.layer);
+  const layerSelectors = visibleSelectors.filter((s) => s.layer);
+  const nBase = baseSelectors.length;
   const nStep = visibleSelectors.length;
+
+  const renderSelector = (sel: ConfiguratorDef['selectors'][number], number: number) => {
+    const avail = availableFor(def, sel.id, order, axes);
+    return (
+      <section className="cfg-section" key={sel.id}>
+        <h3 className="cfg-title">{number}. {sel.label}</h3>
+        <div className="cfg-tabs">
+          {sel.options.map((o) => {
+            const disabled = !avail.has(o.value);
+            return (
+              <button
+                key={o.value}
+                type="button"
+                disabled={disabled}
+                className={`cfg-tab${axes[sel.id] === o.value ? ' active' : ''}`}
+                onClick={() => chooseAxis(sel.id, o.value)}
+                title={disabled ? 'Non disponible pour ce choix' : o.hint}
+              >
+                {o.label}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+    );
+  };
 
   return (
     <div className="cfg-wrap">
       {/* ── Colonne gauche ── */}
       <div className="cfg-left">
 
-        {/* Axes de choix (pose, lame, motorisation…) — en cascade, conditionnels */}
-        {visibleSelectors.map((sel, i) => {
-          const avail = availableFor(def, sel.id, order, axes);
-          return (
-            <section className="cfg-section" key={sel.id}>
-              <h3 className="cfg-title">{i + 1}. {sel.label}</h3>
-              <div className="cfg-tabs">
-                {sel.options.map((o) => {
-                  const disabled = !avail.has(o.value);
-                  return (
-                    <button
-                      key={o.value}
-                      type="button"
-                      disabled={disabled}
-                      className={`cfg-tab${axes[sel.id] === o.value ? ' active' : ''}`}
-                      onClick={() => chooseAxis(sel.id, o.value)}
-                      title={disabled ? 'Non disponible pour ce choix' : o.hint}
-                    >
-                      {o.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
+        {/* Axes de base (pose, lame, motorisation…) — en cascade, conditionnels */}
+        {baseSelectors.map((sel, i) => renderSelector(sel, i + 1))}
 
         {/* Type de commande (filaire / radio) */}
         <section className="cfg-section">
-          <h3 className="cfg-title">{nStep +1}. Type de commande</h3>
+          <h3 className="cfg-title">{nBase + 1}. Type de commande</h3>
           <div className="cfg-tabs">
             {(['filaire', 'radio'] as MotorLayer[]).map((l) => (
               <button
@@ -214,6 +221,9 @@ export function ConfigurateurProduit({ slug }: Props) {
             ))}
           </div>
         </section>
+
+        {/* Sélecteurs dépendant de la couche (ex. motorisation radio Somfy) */}
+        {layerSelectors.map((sel, j) => renderSelector(sel, nBase + 2 + j))}
 
         {/* Dimensions */}
         <section className="cfg-section">
@@ -283,7 +293,7 @@ export function ConfigurateurProduit({ slug }: Props) {
                 </label>
               ))}
               {def.options
-                .filter((o) => Object.entries(o.scope ?? {}).every(([k, v]) => axes[k] === v))
+                .filter((o) => Object.entries(o.scope ?? {}).every(([k, v]) => axes[k] === v) && (!o.layer || o.layer === layer))
                 .map((o) => (
                   <label className="cfg-check" key={o.code}>
                     <input type="checkbox" checked={opts.has(o.code)} onChange={() => toggleOpt(o.code)} />

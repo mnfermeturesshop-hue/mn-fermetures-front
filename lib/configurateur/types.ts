@@ -29,6 +29,8 @@ export interface Selector {
   options: SelectorOption[];
   /** Affiché seulement si les axes courants matchent (ex. { pose: 'coffre' }). */
   scope?: Record<string, string>;
+  /** Affiché seulement pour cette couche (ex. motorisation radio Somfy → 'radio'). */
+  layer?: MotorLayer;
 }
 
 /* ---------- Grilles de prix (Largeur × Hauteur) ---------- */
@@ -83,6 +85,7 @@ export interface FixedOption {
   priceHT: MoneyHT;                             // 0 = « inclus / sans plus-value »
   group?: string;                               // 'commande' | 'manoeuvre' | 'divers'
   scope?: Record<string, string>;               // ex: { moteur: 'somfy' }
+  layer?: MotorLayer;                           // restreint à une couche (ex: options radio Somfy)
   defaultOn?: boolean;
 }
 
