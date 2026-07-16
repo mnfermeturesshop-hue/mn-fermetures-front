@@ -141,6 +141,9 @@ export type LinePricing =
       /** Coloris laqué RAL → déclenche le forfait laquage commande (affichage ;
        *  le serveur le recalcule depuis la définition, cf. verifyCart). */
       laque?: boolean;
+      /** Champs de fabrication (sans impact prix) capturés pour la production —
+       *  passés tels quels par le serveur (jamais re-tarifés). */
+      specs?: Record<string, string>;
     }
   | {
       kind: 'devis';

@@ -1869,6 +1869,12 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 }
 .cfg-coloris-label { font-size: 13px; color: var(--ink); font-weight: 500; margin-left: 4px; }
 .cfg-coloris-pv { color: var(--steel-600); font-style: normal; font-weight: 600; }
+/* Intervalle de dimensions autorisé + champs de fabrication */
+.cfg-dim-hint { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+.cfg-specs { display: flex; flex-direction: column; gap: 14px; }
+.cfg-spec-field { display: flex; flex-direction: column; gap: 6px; }
+.cfg-spec-label { font-size: 13px; font-weight: 600; color: var(--ink); }
+.cfg-spec-field input[type="text"] { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; }
 
 /* Dimensions */
 .cfg-dims { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }

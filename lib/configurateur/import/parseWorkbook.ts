@@ -9,7 +9,7 @@
 import * as XLSX from 'xlsx';
 import type {
   ConfiguratorDef, Selector, SelectorOption, PriceGrid, MotorLayer,
-  Adjustment, FixedOption, ColorRef, ColorPolicy, DimLimits, BaremeParLargeur,
+  Adjustment, FixedOption, ColorRef, ColorPolicy, DimLimits, BaremeParLargeur, SpecField,
 } from '../types';
 
 export interface ParseResult { def: ConfiguratorDef | null; errors: string[] }
@@ -49,6 +49,29 @@ function parseBareme(s: string): BaremeParLargeur {
     const [w, m] = part.split(':').map((x) => x.trim());
     const wi = Number(w), mi = Number(m);
     if (Number.isFinite(wi) && Number.isFinite(mi)) out[wi] = mi;
+  }
+  return out;
+}
+
+/** "filaire_mn:420;radio_mn:506" → { filaire_mn:420, radio_mn:506 } (clés texte). */
+function parseModes(s: string): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const part of str(s).split(';')) {
+    const [k, v] = part.split(':').map((x) => x.trim());
+    const vi = Number(v);
+    if (k && Number.isFinite(vi)) out[k] = vi;
+  }
+  return out;
+}
+
+/** "int=Intérieur|ext=Extérieur" → [{value:'int',label:'Intérieur'}, …] */
+function parseOptionList(s: string): SelectorOption[] {
+  const out: SelectorOption[] = [];
+  for (const part of str(s).split('|')) {
+    const i = part.indexOf('=');
+    if (i < 0) { if (part.trim()) out.push({ value: part.trim(), label: part.trim() }); continue; }
+    const value = part.slice(0, i).trim(), label = part.slice(i + 1).trim();
+    if (value) out.push({ value, label: label || value });
   }
   return out;
 }
@@ -200,13 +223,38 @@ export function parseWorkbook(data: ArrayBuffer | Uint8Array): ParseResult {
   }
   const colorPolicies = [...polByLame.values()];
 
-  // ── Limites ──
+  // ── Limites (+ pose, + largeur mini par mode) ──
+  // Colonnes : lame | pose | surface_max_m2 | largeur_min | largeur_min_modes | largeur_max | hauteur_max
   const limits: DimLimits[] = [];
   for (const r of (sheetAoa(wb, 'Limites') ?? []).slice(1)) {
     const lame = str(r[0]); if (!lame) continue;
+    const pose = str(r[1]);
+    const modes = parseModes(str(r[4]));
     limits.push({
-      lame, surfaceMaxM2: num(r[1]) ?? 999, largeurMin: num(r[2]) ?? 0,
-      largeurMax: num(r[3]) ?? 99999, hauteurMax: num(r[4]) ?? 99999,
+      lame, ...(pose ? { pose } : {}),
+      surfaceMaxM2: num(r[2]) ?? 999, largeurMin: num(r[3]) ?? 0,
+      ...(Object.keys(modes).length ? { largeurMinByMode: modes } : {}),
+      largeurMax: num(r[5]) ?? 99999, hauteurMax: num(r[6]) ?? 99999,
+    });
+  }
+
+  // ── Champs de fabrication (sans impact prix) ──
+  // Colonnes : id | label | type | options | required | defaut | scope | layer | group
+  const specFields: SpecField[] = [];
+  for (const r of (sheetAoa(wb, 'Champs') ?? []).slice(1)) {
+    const id = str(r[0]); if (!id) continue;
+    const t = str(r[2]).toLowerCase();
+    const type: SpecField['type'] = t === 'select' ? 'select' : t === 'radio' ? 'radio' : 'text';
+    const opts = parseOptionList(str(r[3]));
+    const scope = parseScope(str(r[6]));
+    const layer = isLayer(r[7]);
+    specFields.push({
+      id, label: str(r[1]) || id, type,
+      ...(opts.length ? { options: opts } : {}),
+      ...(/oui|yes|true|1/i.test(str(r[4])) ? { required: true } : {}),
+      ...(str(r[5]) ? { defaultValue: str(r[5]) } : {}),
+      ...(scope ? { scope } : {}), ...(layer ? { layer } : {}),
+      ...(str(r[8]) ? { group: str(r[8]) } : {}),
     });
   }
 
@@ -215,6 +263,7 @@ export function parseWorkbook(data: ArrayBuffer | Uint8Array): ParseResult {
   const def: ConfiguratorDef = {
     slug: meta.slug, name: meta.name || meta.slug, famille: meta.famille || 'volet-roulant',
     selectors, grids, adjustments, options, colors, colorPolicies, limits,
+    ...(specFields.length ? { specFields } : {}),
   };
   return { def, errors: [] };
 }

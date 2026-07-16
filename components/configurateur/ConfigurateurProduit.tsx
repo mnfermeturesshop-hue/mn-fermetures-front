@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { resolveConfiguratorPrice } from '@/lib/configurateur/engine';
+import { resolveConfiguratorPrice, largeurMinFor } from '@/lib/configurateur/engine';
 import type { ConfiguratorDef, MotorLayer } from '@/lib/configurateur/types';
 import { applyDiscount, getDiscount, type FamilleSlug } from '@/lib/familles';
 import { useCartStore } from '@/lib/store/cart';
@@ -55,6 +55,7 @@ export function ConfigurateurProduit({ slug }: Props) {
   const [hauteurStr, setHauteurStr] = useState('1000');
   const [colorCode, setColorCode] = useState('');
   const [opts, setOpts] = useState<Set<string>>(new Set());
+  const [specs, setSpecs] = useState<Record<string, string>>({});   // champs de fabrication
   const [qty, setQty] = useState(1);
 
   // Chargement de la définition (réservé aux connectés : prix = donnée pro)
@@ -75,6 +76,7 @@ export function ConfigurateurProduit({ slug }: Props) {
         const initial = Object.fromEntries(d.selectors.map((s) => [s.id, s.options[0]?.value ?? '']));
         setAxes(repairAxes(d, order, initial));
         setColorCode(d.colors[0]?.code ?? '');
+        setSpecs(Object.fromEntries((d.specFields ?? []).map((f) => [f.id, f.defaultValue ?? f.options?.[0]?.value ?? ''])));
         setStatus('ok');
       })
       .catch(() => { if (alive) setStatus('error'); });
@@ -142,7 +144,10 @@ export function ConfigurateurProduit({ slug }: Props) {
   const optionalAdjustments = def.adjustments
     .filter((a) => a.optional && (!a.layer || a.layer === layer) && scopeOk(a.scope))
     .filter((a, i, arr) => arr.findIndex((x) => x.code === a.code) === i);
-  const currentLimit = def.limits.find((l) => l.lame === axes.lame);
+  const currentLimit = def.limits.find((l) => l.lame === axes.lame && l.pose === axes.pose)
+    ?? def.limits.find((l) => l.lame === axes.lame && !l.pose);
+  // Largeur mini courante (dépend du mode manœuvre/moteur) — pour l'intervalle affiché.
+  const curLargeurMin = largeurMinFor(def, { axes, layer, largeur, hauteur, colorCode, optionCodes: [...opts] });
 
   // Coloris disponibles pour la lame courante + niveau de prix (standard / laqué +€/m²).
   const colorPol = def.colorPolicies.find((p) => p.lame === axes.lame) ?? def.colorPolicies.find((p) => p.lame === '*');
@@ -169,6 +174,8 @@ export function ConfigurateurProduit({ slug }: Props) {
   const layerSelectors = visibleSelectors.filter((s) => s.layer);
   const nBase = baseSelectors.length;
   const nStep = visibleSelectors.length;
+  // Champs de fabrication visibles (selon axes/couche courants).
+  const visibleSpecFields = (def.specFields ?? []).filter((f) => scopeOk(f.scope) && (!f.layer || f.layer === layer));
 
   const renderSelector = (sel: ConfiguratorDef['selectors'][number], number: number) => {
     const avail = availableFor(def, sel.id, order, axes);
@@ -242,6 +249,11 @@ export function ConfigurateurProduit({ slug }: Props) {
               <span className="cfg-unit">mm</span>
             </div>
           </div>
+          {currentLimit && (
+            <p className="cfg-dim-hint">
+              Largeur autorisée <strong>{curLargeurMin}–{currentLimit.largeurMax} mm</strong> · hauteur max {currentLimit.hauteurMax} mm · surface max {currentLimit.surfaceMaxM2} m²
+            </p>
+          )}
           {result && (result.largeurSnap !== largeur || result.hauteurSnap !== hauteur) && (
             <p className="cfg-snap-note">
               Fabriqué en <strong>{result.largeurSnap} × {result.hauteurSnap} mm</strong> (arrondi au pas supérieur du barème)
@@ -250,7 +262,7 @@ export function ConfigurateurProduit({ slug }: Props) {
           {!result && largeur > 0 && hauteur > 0 && (
             <p className="cfg-error">
               Dimensions hors barème disponible
-              {currentLimit && <> — largeur {currentLimit.largeurMin}–{currentLimit.largeurMax} mm, surface max {currentLimit.surfaceMaxM2} m²</>}.
+              {currentLimit && <> — largeur {curLargeurMin}–{currentLimit.largeurMax} mm, surface max {currentLimit.surfaceMaxM2} m²</>}.
             </p>
           )}
         </section>
@@ -300,6 +312,40 @@ export function ConfigurateurProduit({ slug }: Props) {
                     <span>{o.label}{o.priceHT > 0 && <em> +{euro(o.priceHT)}</em>}</span>
                   </label>
                 ))}
+            </div>
+          </section>
+        )}
+
+        {/* Fabrication (champs remontés à la production — sans impact prix) */}
+        {visibleSpecFields.length > 0 && (
+          <section className="cfg-section">
+            <h3 className="cfg-title">{nStep + 5}. Fabrication</h3>
+            <div className="cfg-specs">
+              {visibleSpecFields.map((f) => (
+                <div className="cfg-spec-field" key={f.id}>
+                  <label className="cfg-spec-label">{f.label}</label>
+                  {f.type === 'text' ? (
+                    <input
+                      type="text"
+                      value={specs[f.id] ?? ''}
+                      onChange={(e) => setSpecs((s) => ({ ...s, [f.id]: e.target.value }))}
+                    />
+                  ) : (
+                    <div className="cfg-tabs">
+                      {(f.options ?? []).map((o) => (
+                        <button
+                          key={o.value}
+                          type="button"
+                          className={`cfg-tab${specs[f.id] === o.value ? ' active' : ''}`}
+                          onClick={() => setSpecs((s) => ({ ...s, [f.id]: o.value }))}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </section>
         )}
@@ -361,19 +407,28 @@ export function ConfigurateurProduit({ slug }: Props) {
                   ...result.adjustments.map((a) => a.label),
                   ...selectedOptionLabels,
                 ];
+                // Champs de fabrication visibles → libellés + payload structuré.
+                const specEntries = visibleSpecFields
+                  .filter((f) => specs[f.id])
+                  .map((f) => {
+                    const opt = f.options?.find((o) => o.value === specs[f.id]);
+                    return { id: f.id, value: specs[f.id], label: `${f.label} : ${opt?.label ?? specs[f.id]}` };
+                  });
+                const specsPayload = Object.fromEntries(specEntries.map((e) => [e.id, e.value]));
                 const detail = [
                   lameLabel, `${layer}`, `L ${result.largeurSnap} × H ${result.hauteurSnap} mm`, colorLabel,
                   ...optLabels,
+                  ...specEntries.map((e) => e.label),
                 ].filter(Boolean).join(' — ');
                 addLine({
-                  key: `cfg-${slug}-${JSON.stringify(axes)}-${layer}-${result.largeurSnap}x${result.hauteurSnap}-${colorCode}-${[...opts].sort().join(',')}`,
+                  key: `cfg-${slug}-${JSON.stringify(axes)}-${layer}-${result.largeurSnap}x${result.hauteurSnap}-${colorCode}-${[...opts].sort().join(',')}-${JSON.stringify(specsPayload)}`,
                   name: def.name,
                   detail,
                   unitPriceHT: unitNet,
                   quantity: qty,
                   uom: 'unite',
                   // Re-tarification serveur (audit S2) : dimensions/options brutes.
-                  pricing: { kind: 'configurateur', slug, axes, layer, largeur, hauteur, colorCode, options: [...opts], laque: selectedColorIsPv },
+                  pricing: { kind: 'configurateur', slug, axes, layer, largeur, hauteur, colorCode, options: [...opts], laque: selectedColorIsPv, specs: specsPayload },
                 });
                 openCart();
                 toast.success('Produit ajouté au panier');

@@ -89,9 +89,25 @@ Ajustements indexés par largeur autres que `MV_AR` : manœuvre manuelle, plus-v
 
 ## Feuille `Limites`
 
-| lame | surface_max_m2 | largeur_min | largeur_max | hauteur_max |
-|---|---|---|---|---|
-| cd942 | 8 | 300 | 3000 | 3230 |
+| lame | pose | surface_max_m2 | largeur_min | largeur_min_modes | largeur_max | hauteur_max |
+|---|---|---|---|---|---|---|
+| cd942 | | 8 | 400 | filaire_mn:420;radio_mn:506;filaire_somfy:400;radio_somfy:400;tringle:400;tirage_direct:630 | 3000 | 3230 |
+| cd942 | express | 8 | 400 | filaire_mn:505;radio_mn:591;filaire_somfy:400;radio_somfy:400;tringle:400;tirage_direct:630 | 3000 | 3230 |
+
+- `pose` (facultatif) = limite propre à une pose (ex. `express`), sinon s'applique à toutes.
+- `largeur_min_modes` (facultatif) = **largeur mini selon le mode** manœuvre/moteur `mode:mini;…`. Modes : `filaire_mn`, `radio_mn`, `filaire_somfy`, `radio_somfy`, `tringle` (manœuvre manuelle), `tirage_direct`. À défaut, `largeur_min` s'applique.
+
+## Feuille `Champs` (fabrication, sans impact prix)
+
+Champs capturés pour la production (remontés au bon de commande / email atelier) — n'entrent **pas** dans le prix.
+
+| id | label | type | options | required | defaut | scope | layer | group |
+|---|---|---|---|---|---|---|---|---|
+| enroulement | Enroulement | radio | int=Intérieur (INT)\|ext=Extérieur (EXT) | oui | int | | | pose |
+
+- `type` ∈ `select` · `radio` · `text`.
+- `options` = liste `valeur=Libellé` séparée par `|` (pour select/radio).
+- `scope`/`layer` = mêmes règles que pour les sélecteurs (affichage conditionnel).
 
 ---
 

@@ -105,14 +105,39 @@ export interface ColorPolicy {
   forfait?: { codes: string[]; montant: MoneyHT; seuilLaquageHT?: number };
 }
 
+/* ---------- Champs de fabrication (sans impact prix) ---------- */
+
+/**
+ * Champ capturé pour la PRODUCTION mais qui n'entre pas dans le calcul du prix
+ * (ex. enroulement INT/EXT, perçage, position moteur…). Rendu dans le
+ * configurateur, transporté sur la ligne panier, jamais re-tarifé côté serveur,
+ * et restitué sur le bon de commande / l'email atelier.
+ */
+export interface SpecField {
+  id: string;                                   // ex: 'enroulement'
+  label: string;                                // ex: 'Enroulement'
+  type: 'select' | 'radio' | 'text';
+  options?: SelectorOption[];                    // pour select/radio
+  required?: boolean;
+  defaultValue?: string;
+  scope?: Record<string, string>;               // n'apparaît que si les axes matchent
+  layer?: MotorLayer;
+  helpImage?: string;                            // schéma de montage (aide contextuelle)
+  group?: string;                               // regroupement d'affichage
+}
+
 /* ---------- Limites dimensionnelles ---------- */
 
 export interface DimLimits {
   lame: string;
+  pose?: string;                                // limite propre à une pose (ex. express)
   surfaceMaxM2: number;
-  largeurMin: number;
+  largeurMin: number;                           // repli si le mode n'est pas listé
+  /** Largeur mini selon le mode manœuvre/moteur : filaire_mn | radio_mn |
+   *  filaire_somfy | radio_somfy | tringle | tirage_direct (tarif Table 23). */
+  largeurMinByMode?: Record<string, number>;
   largeurMax: number;
-  hauteurMax: number;                           // v1 simplifié ; axe/coffre en v2
+  hauteurMax: number;                           // borne haute ; affinée axe/coffre au lot coffre
 }
 
 /* ---------- Définition complète ---------- */
@@ -128,6 +153,8 @@ export interface ConfiguratorDef {
   colors: ColorRef[];
   colorPolicies: ColorPolicy[];
   limits: DimLimits[];
+  /** Champs de fabrication capturés pour la production (sans impact prix). */
+  specFields?: SpecField[];
 }
 
 /* ---------- Sélection utilisateur ---------- */

@@ -293,13 +293,28 @@ const colorPolicies = Object.entries(LAME_COL).map(([lame, idx]) => {
   for (const r of COLOR_DEFS) { if (r[idx] === 'T') standard.push(r[0]); else if (r[idx] === 'P') pv.push(r[0]); }
   return { lame, standard, pvM2: { codes: pv, montantParM2: 14 } };
 });
+// Limites dimensionnelles (tarif Table 23 « LIMITES DIMENSIONNELLES »).
+// La largeur MINI depend du mode de manoeuvre/moteur ; la largeur MAXI et la
+// surface dependent de la lame. Modes : filaire_mn / radio_mn / filaire_somfy /
+// radio_somfy / tringle (manoeuvre manuelle) / tirage_direct.
+// Hauteur maxi = borne haute globale (3230, verrous axe 60) ; affinee par
+// axe/coffre au Lot coffre.
+const MINS_TRADI = { filaire_mn: 420, radio_mn: 506, filaire_somfy: 400, radio_somfy: 400, tringle: 400, tirage_direct: 630 };
+const MINS_EXPRESS = { filaire_mn: 505, radio_mn: 591, filaire_somfy: 400, radio_somfy: 400, tringle: 400, tirage_direct: 630 };
 const limits = [
-  { lame: 'cd942', surfaceMaxM2: 8, largeurMin: 300, largeurMax: 3000, hauteurMax: 3300 },
-  { lame: '56', surfaceMaxM2: 10, largeurMin: 300, largeurMax: 4000, hauteurMax: 4100 },
-  { lame: '55', surfaceMaxM2: 12, largeurMin: 300, largeurMax: 4500, hauteurMax: 4600 },
+  { lame: 'cd942', surfaceMaxM2: 8, largeurMin: 400, largeurMax: 3000, hauteurMax: 3230, largeurMinByMode: MINS_TRADI },
+  { lame: '56', surfaceMaxM2: 10, largeurMin: 400, largeurMax: 4000, hauteurMax: 3230, largeurMinByMode: MINS_TRADI },
+  { lame: '55', surfaceMaxM2: 12, largeurMin: 400, largeurMax: 4500, hauteurMax: 3230, largeurMinByMode: MINS_TRADI },
+  { lame: 'cd942', pose: 'express', surfaceMaxM2: 8, largeurMin: 400, largeurMax: 3000, hauteurMax: 3230, largeurMinByMode: MINS_EXPRESS },
 ];
 
-const def = { slug: 'volet-roulant-traditionnel', name: 'Volet roulant traditionnel', famille: 'volet-roulant', selectors, grids, adjustments, options, colors, colorPolicies, limits };
+// Champs de fabrication (sans impact prix) — remontent a la production.
+const specFields = [
+  { id: 'enroulement', label: 'Enroulement', type: 'radio', required: true, defaultValue: 'int', group: 'pose',
+    options: [ { value: 'int', label: 'Interieur (INT)' }, { value: 'ext', label: 'Exterieur (EXT)' } ] },
+];
+
+const def = { slug: 'volet-roulant-traditionnel', name: 'Volet roulant traditionnel', famille: 'volet-roulant', selectors, grids, adjustments, options, colors, colorPolicies, limits, specFields };
 
 console.log('Grilles construites: ' + grids.length + '/' + GRIDS.length);
 for (const g of grids) {

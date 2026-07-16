@@ -47,6 +47,24 @@ function findGrid(def: ConfiguratorDef, axes: Record<string, string>): PriceGrid
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
 /**
+ * Mode de manœuvre/moteur qui détermine la largeur minimale (tarif Table 23).
+ * Manœuvre manuelle (tringle) prime ; sinon la combinaison couche + moteur.
+ * (Le tirage direct sera ajouté avec la manœuvre complète.)
+ */
+export function dimMode(sel: ConfiguratorSelection): string {
+  if (sel.optionCodes.includes('manoeuvre_manuelle')) return 'tringle';
+  return `${sel.layer}_${sel.axes.moteur}`;
+}
+
+/** Largeur minimale effective pour une sélection (pour l'affichage de l'intervalle). */
+export function largeurMinFor(def: ConfiguratorDef, sel: ConfiguratorSelection): number {
+  const limit = def.limits.find((l) => l.lame === sel.axes.lame && l.pose === sel.axes.pose)
+    ?? def.limits.find((l) => l.lame === sel.axes.lame && !l.pose);
+  if (!limit) return 0;
+  return limit.largeurMinByMode?.[dimMode(sel)] ?? limit.largeurMin;
+}
+
+/**
  * Résout le prix d'une configuration. Renvoie `null` si hors limites
  * dimensionnelles ou hors abaque (case/dimension non tarifée).
  */
@@ -54,11 +72,13 @@ export function resolveConfiguratorPrice(
   def: ConfiguratorDef,
   sel: ConfiguratorSelection,
 ): ConfiguratorResult | null {
-  // 1. Limites dimensionnelles de la lame
+  // 1. Limites dimensionnelles (largeur mini selon le mode manœuvre/moteur)
   const lame = sel.axes.lame;
-  const limit = def.limits.find((l) => l.lame === lame);
+  const limit = def.limits.find((l) => l.lame === lame && l.pose === sel.axes.pose)
+    ?? def.limits.find((l) => l.lame === lame && !l.pose);
   if (limit) {
-    if (sel.largeur < limit.largeurMin || sel.largeur > limit.largeurMax) return null;
+    const largeurMin = limit.largeurMinByMode?.[dimMode(sel)] ?? limit.largeurMin;
+    if (sel.largeur < largeurMin || sel.largeur > limit.largeurMax) return null;
     if (sel.hauteur > limit.hauteurMax) return null;
     const surfaceM2 = (sel.largeur / 1000) * (sel.hauteur / 1000);
     if (surfaceM2 > limit.surfaceMaxM2) return null;

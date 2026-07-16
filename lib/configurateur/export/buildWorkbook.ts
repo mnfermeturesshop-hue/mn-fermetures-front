@@ -18,6 +18,12 @@ const serializeScope = (scope?: Record<string, string>): string =>
 const serializeBareme = (b: Record<number, number>): string =>
   Object.keys(b).map(Number).sort((a, z) => a - z).map((w) => `${w}:${b[w]}`).join(';');
 
+const serializeModes = (m?: Record<string, number>): string =>
+  m ? Object.entries(m).map(([k, v]) => `${k}:${v}`).join(';') : '';
+
+const serializeOptions = (opts?: { value: string; label: string }[]): string =>
+  (opts ?? []).map((o) => `${o.value}=${o.label}`).join('|');
+
 /** Deux objets de portée strictement égaux (mêmes clés/valeurs). */
 function sameScope(a: Record<string, string> | undefined, b: Record<string, string>): boolean {
   if (!a) return false;
@@ -100,10 +106,17 @@ export function buildWorkbook(def: ConfiguratorDef): Uint8Array {
   }
   add('Coloris', colRows);
 
-  // Limites
-  const limRows: Row[] = [['lame', 'surface_max_m2', 'largeur_min', 'largeur_max', 'hauteur_max']];
-  for (const l of def.limits) limRows.push([l.lame, l.surfaceMaxM2, l.largeurMin, l.largeurMax, l.hauteurMax]);
+  // Limites (+ pose, + largeur mini par mode)
+  const limRows: Row[] = [['lame', 'pose', 'surface_max_m2', 'largeur_min', 'largeur_min_modes', 'largeur_max', 'hauteur_max']];
+  for (const l of def.limits)
+    limRows.push([l.lame, l.pose ?? '', l.surfaceMaxM2, l.largeurMin, serializeModes(l.largeurMinByMode), l.largeurMax, l.hauteurMax]);
   add('Limites', limRows);
+
+  // Champs de fabrication (sans impact prix)
+  const specRows: Row[] = [['id', 'label', 'type', 'options', 'required', 'defaut', 'scope', 'layer', 'group']];
+  for (const f of def.specFields ?? [])
+    specRows.push([f.id, f.label, f.type, serializeOptions(f.options), f.required ? 'oui' : 'non', f.defaultValue ?? '', serializeScope(f.scope), f.layer ?? '', f.group ?? '']);
+  add('Champs', specRows);
 
   // Grilles (une feuille par pose × lame × moteur)
   for (const g of def.grids) { const s = gridSheet(def, g); add(s.name, s.rows); }
