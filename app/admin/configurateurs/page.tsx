@@ -8,8 +8,11 @@ interface ImportOk {
   ok: true;
   slug: string;
   name: string;
-  stats: { grids: number; heights: number; selectors: number; options: number; colors: number };
+  stats: { grids: number; heights: number; selectors: number; options: number; colors: number; priceFrom: number; priceFromBefore: number | null };
 }
+
+const SLUG = 'volet-roulant-traditionnel';
+const euro = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 
 export default function AdminConfigurateurs() {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -47,11 +50,25 @@ export default function AdminConfigurateurs() {
         <h1 className="adm-h1">Configurateurs</h1>
       </div>
 
+      <div className="adm-card" style={{ maxWidth: 640, marginBottom: 18 }}>
+        <h2 style={{ margin: '0 0 8px', fontSize: 16 }}>Mise à jour du tarif (annuelle)</h2>
+        <p style={{ margin: '0 0 14px', color: 'var(--muted)', fontSize: 14, lineHeight: 1.6 }}>
+          <strong>1.</strong> Exportez le tarif <em>en cours</em> (toutes les valeurs pré-remplies) &nbsp;
+          <strong>2.</strong> Éditez les prix dans Excel &nbsp;
+          <strong>3.</strong> Ré-importez le classeur ci-dessous.
+          La structure (grilles, coffres, options, coloris) est conservée à l&apos;identique.
+        </p>
+        <a className="btn ghost" href={`/api/admin/configurateurs/export?slug=${SLUG}`}>
+          ⬇ Exporter le tarif (.xlsx)
+        </a>
+      </div>
+
       <div className="adm-card" style={{ maxWidth: 640 }}>
         <p style={{ margin: '0 0 16px', color: 'var(--muted)', fontSize: 14, lineHeight: 1.6 }}>
-          Importez un classeur Excel de tarif (grilles L×H, moins-values, options, coloris, limites).
+          Ré-importez le classeur Excel de tarif (grilles L×H, ajustements, options, coloris, limites).
           Le format attendu est décrit dans <code>docs/configurateur-modele-tarif.md</code>.
-          L&apos;import remplace la définition existante (même <em>slug</em>) et actualise le configurateur en ligne.
+          L&apos;import remplace la définition existante (même <em>slug</em>), archive la précédente
+          (rollback possible) et actualise le configurateur en ligne.
         </p>
 
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -73,6 +90,12 @@ export default function AdminConfigurateurs() {
             <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 13, color: '#256b45' }}>
               <li>{result.stats.grids} grille(s) · {result.stats.heights} bande(s) de hauteur au total</li>
               <li>{result.stats.selectors} axe(s) · {result.stats.options} option(s) · {result.stats.colors} coloris</li>
+              <li>
+                Prix à partir de : <strong>{euro(result.stats.priceFrom)}</strong> HT
+                {result.stats.priceFromBefore != null && result.stats.priceFromBefore !== result.stats.priceFrom && (
+                  <> &nbsp;(avant : {euro(result.stats.priceFromBefore)})</>
+                )}
+              </li>
             </ul>
             <Link href={`/configurateur/${result.slug}`} className="btn ghost sm" style={{ marginTop: 10, display: 'inline-block' }}>
               Ouvrir le configurateur →

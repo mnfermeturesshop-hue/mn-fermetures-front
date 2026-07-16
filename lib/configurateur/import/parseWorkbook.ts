@@ -85,7 +85,14 @@ export function parseWorkbook(data: ArrayBuffer | Uint8Array): ParseResult {
   const selOrder: string[] = [];
   for (const r of selRows.slice(1)) {
     const id = str(r[0]); if (!id) continue;
-    if (!selMap.has(id)) { selMap.set(id, { id, label: str(r[1]) || id, options: [] }); selOrder.push(id); }
+    if (!selMap.has(id)) {
+      const sel: Selector = { id, label: str(r[1]) || id, options: [] };
+      const scope = parseScope(str(r[5]));        // colonne « scope » (ex. pose=coffre)
+      const layer = isLayer(r[6]);                // colonne « layer » (ex. radio)
+      if (scope) sel.scope = scope;
+      if (layer) sel.layer = layer;
+      selMap.set(id, sel); selOrder.push(id);
+    }
     const opt: SelectorOption = { value: str(r[2]), label: str(r[3]) || str(r[2]) };
     if (str(r[4])) opt.hint = str(r[4]);
     if (opt.value) selMap.get(id)!.options.push(opt);
@@ -146,15 +153,18 @@ export function parseWorkbook(data: ArrayBuffer | Uint8Array): ParseResult {
   }
   if (!grids.length) errors.push('Aucune grille (onglet « Grille … »).');
 
-  // ── MoinsValues (ajustements par largeur, ex. manœuvre) ──
-  for (const r of (sheetAoa(wb, 'MoinsValues') ?? []).slice(1)) {
+  // ── Ajustements par largeur (manœuvre, plus-values coffre, RTS/solaire…) ──
+  // Colonnes : code | label | scope | layer | optional | bareme.
+  // (« MoinsValues » accepté pour compatibilité avec l'ancien gabarit.)
+  for (const r of (sheetAoa(wb, 'Ajustements') ?? sheetAoa(wb, 'MoinsValues') ?? []).slice(1)) {
     const code = str(r[0]); if (!code) continue;
-    const layer = isLayer(r[2]);
-    const optional = /oui|yes|true|1/i.test(str(r[3]));
+    const scope = parseScope(str(r[2]));
+    const layer = isLayer(r[3]);
+    const optional = /oui|yes|true|1/i.test(str(r[4]));
     adjustments.push({
       code, label: str(r[1]) || code,
-      ...(layer ? { layer } : {}), optional,
-      baremeParLargeur: parseBareme(str(r[4])),
+      ...(scope ? { scope } : {}), ...(layer ? { layer } : {}), optional,
+      baremeParLargeur: parseBareme(str(r[5])),
     });
   }
 
@@ -162,10 +172,12 @@ export function parseWorkbook(data: ArrayBuffer | Uint8Array): ParseResult {
   const options: FixedOption[] = [];
   for (const r of (sheetAoa(wb, 'Options') ?? []).slice(1)) {
     const code = str(r[0]); if (!code) continue;
+    const layer = isLayer(r[5]);                  // colonne « layer » (ex. radio)
     options.push({
       code, label: str(r[1]) || code, priceHT: num(r[2]) ?? 0,
       ...(str(r[3]) ? { group: str(r[3]) } : {}),
       ...(parseScope(str(r[4])) ? { scope: parseScope(str(r[4])) } : {}),
+      ...(layer ? { layer } : {}),
     });
   }
 

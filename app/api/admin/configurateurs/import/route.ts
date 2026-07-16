@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/guards';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { parseWorkbook } from '@/lib/configurateur/import/parseWorkbook';
+import { loadConfiguratorDef } from '@/lib/configurateur/loader';
+import { priceFrom } from '@/lib/configurateur/engine';
 
 // SheetJS a besoin du runtime Node (pas edge).
 export const runtime = 'nodejs';
@@ -29,6 +31,22 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = createAdminClient();
+
+  // Filet de sécurité : archiver le tarif en cours (DB ou seed) avant remplacement.
+  let priceFromBefore: number | null = null;
+  try {
+    const prev = await loadConfiguratorDef(def.slug);
+    if (prev) {
+      priceFromBefore = priceFrom(prev);
+      await supabase.from('configurator_versions').insert({
+        slug: prev.slug, name: prev.name, famille: prev.famille,
+        definition: prev, archived_by: guard.userId,
+      });
+    }
+  } catch {
+    // Table d'historique absente (migration non jouée) → import quand même possible.
+  }
+
   const { error } = await supabase.from('configurators').upsert(
     {
       slug: def.slug,
@@ -52,6 +70,8 @@ export async function POST(req: NextRequest) {
       selectors: def.selectors.length,
       options: def.options.length,
       colors: def.colors.length,
+      priceFrom: priceFrom(def),
+      priceFromBefore,
     },
   });
 }

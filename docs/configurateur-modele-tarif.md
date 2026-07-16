@@ -42,29 +42,40 @@ Exemple (extrait) :
 
 Axes de choix affichés à l'utilisateur (pose, lame, motorisation…).
 
-| selecteur_id | selecteur_label | option_value | option_label | hint |
-|---|---|---|---|---|
-| pose | Type de pose | independant | Traditionnel indépendant | |
-| lame | Lame | cd942 | Aluminium CD942 | Surface max 8 m² |
-| moteur | Motorisation | mn | Moteur MN | |
+| selecteur_id | selecteur_label | option_value | option_label | hint | scope | layer |
+|---|---|---|---|---|---|---|
+| pose | Type de pose | independant | Traditionnel indépendant | | | |
+| lame | Lame | cd942 | Aluminium CD942 | Surface max 8 m² | | |
+| moteur | Motorisation | mn | Moteur MN | | | |
+| coffre | Type de coffre | briquelite | Briquélite | | pose=coffre | |
+| radio_somfy | Motorisation radio Somfy | rts | RTS — émetteur Smoove (+55 €) | | moteur=somfy | radio |
+
+- `scope` (facultatif) = filtre `axe=valeur[,axe=valeur]` : le sélecteur n'apparaît que si les axes correspondent (ex. `pose=coffre`).
+- `layer` (facultatif) = `filaire` ou `radio` : le sélecteur n'apparaît que sur cette couche (ex. motorisation radio Somfy).
 
 ## Feuille `Options` (prix fixe)
 
-| code | label | prix_ht | groupe | scope |
-|---|---|---|---|---|
-| inverseur | Inverseur (applique ou encastré) | 21 | commande | moteur=mn |
-| genouillere_60 | Genouillère 60° (sans plus-value) | 0 | manoeuvre | |
-| genouillere_90a | Genouillère 90° aimantée | 59 | manoeuvre | |
+| code | label | prix_ht | groupe | scope | layer |
+|---|---|---|---|---|---|---|
+| inverseur | Inverseur (applique ou encastré) | 21 | commande | moteur=mn | |
+| genouillere_60 | Genouillère 60° (sans plus-value) | 0 | manoeuvre | | |
+| genouillere_90a | Genouillère 90° aimantée | 59 | manoeuvre | | |
+| amy_4c_io | Émetteur Amy 4 canaux IO | 131 | commande | moteur=somfy | radio |
 
-`scope` (facultatif) = filtre `axe=valeur` qui restreint l'option (ex. `moteur=somfy`).
+- `scope` (facultatif) = filtre `axe=valeur` qui restreint l'option (ex. `moteur=somfy`).
+- `layer` (facultatif) = `filaire` / `radio` (ex. options radio Somfy).
 
-## Feuille `MoinsValues` (manœuvre, ajustements optionnels par largeur)
+## Feuille `Ajustements` (moins-values et plus-values par largeur)
 
-Pour les moins-values indexées par largeur autres que `MV_AR` (ex. manœuvre manuelle). Une ligne par (code, largeur) OU un barème compact `largeur:montant` séparés par `;`.
+Ajustements indexés par largeur autres que `MV_AR` : manœuvre manuelle, plus-values de coffre, motorisation RTS/solaire… `bareme` = barème compact `largeur:montant` séparés par `;` (le montant vaut pour toutes les largeurs ≤ borne). `optional` = `oui` (case à cocher) / `non` (appliqué d'office quand le `scope` correspond).
 
-| code | label | layer | optional | bareme |
-|---|---|---|---|---|
-| manoeuvre_manuelle | Manœuvre manuelle (tringle) | filaire | oui | 450:-72;3000:-13 |
+| code | label | scope | layer | optional | bareme |
+|---|---|---|---|---|---|
+| manoeuvre_manuelle | Manœuvre manuelle (tringle) | pose=independant | filaire | oui | 450:-72;3000:-13 |
+| coffre_briquelite | Coffre Briquélite | pose=coffre,coffre=briquelite | | non | 700:37;3000:37 |
+| somfy_rts | Motorisation RTS | moteur=somfy,radio_somfy=rts | radio | non | 99999:55 |
+
+> Ancien nom `MoinsValues` encore accepté à l'import (compatibilité).
 
 ## Feuille `Coloris`
 
@@ -84,4 +95,13 @@ Pour les moins-values indexées par largeur autres que `MV_AR` (ex. manœuvre ma
 
 ---
 
-**Import** : Admin → import du classeur → validation (dimensions cohérentes, pas de trou) → mise à jour de la table `configurators`. Le configurateur en ligne reflète immédiatement le nouveau tarif.
+## Mode opératoire annuel (mise à jour du tarif, ex. 2027)
+
+Depuis le back-office **Admin → Configurateurs** :
+
+1. **Exporter** — cliquer sur **« Exporter le tarif (.xlsx) »**. Le classeur téléchargé contient **toutes les valeurs en cours**, déjà réparties dans les bonnes feuilles/grilles.
+2. **Éditer** — dans Excel, reporter les nouveaux prix du fabricant (modifier les cellules ; on peut ajouter des lignes/colonnes de largeur ou de hauteur, de nouvelles options, etc. en suivant le format ci-dessus). Ne pas renommer les feuilles ni les colonnes d'en-tête.
+3. **Ré-importer** — charger le classeur édité. L'import **valide** (largeurs/hauteurs croissantes, cohérence), **archive automatiquement** le tarif précédent (rollback possible via la table `configurator_versions`), remplace la définition et affiche un récapitulatif (grilles, options, coloris, **prix « à partir de » avant/après**).
+4. **Vérifier** — ouvrir le configurateur en ligne et contrôler quelques prix repères. Le configurateur **et** la re-tarification serveur (devis/commande) reflètent immédiatement le nouveau tarif.
+
+> En cas d'erreur d'import : le tarif précédent reste dans `configurator_versions` et peut être restauré (copie de `definition` vers `configurators`).
