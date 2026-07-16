@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { resolveConfiguratorPrice, largeurMinFor } from '@/lib/configurateur/engine';
+import { availableFor, repairAxes, findGrid } from '@/lib/configurateur/cascade';
 import type { ConfiguratorDef, MotorLayer } from '@/lib/configurateur/types';
 import { applyDiscount, getDiscount, type FamilleSlug } from '@/lib/familles';
 import { useCartStore } from '@/lib/store/cart';
@@ -12,33 +13,6 @@ const euro = (n: number) =>
   n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 
 interface Props { slug: string }
-
-/** Valeurs possibles d'un axe compte tenu des axes déjà choisis (déduit des grilles existantes). */
-function availableFor(def: ConfiguratorDef, selId: string, order: string[], prefix: Record<string, string>): Set<string> {
-  const constrained = def.grids.some((g) => selId in g.key);
-  if (!constrained) return new Set(def.selectors.find((s) => s.id === selId)?.options.map((o) => o.value) ?? []);
-  const prior = order.slice(0, order.indexOf(selId));
-  const set = new Set<string>();
-  for (const g of def.grids) {
-    if (prior.every((pid) => !(pid in g.key) || g.key[pid] === prefix[pid]) && selId in g.key) set.add(g.key[selId]);
-  }
-  return set;
-}
-
-/** Répare une sélection d'axes pour qu'elle reste une combinaison existante (cascade pose→lame→moteur). */
-function repairAxes(def: ConfiguratorDef, order: string[], axes: Record<string, string>): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const sel of def.selectors) {
-    const avail = availableFor(def, sel.id, order, out);
-    out[sel.id] = avail.has(axes[sel.id]) ? axes[sel.id] : (sel.options.find((o) => avail.has(o.value))?.value ?? sel.options[0]?.value ?? '');
-  }
-  return out;
-}
-
-/** Grille correspondant exactement aux axes choisis. */
-function findGrid(def: ConfiguratorDef, order: string[], axes: Record<string, string>) {
-  return def.grids.find((g) => order.every((id) => !(id in g.key) || g.key[id] === axes[id])) ?? null;
-}
 
 export function ConfigurateurProduit({ slug }: Props) {
   const addLine = useCartStore((s) => s.addLine);
@@ -86,7 +60,7 @@ export function ConfigurateurProduit({ slug }: Props) {
   // La couche filaire/radio choisie doit exister dans la grille courante (robustesse).
   useEffect(() => {
     if (!def) return;
-    const g = findGrid(def, def.selectors.map((s) => s.id), axes);
+    const g = findGrid(def, axes);
     if (g && !g.layers[layer]) setLayer(g.layers.filaire ? 'filaire' : 'radio');
   }, [def, axes, layer]);
 
@@ -164,7 +138,7 @@ export function ConfigurateurProduit({ slug }: Props) {
   // encore une grille compatible ; un changement amont répare les axes aval.
   const order = def.selectors.map((s) => s.id);
   const chooseAxis = (id: string, value: string) => setAxes((a) => repairAxes(def, order, { ...a, [id]: value }));
-  const currentGrid = findGrid(def, order, axes);
+  const currentGrid = findGrid(def, axes);
   const layerAvailable = (l: MotorLayer) => !currentGrid || !!currentGrid.layers[l];
   // Sélecteurs conditionnels : par axes (« Type de coffre » → pose coffre) ET par
   // couche (« Motorisation radio Somfy » → radio seulement). Les sélecteurs liés à
@@ -396,7 +370,9 @@ export function ConfigurateurProduit({ slug }: Props) {
               </div>
 
               <button type="button" className="btn solid full cfg-cta" onClick={() => {
-                const lameLabel = def.selectors.find((s) => s.id === 'lame')?.options.find((o) => o.value === axes.lame)?.label ?? '';
+                const selLabel = (id: string) => def.selectors.find((s) => s.id === id)?.options.find((o) => o.value === axes[id])?.label ?? '';
+                const typeVoletLabel = selLabel('type_volet');
+                const lameLabel = selLabel('lame');
                 const colorLabel = def.colors.find((c) => c.code === colorCode)?.label ?? '';
                 // Toutes les options cochées applicables — y compris à 0 € (ex.
                 // Genouillère 60°), pour tracer le choix atelier dans la ligne.
@@ -416,7 +392,7 @@ export function ConfigurateurProduit({ slug }: Props) {
                   });
                 const specsPayload = Object.fromEntries(specEntries.map((e) => [e.id, e.value]));
                 const detail = [
-                  lameLabel, `${layer}`, `L ${result.largeurSnap} × H ${result.hauteurSnap} mm`, colorLabel,
+                  typeVoletLabel, lameLabel, `${layer}`, `L ${result.largeurSnap} × H ${result.hauteurSnap} mm`, colorLabel,
                   ...optLabels,
                   ...specEntries.map((e) => e.label),
                 ].filter(Boolean).join(' — ');

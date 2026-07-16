@@ -118,19 +118,24 @@ export function parseWorkbook(data: ArrayBuffer | Uint8Array): ParseResult {
     }
     const opt: SelectorOption = { value: str(r[2]), label: str(r[3]) || str(r[2]) };
     if (str(r[4])) opt.hint = str(r[4]);
+    const derived = parseScope(str(r[7]));       // axes dérivés (ex. pose=coffre)
+    if (derived) opt.derivedAxes = derived;
     if (opt.value) selMap.get(id)!.options.push(opt);
   }
   const selectors = selOrder.map((id) => selMap.get(id)!);
   if (!selectors.length) errors.push('Onglet Selecteurs : aucun axe défini.');
 
   // ── Grilles + attaches rigides (une par grille) ──
+  // Axes de grille : Meta.grid_axes (découple type_volet/pose) ; repli sur l'ordre
+  // des sélecteurs pour les anciens classeurs.
+  const gridAxes = meta.grid_axes ? meta.grid_axes.split(',').map((s) => s.trim()).filter(Boolean) : selOrder;
   const grids: PriceGrid[] = [];
   const adjustments: Adjustment[] = [];
   for (const name of wb.SheetNames) {
     if (!name.toLowerCase().startsWith('grille')) continue;
     const tokens = name.split(/\s+/).slice(1);              // après "Grille"
     const key: Record<string, string> = {};
-    tokens.forEach((tk, i) => { if (selOrder[i]) key[selOrder[i]] = tk.toLowerCase(); });
+    tokens.forEach((tk, i) => { if (gridAxes[i]) key[gridAxes[i]] = tk.toLowerCase(); });
 
     const aoa = sheetAoa(wb, name)!;
     const widths = aoa[0].slice(2).map(num).filter((v): v is number => v != null);

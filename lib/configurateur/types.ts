@@ -20,6 +20,12 @@ export interface SelectorOption {
   label: string;        // ex: 'Lame aluminium CD942'
   hint?: string;
   imageUrl?: string;
+  /**
+   * Axes dérivés posés automatiquement quand cette option est choisie
+   * (ex. « type de volet » → grille interne : drapeau/ZF → pose=independant,
+   * tunnel → pose=coffre). Découple l'étiquette client de la clé de grille.
+   */
+  derivedAxes?: Record<string, string>;
 }
 
 /** Un axe que l'utilisateur choisit pour sélectionner la grille + les options. */

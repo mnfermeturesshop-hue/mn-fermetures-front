@@ -135,6 +135,11 @@ Configurateur **réservé aux pros connectés** : `/configurateur/volet-roulant-
 | CF15 | Saisir des **dimensions hors barème** (ex. 3000 × 3000 en CD942) | Message **« hors barème »**, pas de prix ni d'ajout possible | ☐ | |
 | CF16 | **Ajouter au panier** une config valide | Ligne créée avec le détail (lame, couche, dimensions, coloris, options) et le bon prix remisé | ☐ | |
 | CF17 | Vérifier la **remise pro** sur le prix | Le prix unitaire reflète la remise famille « volet-roulant » de A | ☐ | |
+| CF18 | Choisir **Tradi drapeau** ou **Tradi ZF** | Tarifés comme l'indépendant (mêmes prix) ; les 3 lames dispo | ☐ | |
+| CF19 | Choisir **Coffre tunnel MN** / **tunnel (marque inconnue)** | Tarifés comme le coffre ; sélecteur « Type de coffre » présent | ☐ | |
+| CF20 | Régler **filaire MN** puis saisir largeur **410 mm** | Refus « hors barème » (mini 420 en filaire MN) ; l'intervalle autorisé est affiché sous les dimensions | ☐ | |
+| CF21 | Cocher **Manœuvre manuelle** puis largeur **400 mm** | Accepté (mini tringle 400) — l'intervalle mini s'adapte au mode | ☐ | |
+| CF22 | Section **Fabrication** : régler **Enroulement INT/EXT** | Le choix apparaît dans le détail de la ligne panier (et sur le bon de commande / email atelier) | ☐ | |
 
 ### 3.5 Forfait laquage (coloris RAL) — au niveau commande
 

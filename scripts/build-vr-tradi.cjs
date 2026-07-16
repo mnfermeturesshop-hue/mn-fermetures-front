@@ -185,10 +185,15 @@ pvAnchors.forEach(([got, want, lbl]) => { if (got !== want) errs.push(`PV coffre
 
 // ── Reste de la definition ──
 const selectors = [
-  { id: 'pose', label: 'Type de pose', options: [
-    { value: 'independant', label: 'Traditionnel independant' },
-    { value: 'coffre', label: 'Monte dans coffre tunnel' },
-    { value: 'express', label: 'Tradi express' },
+  // Type de volet (étiquette client) → pose interne de grille (axe dérivé).
+  // drapeau/ZF tarifés comme l'indépendant ; tunnel MN/inconnu comme le coffre.
+  { id: 'type_volet', label: 'Type de volet', options: [
+    { value: 'independant', label: 'Traditionnel independant', derivedAxes: { pose: 'independant' } },
+    { value: 'drapeau', label: 'Tradi drapeau', derivedAxes: { pose: 'independant' } },
+    { value: 'zf', label: 'Tradi ZF (zone fixe)', derivedAxes: { pose: 'independant' } },
+    { value: 'tunnel_mn', label: 'Coffre tunnel MN', derivedAxes: { pose: 'coffre' } },
+    { value: 'tunnel_inconnu', label: 'Coffre tunnel (marque inconnue)', derivedAxes: { pose: 'coffre' } },
+    { value: 'express', label: 'Tradi express', derivedAxes: { pose: 'express' } },
   ] },
   { id: 'lame', label: 'Lame', options: [
     { value: 'cd942', label: 'Aluminium CD942', hint: 'Surface max 8 m2' },

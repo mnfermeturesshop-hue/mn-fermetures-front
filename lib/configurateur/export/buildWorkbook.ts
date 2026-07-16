@@ -59,8 +59,8 @@ function gridSheet(def: ConfiguratorDef, g: PriceGrid): { name: string; rows: Ro
   const ar = def.adjustments.find((a) => a.code === 'attaches_rigides' && sameScope(a.scope, g.key));
   if (ar) rows.push(['MV_AR', '', ...union.map((w) => ar.baremeParLargeur[w] ?? '')]);
 
-  const key = g.key;
-  const name = `Grille ${key.pose ?? ''} ${key.lame ?? ''} ${key.moteur ?? ''}`.trim();
+  // Nom = « Grille <val1> <val2> … » dans l'ordre des axes de grille (Meta.grid_axes).
+  const name = `Grille ${Object.keys(g.key).map((a) => g.key[a]).join(' ')}`.trim();
   return { name, rows };
 }
 
@@ -70,14 +70,16 @@ export function buildWorkbook(def: ConfiguratorDef): Uint8Array {
   const add = (name: string, rows: Row[]) =>
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), name.slice(0, 31));
 
-  // Meta (clé/valeur, sans ligne d'en-tête)
-  add('Meta', [['slug', def.slug], ['name', def.name], ['famille', def.famille]]);
+  // Meta (clé/valeur, sans ligne d'en-tête). `grid_axes` = noms des axes de
+  // grille dans l'ordre des colonnes du nom de feuille (découple type_volet/pose).
+  const gridAxes = Object.keys(def.grids[0]?.key ?? {});
+  add('Meta', [['slug', def.slug], ['name', def.name], ['famille', def.famille], ['grid_axes', gridAxes.join(',')]]);
 
-  // Selecteurs (scope/layer par sélecteur, répétés sur chaque ligne d'option)
-  const selRows: Row[] = [['selecteur_id', 'selecteur_label', 'option_value', 'option_label', 'hint', 'scope', 'layer']];
+  // Selecteurs (scope/layer par sélecteur ; derived = axes dérivés par option)
+  const selRows: Row[] = [['selecteur_id', 'selecteur_label', 'option_value', 'option_label', 'hint', 'scope', 'layer', 'derived']];
   for (const s of def.selectors)
     for (const o of s.options)
-      selRows.push([s.id, s.label, o.value, o.label, o.hint ?? '', serializeScope(s.scope), s.layer ?? '']);
+      selRows.push([s.id, s.label, o.value, o.label, o.hint ?? '', serializeScope(s.scope), s.layer ?? '', serializeScope(o.derivedAxes)]);
   add('Selecteurs', selRows);
 
   // Options (prix fixe) + colonne layer

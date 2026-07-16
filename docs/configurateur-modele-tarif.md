@@ -42,16 +42,20 @@ Exemple (extrait) :
 
 Axes de choix affichés à l'utilisateur (pose, lame, motorisation…).
 
-| selecteur_id | selecteur_label | option_value | option_label | hint | scope | layer |
-|---|---|---|---|---|---|---|
-| pose | Type de pose | independant | Traditionnel indépendant | | | |
-| lame | Lame | cd942 | Aluminium CD942 | Surface max 8 m² | | |
-| moteur | Motorisation | mn | Moteur MN | | | |
-| coffre | Type de coffre | briquelite | Briquélite | | pose=coffre | |
-| radio_somfy | Motorisation radio Somfy | rts | RTS — émetteur Smoove (+55 €) | | moteur=somfy | radio |
+| selecteur_id | selecteur_label | option_value | option_label | hint | scope | layer | derived |
+|---|---|---|---|---|---|---|---|
+| type_volet | Type de volet | independant | Traditionnel indépendant | | | | pose=independant |
+| type_volet | Type de volet | drapeau | Tradi drapeau | | | | pose=independant |
+| type_volet | Type de volet | tunnel_mn | Coffre tunnel MN | | | | pose=coffre |
+| type_volet | Type de volet | express | Tradi express | | | | pose=express |
+| lame | Lame | cd942 | Aluminium CD942 | Surface max 8 m² | | | |
+| moteur | Motorisation | mn | Moteur MN | | | | |
+| coffre | Type de coffre | briquelite | Briquélite | | pose=coffre | | |
+| radio_somfy | Motorisation radio Somfy | rts | RTS — émetteur Smoove (+55 €) | | moteur=somfy | radio | |
 
 - `scope` (facultatif) = filtre `axe=valeur[,axe=valeur]` : le sélecteur n'apparaît que si les axes correspondent (ex. `pose=coffre`).
 - `layer` (facultatif) = `filaire` ou `radio` : le sélecteur n'apparaît que sur cette couche (ex. motorisation radio Somfy).
+- `derived` (facultatif) = axes internes posés automatiquement par l'**option** (ex. l'étiquette client `type_volet` pilote la clé de grille `pose`). Les grilles restent nommées par `pose` (independant/coffre/express).
 
 ## Feuille `Options` (prix fixe)
 
