@@ -247,6 +247,7 @@ const options = [
   { code: 'situo_io_1c', label: 'Emetteur Situo IO 1 canal', priceHT: 100, group: 'commande', scope: { moteur: 'somfy' }, layer: 'radio' },
   { code: 'situo_io_5c', label: 'Emetteur Situo IO 5 canaux', priceHT: 135, group: 'commande', scope: { moteur: 'somfy' }, layer: 'radio' },
   { code: 'alim_depannage', label: 'Alimentation de depannage (solaire)', priceHT: 83, group: 'commande', scope: { moteur: 'somfy', radio_somfy: 'solaire' }, layer: 'radio' },
+  { code: 'genouillere_60', label: 'Genouillere 60 (sans plus-value)', priceHT: 0, group: 'manoeuvre' },
   { code: 'genouillere_60a', label: 'Genouillere 60 aimantee', priceHT: 41, group: 'manoeuvre' },
   { code: 'genouillere_90', label: 'Genouillere 90', priceHT: 18, group: 'manoeuvre' },
   { code: 'genouillere_90a', label: 'Genouillere 90 aimantee', priceHT: 59, group: 'manoeuvre' },

@@ -53,6 +53,7 @@ Axes de choix affichés à l'utilisateur (pose, lame, motorisation…).
 | code | label | prix_ht | groupe | scope |
 |---|---|---|---|---|
 | inverseur | Inverseur (applique ou encastré) | 21 | commande | moteur=mn |
+| genouillere_60 | Genouillère 60° (sans plus-value) | 0 | manoeuvre | |
 | genouillere_90a | Genouillère 90° aimantée | 59 | manoeuvre | |
 
 `scope` (facultatif) = filtre `axe=valeur` qui restreint l'option (ex. `moteur=somfy`).
