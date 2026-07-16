@@ -352,9 +352,14 @@ export function ConfigurateurProduit({ slug }: Props) {
               <button type="button" className="btn solid full cfg-cta" onClick={() => {
                 const lameLabel = def.selectors.find((s) => s.id === 'lame')?.options.find((o) => o.value === axes.lame)?.label ?? '';
                 const colorLabel = def.colors.find((c) => c.code === colorCode)?.label ?? '';
+                // Toutes les options cochées applicables — y compris à 0 € (ex.
+                // Genouillère 60°), pour tracer le choix atelier dans la ligne.
+                const selectedOptionLabels = def.options
+                  .filter((o) => opts.has(o.code) && scopeOk(o.scope) && (!o.layer || o.layer === layer))
+                  .map((o) => o.label);
                 const optLabels = [
                   ...result.adjustments.map((a) => a.label),
-                  ...result.options.map((o) => o.label),
+                  ...selectedOptionLabels,
                 ];
                 const detail = [
                   lameLabel, `${layer}`, `L ${result.largeurSnap} × H ${result.hauteurSnap} mm`, colorLabel,
