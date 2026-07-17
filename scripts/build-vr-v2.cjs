@@ -90,8 +90,18 @@ for (const g of v1.grids) {
 const derived = [
   { id: 'grid', expr: { op: 'concat', args: ['g_', V('pose'), '_', V('lame'), '_', V('moteur'), '_', V('layer')] } },
   { id: 'surface_m2', expr: { op: '*', args: [{ op: '/', args: [V('largeur'), 1000] }, { op: '/', args: [V('hauteur'), 1000] }] } },
-  { id: 'mode', expr: { op: 'if', cond: eq('manoeuvre_manuelle', true), then: 'tringle', else: { op: 'concat', args: [V('layer'), '_', V('moteur')] } } },
 ];
+
+// Largeur MINIMALE réelle = borne basse « L de » de la 1re bande de la grille,
+// par pose/lame/moteur/couche (source : en-têtes des grilles du tarif).
+const WIDTH_MIN = {
+  'independant/cd942/mn': { filaire: 300, radio: 506 }, 'independant/cd942/somfy': { filaire: 400, radio: 400 },
+  'independant/56/mn': { filaire: 300, radio: 506 },    'independant/56/somfy': { filaire: 400, radio: 400 },
+  'independant/55/mn': { filaire: 1100, radio: 1100 },  'independant/55/somfy': { filaire: 1100, radio: 1100 },
+  'coffre/cd942/mn': { filaire: 300, radio: 506 },      'coffre/cd942/somfy': { filaire: 400, radio: 400 },
+  'coffre/56/mn': { filaire: 300, radio: 506 },         'coffre/56/somfy': { filaire: 400, radio: 400 },
+  'express/cd942/mn': { filaire: 385, radio: 591 },     'express/cd942/somfy': { filaire: 400, radio: 400 },
+};
 
 // ---- PRICE RULES ----
 const priceRules = [];
@@ -162,15 +172,15 @@ constraints.push({ message: 'Largeur maximale dépassée pour cette lame',
 // hauteur max (commune)
 constraints.push({ message: 'Hauteur maximale dépassée',
   requires: lte('hauteur', Math.max(...nonPose.map((l) => l.hauteurMax))) });
-// largeur mini par mode (+ pose express spécifique)
+// Largeur mini réelle par grille (pose/lame/moteur/couche) — couvre la lame 55 (1100).
 const minClauses = [];
-const expressLimit = v1.limits.find((l) => l.pose === 'express');
-const tradiModes = byLame[Object.keys(byLame)[0]].largeurMinByMode; // MINS_TRADI (partagé)
-for (const [m, min] of Object.entries(tradiModes)) minClauses.push(AND([ne('pose', 'express'), eq('mode', m), gte('largeur', min)]));
-if (expressLimit) for (const [m, min] of Object.entries(expressLimit.largeurMinByMode)) minClauses.push(AND([eq('pose', 'express'), eq('mode', m), gte('largeur', min)]));
-constraints.push({ message: 'Largeur minimale non atteinte pour ce mode', requires: ANY(minClauses) });
-// Lame 55 : la grille démarre à 1100 mm — en dessous, refuser (pas de snap).
-constraints.push({ message: 'Lame 55 : largeur minimale 1100 mm', requires: ANY([ne('lame', '55'), gte('largeur', 1100)]) });
+for (const [key, m] of Object.entries(WIDTH_MIN)) {
+  const [pose, lame, moteur] = key.split('/');
+  for (const layer of ['filaire', 'radio']) {
+    minClauses.push(AND([eq('pose', pose), eq('lame', lame), eq('moteur', moteur), eq('layer', layer), gte('largeur', m[layer])]));
+  }
+}
+constraints.push({ message: 'Largeur inférieure au minimum de la grille pour cette configuration', requires: ANY(minClauses) });
 
 // ---- STEPS (assistant) ----
 const optionFieldIds = [...Object.keys(optionalCodes), ...v1.options.map((o) => o.code)];
