@@ -170,20 +170,15 @@ export function ConfigurateurProduit({ slug }: Props) {
   const primaryDisabled = isLast ? !result?.ok : stepBlocked;
   const onPrimary = () => { if (isLast) addToCart(); else setStepIdx(cur + 1); };
 
-  // Note d'arrondi (dimensions fabriquées).
-  const snapNote = result?.ok && (result.context.largeur_snap !== values.largeur || result.context.hauteur_snap !== values.hauteur)
-    ? `Fabriqué en ${result.context.largeur_snap} × ${result.context.hauteur_snap} mm (arrondi au pas du barème)`
-    : null;
-
   // ── Détail + ajout panier (générique) ──
+  // Sur mesure : les cotes affichées/enregistrées sont les cotes EXACTES saisies.
   const buildDetail = (): string => {
     const parts: string[] = [];
-    let dimsInserted = false;
     for (const f of def.fields) {
       if (!isVisible(f.visibleWhen, ctx)) continue;
       const val = values[f.id];
       if (f.type === 'dimension' || f.type === 'number') {
-        if (!dimsInserted && result?.ok) { parts.push(`L ${result.context.largeur_snap} × H ${result.context.hauteur_snap} mm`); dimsInserted = true; }
+        if (val != null && val !== '') parts.push(`${f.label} ${val}${f.unit ? ' ' + f.unit : ''}`);
       } else if (f.type === 'choice') {
         const lbl = optionLabel(f, val);
         if (lbl) parts.push(lbl);
@@ -253,7 +248,9 @@ export function ConfigurateurProduit({ slug }: Props) {
           {step.isRecap ? recapNode : (
             <>
               {step.fields.map((f) => renderField(f))}
-              {step.hasDim && snapNote && <p className="cfg-snap-note">{snapNote}</p>}
+              {step.hasDim && result?.ok && (
+                <p className="cfg-dim-hint">Fabriqué <strong>sur mesure</strong> aux cotes exactes indiquées.</p>
+              )}
               {step.hasDim && !result?.ok && (result?.errors.length ?? 0) > 0 && (
                 <p className="cfg-error">{result!.errors[0]}</p>
               )}

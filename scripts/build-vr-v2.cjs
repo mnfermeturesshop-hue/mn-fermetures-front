@@ -84,12 +84,12 @@ for (const g of v1.grids) {
 }
 
 // ---- DERIVED ----
+// SUR MESURE : aucun arrondi des cotes. Le PRIX se lit par bande (lookup1d/2d
+// snappent en interne pour trouver la bonne case), mais la surface et la cote
+// fabriquée utilisent les dimensions EXACTES saisies par le client.
 const derived = [
   { id: 'grid', expr: { op: 'concat', args: ['g_', V('pose'), '_', V('lame'), '_', V('moteur'), '_', V('layer')] } },
-  { id: 'largeur_snap', expr: { op: 'snapCol', table: V('grid'), value: V('largeur') } },
-  { id: 'hauteur_snap', expr: { op: 'snapRow', table: V('grid'), value: V('hauteur') } },
-  // Pleine précision (comme v1) : l'arrondi ne se fait qu'au montant final.
-  { id: 'surface_m2', expr: { op: '*', args: [{ op: '/', args: [V('largeur_snap'), 1000] }, { op: '/', args: [V('hauteur_snap'), 1000] }] } },
+  { id: 'surface_m2', expr: { op: '*', args: [{ op: '/', args: [V('largeur'), 1000] }, { op: '/', args: [V('hauteur'), 1000] }] } },
   { id: 'mode', expr: { op: 'if', cond: eq('manoeuvre_manuelle', true), then: 'tringle', else: { op: 'concat', args: [V('layer'), '_', V('moteur')] } } },
 ];
 
@@ -114,7 +114,7 @@ v1.adjustments.forEach((adj, i) => {
   }
   priceRules.push({ code: `${adj.code}_${i}`, label: adj.label, kind: 'add',
     when: cs.length ? AND(cs) : undefined,
-    amount: { op: 'lookup1d', table: tid, key: V('largeur_snap') } });
+    amount: { op: 'lookup1d', table: tid, key: V('largeur') } });
 });
 // champs booléens pour ajustements optionnels
 for (const [code, condList] of Object.entries(optionalCodes)) {
@@ -169,6 +169,8 @@ const tradiModes = byLame[Object.keys(byLame)[0]].largeurMinByMode; // MINS_TRAD
 for (const [m, min] of Object.entries(tradiModes)) minClauses.push(AND([ne('pose', 'express'), eq('mode', m), gte('largeur', min)]));
 if (expressLimit) for (const [m, min] of Object.entries(expressLimit.largeurMinByMode)) minClauses.push(AND([eq('pose', 'express'), eq('mode', m), gte('largeur', min)]));
 constraints.push({ message: 'Largeur minimale non atteinte pour ce mode', requires: ANY(minClauses) });
+// Lame 55 : la grille démarre à 1100 mm — en dessous, refuser (pas de snap).
+constraints.push({ message: 'Lame 55 : largeur minimale 1100 mm', requires: ANY([ne('lame', '55'), gte('largeur', 1100)]) });
 
 // ---- STEPS (assistant) ----
 const optionFieldIds = [...Object.keys(optionalCodes), ...v1.options.map((o) => o.code)];
