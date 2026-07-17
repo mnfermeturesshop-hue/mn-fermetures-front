@@ -8,7 +8,7 @@ interface ImportOk {
   ok: true;
   slug: string;
   name: string;
-  stats: { grids: number; heights: number; selectors: number; options: number; colors: number; priceFrom: number; priceFromBefore: number | null };
+  stats: { fields: number; steps: number; priceRules: number; tables: number; priceFrom: number; priceFromBefore: number | null };
 }
 
 const SLUG = 'volet-roulant-traditionnel';
@@ -88,8 +88,7 @@ export default function AdminConfigurateurs() {
           <div style={{ marginTop: 18, padding: 14, background: '#e8f7ef', border: '1px solid #b6e6c9', borderRadius: 8 }}>
             <strong style={{ color: 'var(--success)' }}>✓ Importé : {result.name}</strong>
             <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 13, color: '#256b45' }}>
-              <li>{result.stats.grids} grille(s) · {result.stats.heights} bande(s) de hauteur au total</li>
-              <li>{result.stats.selectors} axe(s) · {result.stats.options} option(s) · {result.stats.colors} coloris</li>
+              <li>{result.stats.fields} champ(s) · {result.stats.steps} étape(s) · {result.stats.priceRules} règle(s) de prix · {result.stats.tables} table(s) de prix</li>
               <li>
                 Prix à partir de : <strong>{euro(result.stats.priceFrom)}</strong> HT
                 {result.stats.priceFromBefore != null && result.stats.priceFromBefore !== result.stats.priceFrom && (
