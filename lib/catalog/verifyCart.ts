@@ -5,7 +5,8 @@ import { applyDiscount, getDiscount, type DiscountMap, type FamilleSlug } from '
 import { laquageForfaitHT } from '@/lib/pricing/shipping';
 import { resoudrePrix } from '@/lib/tablier/engine';
 import { loadConfiguratorDef } from '@/lib/configurateur/loader';
-import { resolveConfiguratorPrice } from '@/lib/configurateur/engine';
+import { resolvePrice } from '@/lib/configurateur/v2/engine';
+import type { Values } from '@/lib/configurateur/v2/types';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 /**
@@ -144,29 +145,20 @@ export async function verifyCartLines(
       name = res.lame.nom;
       // Le générateur n'applique pas de remise famille → parité avec l'affichage.
     } else if (raw?.pricing?.kind === 'configurateur') {
-      // Configurateur produit générique — le serveur recharge la définition
-      // et recalcule le prix depuis les dimensions/options brutes (audit S2).
+      // Moteur de configuration universel (v2) — le serveur recharge la
+      // définition et recalcule le prix depuis les valeurs de champs brutes.
       const pr = raw.pricing;
       const def = await loadConfiguratorDef(String(pr.slug));
       if (!def) return { ok: false, error: `Configurateur introuvable : ${pr.slug}` };
-      const res = resolveConfiguratorPrice(def, {
-        axes: pr.axes ?? {},
-        layer: pr.layer === 'radio' ? 'radio' : 'filaire',
-        largeur: Number(pr.largeur),
-        hauteur: Number(pr.hauteur),
-        colorCode: String(pr.colorCode ?? ''),
-        optionCodes: Array.isArray(pr.options) ? pr.options.map(String) : [],
-      });
-      if (!res) return { ok: false, error: `Configuration hors barème : ${def.name}` };
+      const values: Values = (pr.values && typeof pr.values === 'object') ? pr.values as Values : {};
+      const res = resolvePrice(def, values);
+      if (!res.ok) return { ok: false, error: `Configuration hors barème : ${def.name}` };
       base = res.total;
       name = raw.name ? String(raw.name) : def.name;
       famille = def.famille as FamilleSlug;
-      // Coloris laqué (RAL) → forfait laquage par commande (recalcul autoritaire,
-      // on ignore un éventuel flag client).
-      const cLame = String((pr.axes ?? {}).lame ?? '');
-      const cCode = String(pr.colorCode ?? '');
-      const pol = def.colorPolicies.find((p) => p.lame === cLame) ?? def.colorPolicies.find((p) => p.lame === '*');
-      if (pol?.pvM2?.codes.includes(cCode)) hasLaque = true;
+      // Coloris laqué (RAL) → forfait laquage par commande (recalcul autoritaire) :
+      // détecté par la présence du supplément coloris dans le résultat.
+      if (res.lineItems.some((li) => li.code === 'color_pv')) hasLaque = true;
     } else if (raw?.reference) {
       const hit = byRef.get(raw.reference);
       if (!hit) return { ok: false, error: `Référence introuvable : ${raw.reference}` };

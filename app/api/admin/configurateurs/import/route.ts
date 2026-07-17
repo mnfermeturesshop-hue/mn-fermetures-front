@@ -1,77 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/guards';
-import { createAdminClient } from '@/lib/supabase/admin';
-import { parseWorkbook } from '@/lib/configurateur/import/parseWorkbook';
-import { loadConfiguratorDef } from '@/lib/configurateur/loader';
-import { priceFrom } from '@/lib/configurateur/engine';
 
-// SheetJS a besoin du runtime Node (pas edge).
 export const runtime = 'nodejs';
 
-const MAX_BYTES = 10 * 1024 * 1024;
-
 /**
- * Import d'un classeur Excel de tarif → définition de configurateur en base.
- * Admin uniquement. Le fichier suit `docs/configurateur-modele-tarif.md`.
+ * Import d'un classeur Excel de tarif. TEMPORAIREMENT indisponible : le round-trip
+ * Excel est en cours de migration vers le format du moteur universel (v2).
+ * Rétabli au sous-lot 1.3. En attendant, le configurateur est servi par le seed v2.
  */
-export async function POST(req: NextRequest) {
+export async function POST() {
   const guard = await requireAdmin();
   if (!guard.ok) return guard.response;
-
-  const form = await req.formData();
-  const file = form.get('file') as File | null;
-  if (!file) return NextResponse.json({ error: 'Fichier requis.' }, { status: 400 });
-  if (file.size === 0 || file.size > MAX_BYTES) {
-    return NextResponse.json({ error: 'Fichier vide ou trop volumineux (10 Mo max).' }, { status: 400 });
-  }
-
-  const { def, errors } = parseWorkbook(new Uint8Array(await file.arrayBuffer()));
-  if (!def) {
-    return NextResponse.json({ error: 'Import refusé — corrigez le classeur.', details: errors }, { status: 400 });
-  }
-
-  const supabase = createAdminClient();
-
-  // Filet de sécurité : archiver le tarif en cours (DB ou seed) avant remplacement.
-  let priceFromBefore: number | null = null;
-  try {
-    const prev = await loadConfiguratorDef(def.slug);
-    if (prev) {
-      priceFromBefore = priceFrom(prev);
-      await supabase.from('configurator_versions').insert({
-        slug: prev.slug, name: prev.name, famille: prev.famille,
-        definition: prev, archived_by: guard.userId,
-      });
-    }
-  } catch {
-    // Table d'historique absente (migration non jouée) → import quand même possible.
-  }
-
-  const { error } = await supabase.from('configurators').upsert(
-    {
-      slug: def.slug,
-      name: def.name,
-      famille: def.famille,
-      definition: def,
-      active: true,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'slug' },
+  return NextResponse.json(
+    { error: 'Import Excel en cours de migration vers le moteur universel (v2).' },
+    { status: 503 },
   );
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-
-  return NextResponse.json({
-    ok: true,
-    slug: def.slug,
-    name: def.name,
-    stats: {
-      grids: def.grids.length,
-      heights: def.grids.reduce((s, g) => s + g.heights.length, 0),
-      selectors: def.selectors.length,
-      options: def.options.length,
-      colors: def.colors.length,
-      priceFrom: priceFrom(def),
-      priceFromBefore,
-    },
-  });
 }

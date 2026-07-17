@@ -132,18 +132,11 @@ export type LinePricing =
   | {
       kind: 'configurateur';
       slug: string;
-      axes: Record<string, string>;
-      layer: 'filaire' | 'radio';
-      largeur: number;
-      hauteur: number;
-      colorCode: string;
-      options: string[];
-      /** Coloris laqué RAL → déclenche le forfait laquage commande (affichage ;
-       *  le serveur le recalcule depuis la définition, cf. verifyCart). */
+      /** Moteur universel v2 : toutes les valeurs de champs (choix, dimensions,
+       *  options, champs de fabrication). Le serveur re-tarife via resolvePrice. */
+      values: Record<string, string | number | boolean>;
+      /** Coloris laqué RAL → forfait laquage commande (recalculé serveur). */
       laque?: boolean;
-      /** Champs de fabrication (sans impact prix) capturés pour la production —
-       *  passés tels quels par le serveur (jamais re-tarifés). */
-      specs?: Record<string, string>;
     }
   | {
       kind: 'devis';

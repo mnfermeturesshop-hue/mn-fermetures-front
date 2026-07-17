@@ -1987,6 +1987,8 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 .cfg-recap-list li { display: flex; justify-content: space-between; gap: 16px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
 .cfg-recap-list li span { color: var(--muted); }
 .cfg-recap-list li strong { text-align: right; }
+.cfg-step-help { margin: 0 0 16px; padding: 10px 14px; background: #eef2f7; border-radius: 8px; font-size: 13px; color: var(--ink); line-height: 1.5; }
+.cfg-help-img { max-width: 100%; margin-top: 10px; border: 1px solid var(--line); border-radius: 8px; }
 .cfg-mobar { display: none; }
 
 /* Responsive */

@@ -1,13 +1,9 @@
-/* Définition complète du configurateur « Volet roulant traditionnel »,
-   générée depuis le tarif fabricant (docs/TARIF TRADI 2026 VF.xlsx) par
-   scripts/build-vr-tradi.cjs → lib/configurateur/data/…json.
+/* Définition « Volet roulant traditionnel » au format du moteur UNIVERSEL (v2),
+   produite par scripts/build-vr-v2.cjs à partir du def v1 validé (iso-prix
+   garanti : 147 323 comparaisons v1↔v2 sans écart).
+   Sert de repli quand la table `configurators` n'est pas encore peuplée. */
 
-   12 grilles (pose indépendant / coffre tunnel / express × lame CD942/56/55
-   × moteur MN/Somfy, couches filaire & radio) + attaches rigides, options,
-   coloris, limites. Sert de repli quand la table `configurators` (import
-   admin) n'est pas encore peuplée. */
+import type { DefV2 } from './v2/types';
+import raw from './data/volet-roulant-traditionnel.v2.json';
 
-import type { ConfiguratorDef } from './types';
-import raw from './data/volet-roulant-traditionnel.json';
-
-export const VR_TRADI_SEED = raw as unknown as ConfiguratorDef;
+export const VR_TRADI_SEED = raw as unknown as DefV2;
