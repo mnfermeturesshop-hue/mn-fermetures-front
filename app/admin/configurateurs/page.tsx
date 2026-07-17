@@ -34,6 +34,9 @@ export default function AdminConfigurateurs() {
   const [busy, setBusy] = useState(false);
   const [check, setCheck] = useState<{ ok: boolean; priceFrom?: number | null; warnings?: string[]; errors?: string[] } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const catalogRef = useRef<HTMLInputElement>(null);
+  const [catalog, setCatalog] = useState<{ rows: (string | number)[][]; cols: number } | null>(null);
+  const [cmap, setCmap] = useState({ field: '', value: 0, label: 1, hex: -1, hint: -1, header: true });
 
   const loadList = useCallback(async () => {
     const r = await fetch('/api/admin/configurateurs');
@@ -96,7 +99,51 @@ export default function AdminConfigurateurs() {
     else toast.error(data.error ?? 'Import refusé');
   };
 
+  // ── Import catalogue (options d'un champ) ──
+  const loadCatalog = async () => {
+    const file = catalogRef.current?.files?.[0];
+    if (!file) { toast.error('Choisissez un fichier CSV/Excel'); return; }
+    setBusy(true);
+    const fd = new FormData(); fd.append('file', file);
+    const r = await fetch('/api/admin/configurateurs/catalog', { method: 'POST', body: fd });
+    const data = await r.json();
+    setBusy(false);
+    if (!r.ok) { toast.error(data.error ?? 'Fichier illisible'); return; }
+    setCatalog({ rows: data.rows, cols: data.cols });
+    setCmap((m) => ({ ...m, field: choiceFields[0]?.id ?? '' }));
+  };
+  const applyCatalog = () => {
+    if (!catalog) return;
+    let d: { fields?: { id: string; label: string; options?: unknown }[] };
+    try { d = JSON.parse(jsonText); } catch { toast.error('JSON invalide'); return; }
+    const f = (d.fields ?? []).find((x) => x.id === cmap.field);
+    if (!f) { toast.error('Champ cible introuvable'); return; }
+    const cell = (row: (string | number)[], i: number) => (i >= 0 ? String(row[i] ?? '').trim() : '');
+    const start = cmap.header ? 1 : 0;
+    const opts = catalog.rows.slice(start)
+      .filter((row) => cell(row, cmap.value))
+      .map((row) => {
+        const o: Record<string, string> = { value: cell(row, cmap.value), label: cell(row, cmap.label) || cell(row, cmap.value) };
+        if (cell(row, cmap.hex)) o.hex = cell(row, cmap.hex);
+        if (cell(row, cmap.hint)) o.hint = cell(row, cmap.hint);
+        return o;
+      });
+    f.options = opts;
+    setJsonText(JSON.stringify(d, null, 2));
+    setCheck(null);
+    toast.success(`${opts.length} option(s) importée(s) dans « ${f.label} »`);
+  };
+
   const editing = jsonText.length > 0;
+  let choiceFields: { id: string; label: string }[] = [];
+  try { const d = JSON.parse(jsonText) as { fields?: { id: string; label: string; type: string }[] }; choiceFields = (d.fields ?? []).filter((f) => f.type === 'choice').map((f) => ({ id: f.id, label: f.label })); } catch { /* json en cours d'édition */ }
+  const colOptions = catalog ? Array.from({ length: catalog.cols }, (_, i) => ({ i, name: cmap.header && catalog.rows[0] ? String(catalog.rows[0][i] ?? `Col ${i + 1}`) : `Colonne ${i + 1}` })) : [];
+  const colSel = (val: number, onChange: (v: number) => void, allowNone?: boolean) => (
+    <select value={val} onChange={(e) => onChange(Number(e.target.value))} style={{ padding: '4px 6px', borderRadius: 6, border: '1px solid var(--line)', fontSize: 12 }}>
+      {allowNone && <option value={-1}>(aucune)</option>}
+      {colOptions.map((c) => <option key={c.i} value={c.i}>{c.name}</option>)}
+    </select>
+  );
 
   return (
     <div className="adm-page">
@@ -154,6 +201,41 @@ export default function AdminConfigurateurs() {
               <input ref={fileRef} type="file" accept=".xlsx,.xls" />
               <button className="btn ghost sm" type="button" disabled={busy} onClick={importExcel}>Importer les prix</button>
             </div>
+          </div>
+
+          {/* Import catalogue → options d'un champ */}
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--line)' }}>
+            <p style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--muted)' }}>
+              Importer un <strong>catalogue fournisseur</strong> (CSV/Excel) pour remplir en masse les options d&apos;un champ (coloris, références…) :
+            </p>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <input ref={catalogRef} type="file" accept=".csv,.xlsx,.xls" />
+              <button className="btn ghost sm" type="button" disabled={busy} onClick={loadCatalog}>Charger le catalogue</button>
+            </div>
+
+            {catalog && (
+              <div style={{ marginTop: 12, padding: 12, background: 'var(--surface-2)', borderRadius: 8, fontSize: 13 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '8px 10px', alignItems: 'center', maxWidth: 460 }}>
+                  <label>Champ cible</label>
+                  <select value={cmap.field} onChange={(e) => setCmap({ ...cmap, field: e.target.value })} style={{ padding: '4px 6px', borderRadius: 6, border: '1px solid var(--line)' }}>
+                    {choiceFields.length === 0 && <option value="">(aucun champ « choix »)</option>}
+                    {choiceFields.map((f) => <option key={f.id} value={f.id}>{f.label} ({f.id})</option>)}
+                  </select>
+                  <label>Colonne « valeur »</label>{colSel(cmap.value, (v) => setCmap({ ...cmap, value: v }))}
+                  <label>Colonne « libellé »</label>{colSel(cmap.label, (v) => setCmap({ ...cmap, label: v }), true)}
+                  <label>Colonne « couleur (hex) »</label>{colSel(cmap.hex, (v) => setCmap({ ...cmap, hex: v }), true)}
+                  <label>Colonne « aide »</label>{colSel(cmap.hint, (v) => setCmap({ ...cmap, hint: v }), true)}
+                  <label>Ignorer la 1re ligne (en-têtes)</label>
+                  <input type="checkbox" checked={cmap.header} onChange={(e) => setCmap({ ...cmap, header: e.target.checked })} style={{ justifySelf: 'start' }} />
+                </div>
+                <p style={{ margin: '10px 0 4px', color: 'var(--muted)' }}>
+                  {catalog.rows.length} ligne(s) lue(s). Aperçu :{' '}
+                  {catalog.rows.slice(cmap.header ? 1 : 0, (cmap.header ? 1 : 0) + 3).map((r) => `${r[cmap.value]}${cmap.label >= 0 ? ' → ' + r[cmap.label] : ''}`).join(' · ')}
+                </p>
+                <button className="btn solid sm" type="button" disabled={!cmap.field} onClick={applyCatalog}>Remplir les options du champ</button>
+                <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--muted)' }}>puis « Valider » / « Enregistrer »</span>
+              </div>
+            )}
           </div>
         </div>
       )}
