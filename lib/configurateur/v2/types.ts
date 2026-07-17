@@ -23,6 +23,8 @@ export type Expr =
   | { op: 'round'; arg: Expr; decimals?: number }
   | { op: 'concat'; args: Expr[] }                        // construit une chaîne (ex. id de table)
   | { op: 'snap'; value: Expr; steps: number[] }          // borne haute >= value (null si dépassé)
+  | { op: 'snapRow'; table: Expr; value: Expr }           // snap-up sur les rows d'une table2d
+  | { op: 'snapCol'; table: Expr; value: Expr }           // snap-up sur les cols d'une table2d
   | { op: 'lookup1d'; table: Expr; key: Expr }            // table1d (snap-up sur key)
   | { op: 'lookup2d'; table: Expr; row: Expr; col: Expr } // table2d (snap-up row & col)
   | { op: 'if'; cond: Condition; then: Expr; else: Expr };

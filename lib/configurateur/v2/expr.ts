@@ -77,6 +77,12 @@ export function evalExpr(e: Expr, ctx: Values, tables: Tables = {}): Primitive |
       if (v === null) return null;
       return snapUp(v, (e as { steps: number[] }).steps);
     }
+    case 'snapRow': case 'snapCol': {
+      const t = tables.d2?.[String(E((e as { table: Expr }).table))];
+      const v = N((e as { value: Expr }).value);
+      if (!t || v === null) return null;
+      return snapUp(v, op === 'snapRow' ? t.rows : t.cols);
+    }
     case 'lookup1d': {
       const id = E((e as { table: Expr }).table);
       return lookup1d(tables.d1?.[String(id)], N((e as { key: Expr }).key));

@@ -7,14 +7,16 @@
 
 import type { DefV2, Values, ResolveResult, LineItem } from './types';
 import { evalExpr, evalCond, type Tables } from './expr';
+import { withDerivedValues } from './cascade';
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
 export function resolvePrice(def: DefV2, values: Values): ResolveResult {
   const tables: Tables = def.tables ?? {};
 
-  // 1. Contexte = valeurs saisies + variables dérivées (dans l'ordre déclaré).
-  const ctx: Values = { ...values };
+  // 1. Contexte = valeurs saisies + valeurs dérivées des options (setsValues)
+  //    + variables dérivées calculées (dans l'ordre déclaré).
+  const ctx: Values = withDerivedValues(def, values);
   for (const d of def.derived ?? []) {
     const v = evalExpr(d.expr, ctx, tables);
     if (v !== null) ctx[d.id] = v;
