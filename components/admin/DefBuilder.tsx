@@ -1,5 +1,7 @@
 'use client';
 
+import { ConditionBuilder, type VarInfo } from './ConditionBuilder';
+
 /* Éditeur structuré (assistant) d'une définition de configurateur — Phase 3.1.
    Gère Meta + Champs (+ options) + Étapes par formulaires. Les règles de prix,
    conditions et formules restent en mode JSON (constructeurs visuels : 3.2/3.3).
@@ -12,6 +14,17 @@ interface Stp { id: string; title: string; help?: string; fields: string[]; [k: 
 export interface DefObj { slug: string; name: string; famille: string; fields: Fld[]; steps?: Stp[]; [k: string]: unknown }
 
 const TYPES = ['choice', 'dimension', 'number', 'boolean', 'text', 'info'];
+
+/** Toutes les variables utilisables dans les conditions : champs + variables
+ *  dérivées + toute variable déjà référencée dans la def (ex. pose, mode). */
+function collectVarNames(obj: unknown, acc: Set<string>): void {
+  if (Array.isArray(obj)) { obj.forEach((x) => collectVarNames(x, acc)); return; }
+  if (obj && typeof obj === 'object') {
+    const o = obj as Record<string, unknown>;
+    if (typeof o.var === 'string') acc.add(o.var);
+    for (const k of Object.keys(o)) collectVarNames(o[k], acc);
+  }
+}
 const inp: React.CSSProperties = { padding: '5px 8px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 13 };
 const lbl: React.CSSProperties = { fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 2 };
 
@@ -37,6 +50,14 @@ export function DefBuilder({ value, onChange }: { value: DefObj; onChange: (d: D
   const delStep = (i: number) => setSteps(steps.filter((_, j) => j !== i));
   const moveStep = (i: number, dir: number) => { const a = [...steps]; const j = i + dir; if (j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; setSteps(a); };
   const toggleStepField = (si: number, fid: string) => { const s = steps[si]; const has = s.fields.includes(fid); updStep(si, { fields: has ? s.fields.filter((x) => x !== fid) : [...s.fields, fid] }); };
+
+  // Variables disponibles pour les conditions (champs + dérivées + pose/mode…).
+  const varNames = new Set<string>();
+  collectVarNames(d, varNames);
+  const varInfos: VarInfo[] = [
+    ...fields.map((f) => ({ id: f.id, label: f.label, type: f.type, options: f.type === 'choice' ? (f.options ?? []).map((o) => ({ value: o.value, label: o.label })) : undefined })),
+    ...[...varNames].filter((n) => !fields.some((f) => f.id === n)).map((n) => ({ id: n, label: n })),
+  ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -80,6 +101,11 @@ export function DefBuilder({ value, onChange }: { value: DefObj; onChange: (d: D
                 </div>
               </div>
               <div style={{ marginTop: 6 }}><label style={lbl}>Aide (facultatif)</label><input style={{ ...inp, width: '100%' }} value={f.help ?? ''} onChange={(e) => updField(i, { help: e.target.value })} /></div>
+
+              <div style={{ marginTop: 8 }}>
+                <label style={lbl}>Affiché si (facultatif)</label>
+                <ConditionBuilder value={f.visibleWhen} onChange={(c) => updField(i, { visibleWhen: c })} vars={varInfos} />
+              </div>
 
               {f.type === 'choice' && (
                 <div style={{ marginTop: 8, paddingLeft: 10, borderLeft: '2px solid var(--line)' }}>
