@@ -240,10 +240,13 @@ export function ConfigurateurProduit({ slug }: Props) {
     </section>
   );
 
+  const themeStyle = def.theme?.primary ? ({ '--steel-600': def.theme.primary } as React.CSSProperties) : undefined;
+
   return (
-    <div className="cfg-wrap cfg-wizard">
+    <div className="cfg-wrap cfg-wizard" style={themeStyle}>
       {/* ── Colonne étapes ── */}
       <div className="cfg-left">
+        {def.theme?.logo && <img className="cfg-logo" src={def.theme.logo} alt="" />}
         <Stepper steps={steps.map((s) => s.title)} current={cur} onJump={setStepIdx} />
         {step.help && <p className="cfg-step-help">{step.help}</p>}
         <div className="cfg-step">

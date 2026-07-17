@@ -121,6 +121,8 @@ export interface DefV2 {
   priceRules: PriceRule[];
   tables?: { d1?: Record<string, Table1D>; d2?: Record<string, Table2D> };
   constraints?: Constraint[];
+  /** Personnalisation graphique du configurateur (couleur d'accent, logo). */
+  theme?: { primary?: string; logo?: string };
 }
 
 /* ---------- Résultat de calcul ---------- */

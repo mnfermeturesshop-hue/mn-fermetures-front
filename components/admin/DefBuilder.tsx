@@ -11,9 +11,74 @@ type Primitive = string | number | boolean;
 interface Opt { value: string; label: string; hex?: string; hint?: string }
 interface Fld { id: string; label: string; type: string; unit?: string; default?: Primitive; help?: string; options?: Opt[]; role?: string; [k: string]: unknown }
 interface Stp { id: string; title: string; help?: string; fields: string[]; [k: string]: unknown }
+interface Rule { code: string; label: string; kind: string; when?: unknown; amount: unknown; [k: string]: unknown }
 export interface DefObj { slug: string; name: string; famille: string; fields: Fld[]; steps?: Stp[]; [k: string]: unknown }
 
 const TYPES = ['choice', 'dimension', 'number', 'boolean', 'text', 'info'];
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type Amt = any;
+function amtMode(a: Amt): 'fixe' | 'm2' | 'table2d' | 'table1d' | 'json' {
+  if (typeof a === 'number') return 'fixe';
+  if (a && a.op === 'lookup2d') return 'table2d';
+  if (a && a.op === 'lookup1d') return 'table1d';
+  if (a && a.op === 'round' && a.arg?.op === '*' && (a.arg.args ?? []).some((x: Amt) => x?.var === 'surface_m2')) return 'm2';
+  return 'json';
+}
+const m2Rate = (a: Amt): number => ((a?.arg?.args ?? []).find((x: Amt) => typeof x === 'number') ?? 0);
+const tableSelVal = (t: Amt): string => (t && t.var ? `var:${t.var}` : String(t ?? ''));
+const tableSelSet = (v: string): Amt => (v.startsWith('var:') ? { var: v.slice(4) } : v);
+
+/** Éditeur de montant d'une règle : fixe / au m² / table 2D / table 1D / avancé. */
+function AmountEditor({ value, onChange, d2ids, d1ids, vars }: { value: Amt; onChange: (a: Amt) => void; d2ids: string[]; d1ids: string[]; vars: VarInfo[] }) {
+  const mode = amtMode(value);
+  const s: React.CSSProperties = { padding: '4px 6px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 12.5 };
+  const v0 = vars[0]?.id ?? '';
+  const setMode = (m: string) => {
+    if (m === 'fixe') onChange(0);
+    else if (m === 'm2') onChange({ op: 'round', arg: { op: '*', args: [{ var: 'surface_m2' }, 0] } });
+    else if (m === 'table2d') onChange({ op: 'lookup2d', table: d2ids[0] ?? { var: 'grid' }, row: { var: v0 }, col: { var: v0 } });
+    else if (m === 'table1d') onChange({ op: 'lookup1d', table: d1ids[0] ?? '', key: { var: v0 } });
+    else onChange(value ?? 0);
+  };
+  const varSel = (val: string, on: (v: string) => void) => (
+    <select style={s} value={val} onChange={(e) => on(e.target.value)}>
+      {!vars.some((x) => x.id === val) && val && <option value={val}>{val}</option>}
+      {vars.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
+    </select>
+  );
+  return (
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+      <select style={s} value={mode} onChange={(e) => setMode(e.target.value)}>
+        <option value="fixe">Montant fixe</option>
+        <option value="m2">Au m² (surface × €/m²)</option>
+        <option value="table2d">Table 2D (grille L×H)</option>
+        <option value="table1d">Table 1D (barème largeur)</option>
+        <option value="json">Avancé (JSON)</option>
+      </select>
+      {mode === 'fixe' && <><input style={{ ...s, width: 90 }} type="number" value={Number(value) || 0} onChange={(e) => onChange(Number(e.target.value) || 0)} /> €</>}
+      {mode === 'm2' && <><input style={{ ...s, width: 80 }} type="number" value={m2Rate(value)} onChange={(e) => onChange({ op: 'round', arg: { op: '*', args: [{ var: 'surface_m2' }, Number(e.target.value) || 0] } })} /> €/m²</>}
+      {mode === 'table2d' && <>
+        <span style={{ fontSize: 12 }}>table</span>
+        <select style={s} value={tableSelVal(value.table)} onChange={(e) => onChange({ ...value, table: tableSelSet(e.target.value) })}>
+          <option value="var:grid">▸ variable « grid »</option>
+          {d2ids.map((id) => <option key={id} value={id}>{id}</option>)}
+        </select>
+        <span style={{ fontSize: 12 }}>ligne</span>{varSel(value.row?.var ?? '', (v) => onChange({ ...value, row: { var: v } }))}
+        <span style={{ fontSize: 12 }}>col</span>{varSel(value.col?.var ?? '', (v) => onChange({ ...value, col: { var: v } }))}
+      </>}
+      {mode === 'table1d' && <>
+        <span style={{ fontSize: 12 }}>table</span>
+        <select style={s} value={String(value.table ?? '')} onChange={(e) => onChange({ ...value, table: e.target.value })}>
+          {d1ids.map((id) => <option key={id} value={id}>{id}</option>)}
+        </select>
+        <span style={{ fontSize: 12 }}>clé</span>{varSel(value.key?.var ?? '', (v) => onChange({ ...value, key: { var: v } }))}
+      </>}
+      {mode === 'json' && <input style={{ ...s, flex: 1, minWidth: 200, fontFamily: 'monospace' }} value={JSON.stringify(value)}
+        onChange={(e) => { try { onChange(JSON.parse(e.target.value)); } catch { /* saisie en cours */ } }} />}
+    </div>
+  );
+}
 
 /** Toutes les variables utilisables dans les conditions : champs + variables
  *  dérivées + toute variable déjà référencée dans la def (ex. pose, mode). */
@@ -31,6 +96,8 @@ const lbl: React.CSSProperties = { fontSize: 12, color: 'var(--muted)', display:
 export function DefBuilder({ value, onChange }: { value: DefObj; onChange: (d: DefObj) => void }) {
   const d = value;
   const set = (patch: Partial<DefObj>) => onChange({ ...d, ...patch });
+  const theme = (d.theme as { primary?: string; logo?: string }) ?? {};
+  const setTheme = (patch: { primary?: string; logo?: string }) => set({ theme: { ...theme, ...patch } });
   const fields = d.fields ?? [];
   const steps = d.steps ?? [];
 
@@ -59,15 +126,28 @@ export function DefBuilder({ value, onChange }: { value: DefObj; onChange: (d: D
     ...[...varNames].filter((n) => !fields.some((f) => f.id === n)).map((n) => ({ id: n, label: n })),
   ];
 
+  const rules = (d.priceRules as Rule[]) ?? [];
+  const setRules = (r: Rule[]) => set({ priceRules: r });
+  const updRule = (i: number, patch: Partial<Rule>) => setRules(rules.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  const addRule = () => setRules([...rules, { code: `regle_${rules.length + 1}`, label: 'Nouvelle règle', kind: 'add', amount: 0 }]);
+  const delRule = (i: number) => setRules(rules.filter((_, j) => j !== i));
+  const moveRule = (i: number, dir: number) => { const a = [...rules]; const j = i + dir; if (j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; setRules(a); };
+  const d2ids = Object.keys((d.tables as { d2?: Record<string, unknown> })?.d2 ?? {});
+  const d1ids = Object.keys((d.tables as { d1?: Record<string, unknown> })?.d1 ?? {});
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Meta */}
       <section>
         <h4 style={{ margin: '0 0 8px' }}>Général</h4>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div><label style={lbl}>Nom</label><input style={inp} value={d.name ?? ''} onChange={(e) => set({ name: e.target.value })} /></div>
           <div><label style={lbl}>Identifiant (slug)</label><input style={inp} value={d.slug ?? ''} onChange={(e) => set({ slug: e.target.value })} /></div>
           <div><label style={lbl}>Famille (remise B2B)</label><input style={inp} value={d.famille ?? ''} onChange={(e) => set({ famille: e.target.value })} /></div>
+          <div><label style={lbl}>Couleur d&apos;accent</label>
+            <input type="color" value={theme.primary ?? '#3d5a80'} onChange={(e) => setTheme({ primary: e.target.value })} style={{ width: 44, height: 30, border: '1px solid var(--line)', borderRadius: 6, padding: 0 }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 160 }}><label style={lbl}>Logo (URL, facultatif)</label><input style={{ ...inp, width: '100%' }} value={theme.logo ?? ''} onChange={(e) => setTheme({ logo: e.target.value })} /></div>
         </div>
       </section>
 
@@ -156,8 +236,41 @@ export function DefBuilder({ value, onChange }: { value: DefObj; onChange: (d: D
         </div>
       </section>
 
+      {/* Règles de prix */}
+      <section>
+        <h4 style={{ margin: '0 0 8px' }}>Règles de prix ({rules.length})</h4>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {rules.map((r, i) => (
+            <div key={i} style={{ border: '1px solid var(--line)', borderRadius: 8, padding: 10 }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 160 }}><label style={lbl}>Libellé</label><input style={{ ...inp, width: '100%' }} value={r.label} onChange={(e) => updRule(i, { label: e.target.value })} /></div>
+                <div><label style={lbl}>Type</label>
+                  <select style={inp} value={r.kind} onChange={(e) => updRule(i, { kind: e.target.value })}>
+                    <option value="base">Prix de base</option>
+                    <option value="add">Supplément / moins-value</option>
+                  </select>
+                </div>
+                <div><label style={lbl}>code</label><input style={{ ...inp, width: 110 }} value={r.code} onChange={(e) => updRule(i, { code: e.target.value })} /></div>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <button type="button" className="btn ghost sm" onClick={() => moveRule(i, -1)}>↑</button>
+                  <button type="button" className="btn ghost sm" onClick={() => moveRule(i, 1)}>↓</button>
+                  <button type="button" className="btn ghost sm" onClick={() => delRule(i)}>✕</button>
+                </div>
+              </div>
+              <div style={{ marginTop: 8 }}><label style={lbl}>Appliquée si (vide = toujours)</label>
+                <ConditionBuilder value={r.when} onChange={(c) => updRule(i, { when: c })} vars={varInfos} />
+              </div>
+              <div style={{ marginTop: 8 }}><label style={lbl}>Montant</label>
+                <AmountEditor value={r.amount} onChange={(a) => updRule(i, { amount: a })} d2ids={d2ids} d1ids={d1ids} vars={varInfos} />
+              </div>
+            </div>
+          ))}
+          <button type="button" className="btn ghost sm" style={{ alignSelf: 'flex-start' }} onClick={addRule}>+ Ajouter une règle</button>
+        </div>
+      </section>
+
       <p style={{ fontSize: 12, color: 'var(--muted)', margin: 0 }}>
-        Règles de prix, conditions d&apos;affichage et formules s&apos;éditent en mode <strong>JSON (avancé)</strong> — constructeurs visuels à venir.
+        Les <strong>tables de prix</strong> (grilles/barèmes) s&apos;éditent dans l&apos;Excel ; les <strong>variables dérivées</strong> (surface, snaps…) restent en mode <strong>JSON (avancé)</strong>.
       </p>
     </div>
   );

@@ -1963,6 +1963,7 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 .cfg-summary-empty { padding: 32px 20px; text-align: center; font-size: 13px; color: var(--muted); }
 
 /* ── Assistant pas-à-pas (wizard) ── */
+.cfg-logo { max-height: 48px; width: auto; margin: 0 0 16px; }
 .cfg-stepper { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; padding: 0; margin: 0 0 20px; }
 .cfg-stepper-btn {
   display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px;
