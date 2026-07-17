@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { toast } from '@/components/ui/Toast';
+import { DefBuilder, type DefObj } from '@/components/admin/DefBuilder';
 
 interface ListItem { slug: string; name: string; famille: string; active: boolean; source: 'seed' | 'db'; updatedAt?: string }
 
@@ -37,6 +38,7 @@ export default function AdminConfigurateurs() {
   const catalogRef = useRef<HTMLInputElement>(null);
   const [catalog, setCatalog] = useState<{ rows: (string | number)[][]; cols: number } | null>(null);
   const [cmap, setCmap] = useState({ field: '', value: 0, label: 1, hex: -1, hint: -1, header: true });
+  const [mode, setMode] = useState<'form' | 'json'>('form');
 
   const loadList = useCallback(async () => {
     const r = await fetch('/api/admin/configurateurs');
@@ -135,8 +137,9 @@ export default function AdminConfigurateurs() {
   };
 
   const editing = jsonText.length > 0;
-  let choiceFields: { id: string; label: string }[] = [];
-  try { const d = JSON.parse(jsonText) as { fields?: { id: string; label: string; type: string }[] }; choiceFields = (d.fields ?? []).filter((f) => f.type === 'choice').map((f) => ({ id: f.id, label: f.label })); } catch { /* json en cours d'édition */ }
+  let parsedDef: DefObj | null = null;
+  try { parsedDef = JSON.parse(jsonText) as DefObj; } catch { /* json en cours d'édition */ }
+  const choiceFields = (parsedDef?.fields ?? []).filter((f) => f.type === 'choice').map((f) => ({ id: f.id, label: f.label }));
   const colOptions = catalog ? Array.from({ length: catalog.cols }, (_, i) => ({ i, name: cmap.header && catalog.rows[0] ? String(catalog.rows[0][i] ?? `Col ${i + 1}`) : `Colonne ${i + 1}` })) : [];
   const colSel = (val: number, onChange: (v: number) => void, allowNone?: boolean) => (
     <select value={val} onChange={(e) => onChange(Number(e.target.value))} style={{ padding: '4px 6px', borderRadius: 6, border: '1px solid var(--line)', fontSize: 12 }}>
@@ -171,11 +174,22 @@ export default function AdminConfigurateurs() {
             {slug && <a className="btn ghost sm" href={`/api/admin/configurateurs/export?slug=${slug}`}>⬇ Prix (.xlsx)</a>}
           </div>
 
-          <p style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--muted)' }}>
-            Définition (JSON) — champs, étapes, règles de prix et conditions. Édition des <strong>prix</strong> possible aussi via l&apos;Excel (grilles/barèmes).
-          </p>
-          <textarea value={jsonText} onChange={(e) => { setJsonText(e.target.value); setCheck(null); }} spellCheck={false}
-            style={{ width: '100%', minHeight: 380, fontFamily: 'monospace', fontSize: 12.5, padding: 12, border: '1px solid var(--line)', borderRadius: 8, lineHeight: 1.5 }} />
+          <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+            <button type="button" className={`btn ${mode === 'form' ? 'solid' : 'ghost'} sm`} onClick={() => setMode('form')}>Assistant</button>
+            <button type="button" className={`btn ${mode === 'json' ? 'solid' : 'ghost'} sm`} onClick={() => setMode('json')}>JSON (avancé)</button>
+          </div>
+
+          {mode === 'form' && parsedDef ? (
+            <DefBuilder value={parsedDef} onChange={(nd) => { setJsonText(JSON.stringify(nd, null, 2)); setCheck(null); }} />
+          ) : (
+            <>
+              {mode === 'form' && !parsedDef && (
+                <p className="cfg-error" style={{ fontSize: 13 }}>JSON invalide — corrigez ci-dessous puis revenez à l&apos;assistant.</p>
+              )}
+              <textarea value={jsonText} onChange={(e) => { setJsonText(e.target.value); setCheck(null); }} spellCheck={false}
+                style={{ width: '100%', minHeight: 380, fontFamily: 'monospace', fontSize: 12.5, padding: 12, border: '1px solid var(--line)', borderRadius: 8, lineHeight: 1.5 }} />
+            </>
+          )}
 
           {check && (
             <div style={{ marginTop: 12, padding: 12, borderRadius: 8, fontSize: 13,
