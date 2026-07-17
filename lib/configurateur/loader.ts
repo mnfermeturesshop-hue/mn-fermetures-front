@@ -17,6 +17,11 @@ const SEEDS: Record<string, DefV2> = {
 const isV2 = (d: unknown): d is DefV2 =>
   !!d && typeof d === 'object' && Array.isArray((d as { fields?: unknown }).fields);
 
+/** Configurateurs intégrés (seeds) — pour le gestionnaire back-office. */
+export function builtinConfigurators(): { slug: string; name: string; famille: string }[] {
+  return Object.values(SEEDS).map((d) => ({ slug: d.slug, name: d.name, famille: d.famille }));
+}
+
 export async function loadConfiguratorDef(slug: string): Promise<DefV2 | null> {
   if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
     try {
