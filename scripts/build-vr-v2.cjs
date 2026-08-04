@@ -252,10 +252,10 @@ for (const [val, code] of Object.entries(GENOU_MAP)) {
     when: eq('genouillere', val), amount: price });
 }
 
-// Coulisse Tradi Express « 53×22 à aile » : +8,50 €/ml (hauteur).
+// Coulisse Tradi Express « 53×22 à aile » : +8,50 €/ml (hauteur) × 2 coulisses.
 priceRules.push({ code: 'coulisse_express_aile', label: 'Coulisse 53×22 à aile', kind: 'add',
   when: AND([eq('gamme_tradi', 'express'), eq('coulisse_express', 'c53x22_aile')]),
-  amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 8.5] } } });
+  amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 8.5, 2] } } });
 
 // champs de fabrication (specFields)
 for (const sf of (v1.specFields ?? [])) {
