@@ -9,6 +9,7 @@ interface NavItem { href: string; label: string; icon: string }
 const NAV: NavItem[] = [
   { href: '/admin',              label: 'Dashboard',    icon: '◈' },
   { href: '/admin/produits',     label: 'Produits',     icon: '▣' },
+  { href: '/admin/nomenclature', label: 'Nomenclature', icon: '🗂' },
   { href: '/admin/clients',      label: 'Clients pro',  icon: '👥' },
   { href: '/admin/pro-requests', label: 'Demandes pro', icon: '📋' },
   { href: '/admin/devis',        label: 'Devis',        icon: '📝' },

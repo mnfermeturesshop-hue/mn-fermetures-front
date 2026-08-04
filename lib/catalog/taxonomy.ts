@@ -102,7 +102,24 @@ export function chainSlugs(nodes: TaxonomyNode[], slug: string): string[] {
   return out;
 }
 
-/** Enfants directs d'un nœud (ou gammes si slug null). */
-export function children(nodes: TaxonomyNode[], parentSlug: string | null): TaxonomyNode[] {
-  return nodes.filter((n) => n.parentSlug === parentSlug && n.active).sort((a, b) => a.sortOrder - b.sortOrder);
+/** Enfants directs d'un nœud (ou gammes si slug null). `activeOnly` par défaut. */
+export function children(nodes: TaxonomyNode[], parentSlug: string | null, activeOnly = true): TaxonomyNode[] {
+  return nodes
+    .filter((n) => n.parentSlug === parentSlug && (!activeOnly || n.active))
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+/** Recalcule les codes 1 / 1.1 / 1.1.1 depuis parentSlug + sortOrder (source de
+ *  vérité = la structure ; jamais de dérive après un déplacement/réordre). */
+export function recomputeCodes(nodes: TaxonomyNode[]): TaxonomyNode[] {
+  const codeBySlug = new Map<string, string>();
+  const walk = (parentSlug: string | null, prefix: string) => {
+    children(nodes, parentSlug, false).forEach((n, i) => {
+      const code = prefix ? `${prefix}.${i + 1}` : String(i + 1);
+      codeBySlug.set(n.slug, code);
+      walk(n.slug, code);
+    });
+  };
+  walk(null, '');
+  return nodes.map((n) => ({ ...n, code: codeBySlug.get(n.slug) ?? n.code }));
 }
