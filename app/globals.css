@@ -2757,3 +2757,30 @@ html { -webkit-text-size-adjust: 100%; }
 .nav-home { display: inline-flex; align-items: center; gap: 6px; }
 .nav-home svg { flex-shrink: 0; }
 .mi-home { margin-right: 4px; }
+
+/* ===== Catalogue par nomenclature (/gammes) ===== */
+.gam-page { max-width: 1200px; margin: 0 auto; padding: 24px 20px 64px; }
+.gam-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+.gam-crumbs a { color: var(--muted); text-decoration: none; }
+.gam-crumbs a:hover { color: var(--steel-600); text-decoration: underline; }
+.gam-crumb { display: inline-flex; align-items: center; gap: 6px; }
+.gam-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; }
+.gam-head h1 { margin: 0; }
+.gam-code { font-variant-numeric: tabular-nums; color: var(--steel-600); font-weight: 700; background: #eef4fb; padding: 2px 10px; border-radius: 8px; }
+.gam-h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 28px 0 12px; }
+.gam-gens { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 8px; }
+.gam-gen { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; border: 1px solid var(--steel-600); background: linear-gradient(135deg,#f0f7ff,#fff); border-radius: 12px; padding: 14px 18px; min-width: 280px; transition: box-shadow .15s; }
+.gam-gen:hover { box-shadow: 0 8px 24px rgba(15,76,129,.15); }
+.gam-gen-ic { font-size: 24px; color: var(--steel-600); }
+.gam-gen b { display: block; }
+.gam-gen small { color: var(--muted); }
+.gam-gen-go { margin-left: auto; font-size: 20px; color: var(--steel-600); }
+.gam-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.gam-card { display: flex; flex-direction: column; gap: 4px; text-decoration: none; color: inherit; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 18px; background: #fff; transition: border-color .15s, box-shadow .15s; }
+.gam-card:hover { border-color: var(--steel-600); box-shadow: 0 6px 18px rgba(0,0,0,.06); }
+.gam-card-code { font-variant-numeric: tabular-nums; font-size: 12px; color: var(--steel-600); font-weight: 700; }
+.gam-card-name { font-size: 16px; }
+.gam-card-meta { color: var(--muted); font-size: 13px; }
+.gam-products { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.gam-empty { text-align: center; padding: 48px 20px; color: var(--muted); }
+.gam-empty-sub { font-size: 13px; }
