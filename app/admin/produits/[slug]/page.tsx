@@ -9,6 +9,7 @@ import type { Brand } from '@/lib/catalog/types';
 import { flatMenuOptions, categorySlugFromHref } from '@/lib/catalog/menuResolve';
 import type { MenuOption } from '@/lib/catalog/menuResolve';
 import { FAMILLES, type FamilleSlug } from '@/lib/familles';
+import { children as taxoChildren, type TaxonomyNode } from '@/lib/catalog/taxonomy';
 
 type PricingType = 'unit' | 'matrix' | 'kit';
 
@@ -43,6 +44,8 @@ export default function ProduitForm() {
   const [pricingType, setPricingType] = useState<PricingType>('unit');
   const [proOnly, setProOnly] = useState(false);
   const [famille, setFamille] = useState<FamilleSlug>('volet-roulant');
+  const [taxonomySlug, setTaxonomySlug] = useState('');
+  const [taxNodes, setTaxNodes] = useState<TaxonomyNode[]>([]);
   const [uom, setUom] = useState('unite');
 
   // Variants (unit)
@@ -56,11 +59,16 @@ export default function ProduitForm() {
 
   useEffect(() => {
     getAllBrands().then(setBrands);
+    fetch('/api/admin/nomenclature')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.items) setTaxNodes(d.items); })
+      .catch(() => {});
 
     if (!isNew) {
       getProductBySlugDB(params.slug as string).then((p) => {
         if (!p) return;
         setSlug(p.slug);
+        setTaxonomySlug(p.taxonomySlug ?? '');
         setName(p.name);
         setDescription(p.description ?? '');
         setMenuPath(p.menuPath ?? '');
@@ -156,6 +164,7 @@ export default function ProduitForm() {
         category_slug: categorySlugFromHref(menuPath),
         brand_slug: brandSlug || null,
         pricing_type: pricingType,
+        taxonomy_slug: taxonomySlug || null,
         famille,
         pro_only: proOnly,
         active: true,
@@ -217,6 +226,17 @@ export default function ProduitForm() {
       setSaving(false);
     }
   };
+
+  // Options hiérarchiques (indentées) pour le rattachement nomenclature.
+  const taxOptions: { node: TaxonomyNode; depth: number }[] = [];
+  const buildTax = (parent: string | null, depth: number) => {
+    for (const n of taxoChildren(taxNodes, parent, false)) {
+      taxOptions.push({ node: n, depth });
+      buildTax(n.slug, depth + 1);
+    }
+  };
+  buildTax(null, 0);
+  const taxBySlug = new Map(taxNodes.map((n) => [n.slug, n]));
 
   return (
     <div className="adm-page">
@@ -302,14 +322,31 @@ export default function ProduitForm() {
                 <option value="kit">Kit (configs fixes)</option>
               </select>
             </div>
+            <div className="adm-field" style={{ gridColumn: '1 / -1' }}>
+              <label>Rattachement nomenclature (Gamme › Famille › Sous‑famille)</label>
+              <select value={taxonomySlug} onChange={(e) => setTaxonomySlug(e.target.value)}>
+                <option value="">— Non rattaché (repli famille ci‑dessous) —</option>
+                {taxOptions.map(({ node, depth }) => (
+                  <option key={node.slug} value={node.slug}>
+                    {'  '.repeat(depth)}{node.code} · {node.name}
+                  </option>
+                ))}
+              </select>
+              <div className="adm-form-hint">
+                Détermine la remise B2B héritée et le placement catalogue.
+                {taxonomySlug && taxBySlug.get(taxonomySlug) && (
+                  <> Niveau : <strong>{taxBySlug.get(taxonomySlug)!.level.replace('_', '‑')}</strong>.</>
+                )}
+              </div>
+            </div>
             <div className="adm-field">
-              <label>Famille commerciale *</label>
+              <label>Famille commerciale (héritée)</label>
               <select value={famille} onChange={(e) => setFamille(e.target.value as FamilleSlug)}>
                 {FAMILLES.map((f) => (
                   <option key={f.slug} value={f.slug}>{f.label}</option>
                 ))}
               </select>
-              <div className="adm-form-hint">Détermine le taux de remise B2B applicable.</div>
+              <div className="adm-form-hint">Repli si aucun nœud n’est rattaché (déprécié).</div>
             </div>
             <div className="adm-field adm-field-check">
               <label>

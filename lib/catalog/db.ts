@@ -20,6 +20,7 @@ function rowToProduct(row: any): Product {
     name: row.name,
     description: row.description ?? undefined,
     categorySlug: row.category_slug,
+    taxonomySlug: row.taxonomy_slug ?? undefined,
     famille: row.famille ?? undefined,
     menuPath: row.menu_path ?? undefined,
     imageUrl: row.image_url ?? undefined,
