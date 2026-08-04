@@ -21,7 +21,7 @@ export function ClientDiscountTree({
   const [draft, setDraft] = useState<Record<string, number>>(() => normalizeDiscounts(initial));
 
   const setRate = (slug: string, val: string) => {
-    const n = val === '' ? undefined : Math.min(50, Math.max(0, Math.round(Number(val) || 0)));
+    const n = val === '' ? undefined : Math.min(60, Math.max(0, Math.round(Number(val) || 0)));
     setDraft((prev) => {
       const next = { ...prev };
       if (!n) delete next[slug];
@@ -66,7 +66,7 @@ export function ClientDiscountTree({
                 <span className="cdt-name"><b className="cdt-code">{node.code}</b> {node.name}</span>
                 <span className="cdt-in">
                   <input
-                    type="number" min={0} max={50} placeholder="hérite"
+                    type="number" min={0} max={60} placeholder="hérite"
                     value={own ?? ''} onChange={(e) => setRate(node.slug, e.target.value)}
                   />
                 </span>
