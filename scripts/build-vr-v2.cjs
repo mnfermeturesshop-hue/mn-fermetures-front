@@ -233,6 +233,22 @@ priceRules.push({ code: 'color_lame_finale_pv', label: 'Coloris lame finale (opt
   when: flatOptionCond('color_lame_finale'),
   amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('largeur'), 1000] }, 18] } } });
 
+// Motorisation Radio : type d'émetteur (portatif/mural) + rappel de l'émetteur inclus.
+fields.push({ id: 'emetteur_type', label: 'Émetteur', type: 'choice', default: 'portatif',
+  visibleWhen: eq('commande', 'radio'),
+  options: [{ value: 'portatif', label: 'Émetteur portatif' }, { value: 'mural', label: 'Émetteur mural' }] });
+fields.push({ id: 'radio_info', type: 'info', visibleWhen: eq('commande', 'radio'),
+  help: 'Émetteur de base inclus : MN → portatif 1 canal · Somfy → Amy 1 Sun Protect (l’une des 4 possibilités, toutes incluses).' });
+
+// Ajustements de libellé / prix issus de l'arbre Radio (source PDG).
+const OPTION_OVERRIDE = {
+  emetteur_portatif_5c: { label: 'Émetteur portatif 5 canaux', extraWhen: eq('emetteur_type', 'portatif') },
+  emetteur_mural_5c: { label: 'Émetteur mural 5 canaux', extraWhen: eq('emetteur_type', 'mural') },
+  situo_io_1c: { label: 'Situo IO 1 canal (remplace l’Amy 1)', priceHT: 23 },
+  situo_io_5c: { label: 'Situo IO 5 Pure 2 (5 canaux)' },
+  amy_4c_io: { label: 'Émetteur Amy 4 IO' },
+};
+
 // Options fixes -> champs booléens + règles (genouillères regroupées à part).
 const GENOU = ['genouillere_60', 'genouillere_60a', 'genouillere_90', 'genouillere_90a'];
 for (const o of v1.options) {
@@ -262,11 +278,14 @@ for (const o of v1.options) {
     continue;
   }
 
-  const vis = scopeConds(o.scope, o.layer);
-  fields.push({ id: o.code, label: o.label, type: 'boolean', ...(vis.length ? { visibleWhen: AND(vis) } : {}) });
-  priceRules.push({ code: `opt_${o.code}`, label: o.label, kind: 'add',
+  const ov = OPTION_OVERRIDE[o.code] || {};
+  const label = ov.label ?? o.label;
+  const price = ov.priceHT ?? o.priceHT;
+  const vis = [...scopeConds(o.scope, o.layer), ...(ov.extraWhen ? [ov.extraWhen] : [])];
+  fields.push({ id: o.code, label, type: 'boolean', ...(vis.length ? { visibleWhen: AND(vis) } : {}) });
+  priceRules.push({ code: `opt_${o.code}`, label, kind: 'add',
     when: AND([eq(o.code, true), ...vis]),
-    amount: o.priceHT });
+    amount: price });
 }
 
 // E. Genouillère : un seul choix (6 options). Sous-coffre 60° et applique 60°
@@ -341,6 +360,7 @@ const optionFieldIds = [
   ...Object.keys(optionalCodes),                                    // attaches_rigides, sous_face_7016
   'inverseur', 'inverseur_pose', 'inverseur_maintien',             // Filaire
   'kit_inverseur_secours',                                         // Commande de secours
+  'radio_info',                                                    // Radio (émetteur inclus)
   ...v1.options.filter((o) => !GENOU.includes(o.code) && !['inverseur', 'kit_inverseur_secours'].includes(o.code)).map((o) => o.code),
   'genouillere',
 ];
@@ -348,7 +368,7 @@ const specIds = (v1.specFields ?? []).map((s) => s.id);
 const steps = [
   { id: 'type', title: 'Type & pose', fields: ['gamme_tradi', 'type_volet', ...specIds, 'percage'] },
   { id: 'lame', title: 'Lame & coulisses', fields: ['lame', 'coulisse_express'] },
-  { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'cote_manoeuvre', 'sortie_manoeuvre', 'cote_fil', 'sortie_fil', 'commande', 'moteur', 'radio_somfy'] },
+  { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'cote_manoeuvre', 'sortie_manoeuvre', 'cote_fil', 'sortie_fil', 'commande', 'moteur', 'radio_somfy', 'emetteur_type'] },
   { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'surface_info'] },
   { id: 'coloris', title: 'Coloris', fields: ['color_tablier', 'color_coulisse', 'color_lame_finale'] },
   { id: 'options', title: 'Options', fields: optionFieldIds },
