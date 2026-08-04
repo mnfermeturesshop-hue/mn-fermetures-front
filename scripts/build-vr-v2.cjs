@@ -59,7 +59,7 @@ for (const sel of v1.selectors) {
   if (vis.length) f.visibleWhen = AND(vis);
 
   for (const o of sel.options) {
-    if (sel.id === 'type_volet' && o.value === 'express') continue; // B. express -> gamme_tradi
+    if (sel.id === 'type_volet' && (o.value === 'express' || o.value === 'zf')) continue; // express -> gamme_tradi ; ZF retiré
     const opt = { value: o.value, label: o.label };
     if (o.hint) opt.hint = o.hint;
     if (o.derivedAxes) opt.setsValues = o.derivedAxes;
@@ -252,6 +252,11 @@ for (const [val, code] of Object.entries(GENOU_MAP)) {
     when: eq('genouillere', val), amount: price });
 }
 
+// Coulisse Tradi Express « 53×22 à aile » : +8,50 €/ml (hauteur).
+priceRules.push({ code: 'coulisse_express_aile', label: 'Coulisse 53×22 à aile', kind: 'add',
+  when: AND([eq('gamme_tradi', 'express'), eq('coulisse_express', 'c53x22_aile')]),
+  amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 8.5] } } });
+
 // champs de fabrication (specFields)
 for (const sf of (v1.specFields ?? [])) {
   const vis = scopeConds(sf.scope, sf.layer);
@@ -260,6 +265,19 @@ for (const sf of (v1.specFields ?? [])) {
     ...(sf.defaultValue !== undefined ? { default: sf.defaultValue } : {}),
     ...(vis.length ? { visibleWhen: AND(vis) } : {}) });
 }
+
+// Perçage des coulisses (fabrication) — juste après l'enroulement.
+fields.push({ id: 'percage', label: 'Perçage des coulisses', type: 'choice', role: 'spec', default: 'tableau',
+  options: [{ value: 'tableau', label: 'Perçage tableau' }, { value: 'non_perce', label: 'Non percé' }] });
+
+// Coulisses spécifiques Tradi Express (choix de profil).
+fields.push({ id: 'coulisse_express', label: 'Coulisses', type: 'choice', default: 'c45x22',
+  visibleWhen: eq('gamme_tradi', 'express'),
+  options: [
+    { value: 'c45x22', label: 'Coulisse 45×22 (par défaut)' },
+    { value: 'c53x22', label: 'Coulisse 53×22 (sans plus-value)' },
+    { value: 'c53x22_aile', label: 'Coulisse 53×22 à aile (+8,50 €/ml)' },
+  ] });
 
 // ---- CONSTRAINTS (limites dimensionnelles) ----
 const nonPose = v1.limits.filter((l) => !l.pose);
@@ -291,10 +309,10 @@ const optionFieldIds = [
 ];
 const specIds = (v1.specFields ?? []).map((s) => s.id);
 const steps = [
-  { id: 'type', title: 'Type de volet', fields: ['gamme_tradi', 'type_volet'] },
-  { id: 'lame', title: 'Lame', fields: ['lame'] },
+  { id: 'type', title: 'Type & pose', fields: ['gamme_tradi', 'type_volet', ...specIds, 'percage'] },
+  { id: 'lame', title: 'Lame & coulisses', fields: ['lame', 'coulisse_express'] },
   { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'moteur', 'layer', 'radio_somfy', 'position', 'cote'] },
-  { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'surface_info', ...specIds] },
+  { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'surface_info'] },
   { id: 'coloris', title: 'Coloris', fields: ['color_tablier', 'color_coulisse', 'color_lame_finale'] },
   { id: 'options', title: 'Options', fields: optionFieldIds },
   { id: 'recap', title: 'Récapitulatif', fields: [] },
