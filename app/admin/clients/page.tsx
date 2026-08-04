@@ -42,9 +42,9 @@ function DiscountSummary({ discounts, nodes }: { discounts: Record<string, numbe
   const byName = new Map(nodes.map((n) => [n.slug, n.name]));
   const gammeChips = entries.filter(([s]) => gammeSlugs.has(s));
   const otherCount = entries.length - gammeChips.length;
-  const chip: React.CSSProperties = { display: 'inline-block', margin: '2px 4px 2px 0', padding: '2px 8px', background: '#e0f2fe', color: '#0c4a6e', borderRadius: 999, fontSize: 12, whiteSpace: 'nowrap' };
+  const chip: React.CSSProperties = { display: 'inline-block', padding: '2px 8px', background: '#e0f2fe', color: '#0c4a6e', borderRadius: 999, fontSize: 12, whiteSpace: 'nowrap' };
   return (
-    <div>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxWidth: 240 }}>
       {gammeChips.map(([s, v]) => <span key={s} style={chip}>{byName.get(s) ?? s} {v}%</span>)}
       {otherCount > 0 && <span style={{ ...chip, background: '#fef9c3', color: '#854d0e' }}>+{otherCount} ciblée{otherCount > 1 ? 's' : ''}</span>}
     </div>
@@ -238,7 +238,7 @@ export default function AdminClients() {
                 <th style={{ whiteSpace: 'nowrap' }}>Palier {new Date().getFullYear()}</th>
                 {viewerRole === 'admin' && <th>Commercial</th>}
                 <th>Dernière connexion</th>
-                <th style={{ minWidth: 220 }}>Remises B2B <small style={{ fontWeight: 400, color: 'var(--muted)' }}>(par nomenclature)</small></th>
+                <th style={{ maxWidth: 240 }}>Remises B2B <small style={{ fontWeight: 400, color: 'var(--muted)' }}>(par nomenclature)</small></th>
                 <th></th>
               </tr>
             </thead>
