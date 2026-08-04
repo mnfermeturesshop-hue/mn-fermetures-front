@@ -215,7 +215,7 @@ priceRules.push({ code: 'color_tablier_pv', label: 'Coloris tablier (option)', k
   amount: { op: 'round', arg: { op: '*', args: [V('surface_m2'), 14] } } });
 priceRules.push({ code: 'color_coulisse_pv', label: 'Coloris coulisse (option)', kind: 'add',
   when: flatOptionCond('color_coulisse'),
-  amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 40] } } });
+  amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 40, 2] } } }); // ×2 coulisses
 priceRules.push({ code: 'color_lame_finale_pv', label: 'Coloris lame finale (option)', kind: 'add',
   when: flatOptionCond('color_lame_finale'),
   amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('largeur'), 1000] }, 18] } } });
