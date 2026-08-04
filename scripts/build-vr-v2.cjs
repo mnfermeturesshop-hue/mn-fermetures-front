@@ -45,11 +45,10 @@ for (const sel of v1.selectors) {
   // D. Manœuvre : choix primaire manuelle/motorisée, juste avant le moteur.
   if (sel.id === 'moteur') {
     fields.push({
-      id: 'manoeuvre', label: 'Manœuvre', type: 'choice', default: 'motorisee',
-      help: 'La manœuvre manuelle est tarifée à partir de la grille filaire.',
+      id: 'manoeuvre', label: 'Type de manœuvre', type: 'choice', default: 'motorisee',
       options: [
-        { value: 'manuelle', label: 'Manuelle (tringle / sangle)', setsValues: { layer: 'filaire' } },
-        { value: 'motorisee', label: 'Motorisée' },
+        { value: 'manuelle', label: 'Manuelle', setsValues: { moteur: 'mn', layer: 'filaire' } },
+        { value: 'motorisee', label: 'Motorisation' },
       ],
     });
   }
@@ -69,8 +68,10 @@ for (const sel of v1.selectors) {
     }
     f.options.push(opt);
   }
-  // B. type_volet (5 poses) visible uniquement en Tradi standard.
+  // B. type_volet (poses) visible uniquement en Tradi standard.
   if (sel.id === 'type_volet') f.visibleWhen = eq('gamme_tradi', 'standard');
+  // Marque du moteur uniquement en motorisation (la manuelle force MN caché).
+  if (sel.id === 'moteur') f.visibleWhen = eq('manoeuvre', 'motorisee');
 
   fields.push(f);
 
@@ -94,11 +95,13 @@ for (const sel of v1.selectors) {
       visibleWhen: eq('manoeuvre', 'motorisee'),
       options: [{ value: 'filaire', label: 'Filaire' }, { value: 'radio', label: 'Radio' }],
     });
-    // Position & côté de manœuvre — fabrication, sans +value.
-    fields.push({ id: 'position', label: 'Position de manœuvre', type: 'choice', role: 'spec', default: 'facade',
-      options: [{ value: 'facade', label: 'En façade' }, { value: 'sous_coffre', label: 'Sous-coffre (sortie de fil)' }] });
-    fields.push({ id: 'cote', label: 'Côté de manœuvre', type: 'choice', role: 'spec', default: 'droite',
-      options: [{ value: 'droite', label: 'Droite' }, { value: 'gauche', label: 'Gauche' }] });
+    // Côté / sortie — libellés selon la branche (arbre PDG), sans +value.
+    const coteOpts = [{ value: 'gauche', label: 'Gauche' }, { value: 'droite', label: 'Droite' }];
+    const sortieOpts = [{ value: 'sous_coffre', label: 'Sous-coffre' }, { value: 'facade', label: 'Façade' }];
+    fields.push({ id: 'cote_manoeuvre', label: 'Côté manœuvre', type: 'choice', role: 'spec', default: 'droite', visibleWhen: eq('manoeuvre', 'manuelle'), options: coteOpts });
+    fields.push({ id: 'sortie_manoeuvre', label: 'Sortie manœuvre', type: 'choice', role: 'spec', default: 'facade', visibleWhen: eq('manoeuvre', 'manuelle'), options: sortieOpts });
+    fields.push({ id: 'cote_fil', label: 'Côté fil', type: 'choice', role: 'spec', default: 'droite', visibleWhen: eq('manoeuvre', 'motorisee'), options: coteOpts });
+    fields.push({ id: 'sortie_fil', label: 'Sortie fil', type: 'choice', role: 'spec', default: 'facade', visibleWhen: eq('manoeuvre', 'motorisee'), options: sortieOpts });
   }
 }
 
@@ -311,7 +314,7 @@ const specIds = (v1.specFields ?? []).map((s) => s.id);
 const steps = [
   { id: 'type', title: 'Type & pose', fields: ['gamme_tradi', 'type_volet', ...specIds, 'percage'] },
   { id: 'lame', title: 'Lame & coulisses', fields: ['lame', 'coulisse_express'] },
-  { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'moteur', 'layer', 'radio_somfy', 'position', 'cote'] },
+  { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'cote_manoeuvre', 'sortie_manoeuvre', 'cote_fil', 'sortie_fil', 'moteur', 'layer', 'radio_somfy'] },
   { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'surface_info'] },
   { id: 'coloris', title: 'Coloris', fields: ['color_tablier', 'color_coulisse', 'color_lame_finale'] },
   { id: 'options', title: 'Options', fields: optionFieldIds },
