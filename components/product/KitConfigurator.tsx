@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { type KitProduct } from '@/lib/catalog/types';
 import { useCartStore, euro } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
-import { getDiscount, applyDiscount } from '@/lib/familles';
+import { resolveB2BDiscountSeed, applyDiscount } from '@/lib/pricing/discount-resolver';
 import { toast } from '@/components/ui/Toast';
 import { trackAddToCart } from '@/lib/analytics';
 
@@ -14,7 +14,7 @@ export function KitConfigurator({ product }: { product: KitProduct }) {
   const { user } = useAuthStore();
 
   const config = product.configs.find((c) => c.reference === selectedRef) ?? product.configs[0];
-  const discountPct = getDiscount(user?.proDiscounts, product.famille);
+  const discountPct = resolveB2BDiscountSeed(user?.proDiscounts, product.taxonomySlug ?? product.famille);
   const finalPriceHT = applyDiscount(config.priceHT, discountPct);
 
   const handleAdd = () => {

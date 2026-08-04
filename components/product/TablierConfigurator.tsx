@@ -6,7 +6,7 @@ import { type MatrixProduct } from '@/lib/catalog/types';
 import { resolveMatrixPrice } from '@/lib/catalog/resolvePrice';
 import { useCartStore, euro } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
-import { getDiscount, applyDiscount } from '@/lib/familles';
+import { resolveB2BDiscountSeed, applyDiscount } from '@/lib/pricing/discount-resolver';
 import { toast } from '@/components/ui/Toast';
 import { trackAddToCart } from '@/lib/analytics';
 
@@ -49,7 +49,7 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
     () => resolveMatrixPrice(product, height, width, opts),
     [product, height, width, opts]
   );
-  const discountPct = getDiscount(user?.proDiscounts, product.famille);
+  const discountPct = resolveB2BDiscountSeed(user?.proDiscounts, product.taxonomySlug ?? product.famille);
   const finalPrice = price === null ? null : applyDiscount(price, discountPct);
 
   const handleAdd = () => {

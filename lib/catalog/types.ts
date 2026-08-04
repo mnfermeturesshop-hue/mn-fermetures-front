@@ -31,7 +31,10 @@ interface ProductBase {
   slug: string;
   name: string;
   categorySlug: string;
-  /** Famille commerciale — détermine le taux de remise B2B applicable. */
+  /** Nœud de la nomenclature (Gamme › Famille › Sous‑famille) — pilote la
+   *  remise B2B héritée et le placement catalogue. Remplace `famille` à terme. */
+  taxonomySlug?: string;
+  /** @deprecated Famille plate héritée — repli via LEGACY_FAMILLE_TO_NODE. */
   famille?: FamilleSlug;
   /** Position exacte dans l'arbre menu — ex: /catalogue/motorisations/somfy-filaires */
   menuPath?: string;

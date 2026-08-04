@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { type UnitProduct, type ProductVariant } from '@/lib/catalog/types';
 import { useCartStore, euro } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
-import { getDiscount, applyDiscount } from '@/lib/familles';
+import { resolveB2BDiscountSeed, applyDiscount } from '@/lib/pricing/discount-resolver';
 import { toast } from '@/components/ui/Toast';
 import { trackAddToCart } from '@/lib/analytics';
 
@@ -22,7 +22,7 @@ export function UnitProductPanel({ product }: { product: UnitProduct }) {
   const { user } = useAuthStore();
   const TVA = 0.20;
 
-  const discountPct = getDiscount(user?.proDiscounts, product.famille);
+  const discountPct = resolveB2BDiscountSeed(user?.proDiscounts, product.taxonomySlug ?? product.famille);
 
   const variant: ProductVariant | undefined = product.variants.find((v) => v.reference === selectedRef);
 

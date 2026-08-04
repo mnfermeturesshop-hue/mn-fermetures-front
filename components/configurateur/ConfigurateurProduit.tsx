@@ -5,7 +5,7 @@ import { resolvePrice } from '@/lib/configurateur/v2/engine';
 import { repairValues, availableOptions, isVisible, withDerivedValues } from '@/lib/configurateur/v2/cascade';
 import type { DefV2, Field, Primitive, Values } from '@/lib/configurateur/v2/types';
 import { Stepper } from './Stepper';
-import { applyDiscount, getDiscount, type FamilleSlug } from '@/lib/familles';
+import { applyDiscount, resolveB2BDiscountSeed } from '@/lib/pricing/discount-resolver';
 import { useCartStore } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
 import { toast } from '@/components/ui/Toast';
@@ -53,7 +53,7 @@ export function ConfigurateurProduit({ slug }: Props) {
   }, [slug, user]);
 
   const result = useMemo(() => (def ? resolvePrice(def, values) : null), [def, values]);
-  const discountPct = def ? getDiscount(user?.proDiscounts ?? {}, def.famille as FamilleSlug) : 0;
+  const discountPct = def ? resolveB2BDiscountSeed(user?.proDiscounts ?? {}, def.famille) : 0;
   const unitNet = result?.ok ? applyDiscount(result.total, discountPct) : 0;
 
   // ── États de garde ──

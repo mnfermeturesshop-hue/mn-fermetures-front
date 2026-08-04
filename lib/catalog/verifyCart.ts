@@ -1,7 +1,9 @@
 import { getAllProducts } from './db';
 import { resolveMatrixPrice } from './resolvePrice';
 import { isMatrix, isUnit, isKit, type Product, type CartLine, type Uom } from './types';
-import { applyDiscount, getDiscount, type DiscountMap, type FamilleSlug } from '@/lib/familles';
+import { type DiscountMap } from '@/lib/familles';
+import { resolveB2BDiscount, applyDiscount } from '@/lib/pricing/discount-resolver';
+import { getTaxonomy } from '@/lib/catalog/taxonomy-loader';
 import { laquageForfaitHT } from '@/lib/pricing/shipping';
 import { resoudrePrix } from '@/lib/tablier/engine';
 import { loadConfiguratorDef } from '@/lib/configurateur/loader';
@@ -76,6 +78,7 @@ export async function verifyCartLines(
 
   const products = await getAllProducts();
   const bySlug = new Map<string, Product>(products.map((p) => [p.slug, p]));
+  const taxonomy = await getTaxonomy();   // remises B2B héritées (Gamme › Famille › Sous‑famille)
 
   // Index référence → prix de base (unit variants + kit configs)
   const byRef = new Map<string, { product: Product; base: number }>();
@@ -96,7 +99,7 @@ export async function verifyCartLines(
 
     let base: number | null = null;
     let name = String(raw?.name ?? '');
-    let famille: FamilleSlug | undefined;
+    let node: string | undefined;   // nœud de nomenclature (ou ancienne famille)
     // Les prix de devis sont négociés : ni re-tarification ni remise en plus.
     let isNegotiated = false;
 
@@ -127,7 +130,7 @@ export async function verifyCartLines(
       }
       base = resolveMatrixPrice(product, Number(pr.height), Number(pr.width), Array.isArray(pr.options) ? pr.options : []);
       name = product.name;
-      famille = product.famille;
+      node = product.taxonomySlug ?? product.famille;
     } else if (raw?.pricing?.kind === 'tablier') {
       // Générateur de tablier sur mesure (moteur lib/tablier) — le serveur
       // ré-résout le prix à partir des dimensions brutes (avec snap au barème).
@@ -155,7 +158,7 @@ export async function verifyCartLines(
       if (!res.ok) return { ok: false, error: `Configuration hors barème : ${def.name}` };
       base = res.total;
       name = raw.name ? String(raw.name) : def.name;
-      famille = def.famille as FamilleSlug;
+      node = def.famille;
       // Coloris laqué (RAL) → forfait laquage par commande (recalcul autoritaire) :
       // détecté par la présence du supplément coloris dans le résultat.
       if (res.lineItems.some((li) => li.code === 'color_pv')) hasLaque = true;
@@ -164,7 +167,7 @@ export async function verifyCartLines(
       if (!hit) return { ok: false, error: `Référence introuvable : ${raw.reference}` };
       base = hit.base;
       name = hit.product.name;
-      famille = hit.product.famille;
+      node = hit.product.taxonomySlug ?? hit.product.famille;
     } else {
       return { ok: false, error: 'Ligne non vérifiable (référence ou dimensions manquantes).' };
     }
@@ -173,7 +176,7 @@ export async function verifyCartLines(
       return { ok: false, error: 'Prix indisponible pour un article (hors abaque ?).' };
     }
 
-    const unitPriceHT = isNegotiated ? base : applyDiscount(base, getDiscount(discounts, famille));
+    const unitPriceHT = isNegotiated ? base : applyDiscount(base, resolveB2BDiscount(discounts as Record<string, number>, node, taxonomy));
     productsHT += unitPriceHT * qty;
 
     verified.push({
