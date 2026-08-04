@@ -129,9 +129,9 @@ fields.push(makeColorField('color_lame_finale', 'Coloris lame finale', COL_ALL))
 // dimensions
 fields.push({ id: 'largeur', label: 'Largeur dos de coulisse', type: 'dimension', unit: 'mm', default: 1200 });
 fields.push({ id: 'hauteur', label: 'Hauteur sous coffre', type: 'dimension', unit: 'mm', default: 1000 });
-// F. Message de contrôle (surface max par lame + puissance moteur selon poids).
+// F. Message de contrôle (surface max admissible par lame).
 fields.push({ id: 'surface_info', type: 'info',
-  help: 'Surface maximale admissible : CD942 8 m², Alu 56 10 m², Alu 55 12 m². La puissance du moteur est déterminée selon le poids du tablier.' });
+  help: 'Surface maximale admissible : CD942 8 m², Alu 56 10 m², Alu 55 12 m².' });
 
 // ---- TABLES 2D (grilles) ----
 const d2 = {};
@@ -150,14 +150,10 @@ for (const g of v1.grids) {
 // SUR MESURE : aucun arrondi des cotes. Le PRIX se lit par bande (lookup1d/2d
 // snappent en interne pour trouver la bonne case), mais la surface et la cote
 // fabriquée utilisent les dimensions EXACTES saisies par le client.
-const POIDS_M2 = { cd942: 0, '56': 0, '55': 0 }; // TODO PDG : poids au m² réel par lame
 const derived = [
   { id: 'grid', expr: { op: 'concat', args: ['g_', V('pose'), '_', V('lame'), '_', V('moteur'), '_', V('layer')] } },
   { id: 'surface_m2', expr: { op: '*', args: [{ op: '/', args: [V('largeur'), 1000] }, { op: '/', args: [V('hauteur'), 1000] }] } },
-  // F. Poids indicatif (kg) — non opérationnel tant que POIDS_M2 non fourni.
-  { id: 'poids_kg', expr: { op: '*', args: [V('surface_m2'),
-    { op: 'if', cond: eq('lame', 'cd942'), then: POIDS_M2.cd942,
-      else: { op: 'if', cond: eq('lame', '56'), then: POIDS_M2['56'], else: POIDS_M2['55'] } }] } },
+  // NB : le poids du tablier / la puissance moteur sont gérés dans Optilog (hors SaaS).
 ];
 
 // Largeur MINIMALE réelle = borne basse « L de » de la 1re bande de la grille,
