@@ -161,7 +161,7 @@ export async function verifyCartLines(
       node = def.famille;
       // Coloris laqué (RAL) → forfait laquage par commande (recalcul autoritaire) :
       // détecté par la présence du supplément coloris dans le résultat.
-      if (res.lineItems.some((li) => li.code === 'color_pv')) hasLaque = true;
+      if (res.lineItems.some((li) => li.code.startsWith('color_') && li.code.endsWith('_pv'))) hasLaque = true;
     } else if (raw?.reference) {
       const hit = byRef.get(raw.reference);
       if (!hit) return { ok: false, error: `Référence introuvable : ${raw.reference}` };

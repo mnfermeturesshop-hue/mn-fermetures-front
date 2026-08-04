@@ -193,7 +193,7 @@ export function ConfigurateurProduit({ slug }: Props) {
 
   const addToCart = () => {
     if (!result?.ok) return;
-    const laque = result.lineItems.some((li) => li.code === 'color_pv');
+    const laque = result.lineItems.some((li) => li.code.startsWith('color_') && li.code.endsWith('_pv'));
     addLine({
       key: `cfg-${slug}-${JSON.stringify(values)}`,
       name: def.name,

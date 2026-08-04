@@ -1,7 +1,15 @@
 /* =====================================================================
    Convertisseur def VR v1 -> def v2 (moteur universel).
    Déterministe : lit lib/configurateur/data/volet-roulant-traditionnel.json
-   (v1) et produit ...v2.json. Objectif : ISO-PRIX (mêmes prix que v1).
+   (v1) et produit ...v2.json.
+   Recentré sur le TRADI 1.1.1 (arbre PDG) :
+     - retrait du coffre PVC (Briquélite/Néothermic/Néobric = 1.1.2) ;
+     - structure « deux familles » : Tradi standard vs Tradi Express ;
+     - couleurs séparées tablier/coulisse/lame finale ;
+     - manœuvre restructurée (manuelle/motorisée + position + côté) ;
+     - genouillère en choix unique + maintenu/fixe ;
+     - contrôles surface & poids.
+   ISO-PRIX conservé pour la base + attaches + manœuvre manuelle + moteur.
    ===================================================================== */
 const fs = require('fs');
 const path = require('path');
@@ -10,7 +18,6 @@ const v1 = require('../lib/configurateur/data/volet-roulant-traditionnel.json');
 // ---- helpers conditions/expr ----
 const V = (name) => ({ var: name });
 const eq = (name, val) => ({ op: 'eq', left: V(name), right: val });
-const ne = (name, val) => ({ op: 'ne', left: V(name), right: val });
 const inSet = (name, set) => ({ op: 'in', value: V(name), set });
 const gte = (name, n) => ({ op: 'gte', left: V(name), right: n });
 const lte = (name, n) => ({ op: 'lte', left: V(name), right: n });
@@ -33,42 +40,91 @@ for (const k of gridKeys) (posesForLame[k.lame] ??= new Set()).add(k.pose);
 const fields = [];
 
 for (const sel of v1.selectors) {
+  if (sel.id === 'coffre') continue; // A. coffre PVC retiré (relève du 1.1.2)
+
+  // D. Manœuvre : choix primaire manuelle/motorisée, juste avant le moteur.
+  if (sel.id === 'moteur') {
+    fields.push({
+      id: 'manoeuvre', label: 'Manœuvre', type: 'choice', default: 'motorisee',
+      help: 'La manœuvre manuelle est tarifée à partir de la grille filaire.',
+      options: [
+        { value: 'manuelle', label: 'Manuelle (tringle / sangle)', setsValues: { layer: 'filaire' } },
+        { value: 'motorisee', label: 'Motorisée' },
+      ],
+    });
+  }
+
   const f = { id: sel.id, label: sel.label, type: 'choice', options: [] };
   const vis = scopeConds(sel.scope, sel.layer);
   if (vis.length) f.visibleWhen = AND(vis);
+
   for (const o of sel.options) {
+    if (sel.id === 'type_volet' && o.value === 'express') continue; // B. express -> gamme_tradi
     const opt = { value: o.value, label: o.label };
     if (o.hint) opt.hint = o.hint;
     if (o.derivedAxes) opt.setsValues = o.derivedAxes;
     if (sel.id === 'lame') {
       const ps = [...posesForLame[o.value]];
-      if (ps.length < poses.length) opt.availableWhen = inSet('pose', ps);
+      if (ps.length < poses.length) opt.availableWhen = inSet('pose', ps); // express -> cd942 seul
     }
     f.options.push(opt);
   }
-  // insérer le champ couche (filaire/radio) juste après moteur
+  // B. type_volet (5 poses) visible uniquement en Tradi standard.
+  if (sel.id === 'type_volet') f.visibleWhen = eq('gamme_tradi', 'standard');
+
   fields.push(f);
+
+  // B. gamme_tradi juste APRÈS type_volet : l'ordre des setsValues fait gagner
+  //    pose=express sur la pose posée par type_volet (caché) ; avant `lame`.
+  if (sel.id === 'type_volet') {
+    fields.push({
+      id: 'gamme_tradi', label: 'Type de Tradi', type: 'choice', default: 'standard',
+      help: 'Tradi standard (5 poses, 3 lames) ou Tradi Express (lame CD942 uniquement).',
+      options: [
+        { value: 'standard', label: 'Tradi standard' },
+        { value: 'express', label: 'Tradi Express', setsValues: { pose: 'express' } },
+      ],
+    });
+  }
+
+  // Couche (filaire/radio) après moteur — visible seulement en motorisée.
   if (sel.id === 'moteur') {
-    fields.push({ id: 'layer', label: 'Type de commande', type: 'choice', default: 'filaire',
-      options: [{ value: 'filaire', label: 'Filaire' }, { value: 'radio', label: 'Radio' }] });
+    fields.push({
+      id: 'layer', label: 'Type de commande', type: 'choice', default: 'filaire',
+      visibleWhen: eq('manoeuvre', 'motorisee'),
+      options: [{ value: 'filaire', label: 'Filaire' }, { value: 'radio', label: 'Radio' }],
+    });
+    // Position & côté de manœuvre — fabrication, sans +value.
+    fields.push({ id: 'position', label: 'Position de manœuvre', type: 'choice', role: 'spec', default: 'facade',
+      options: [{ value: 'facade', label: 'En façade' }, { value: 'sous_coffre', label: 'Sous-coffre (sortie de fil)' }] });
+    fields.push({ id: 'cote', label: 'Côté de manœuvre', type: 'choice', role: 'spec', default: 'droite',
+      options: [{ value: 'droite', label: 'Droite' }, { value: 'gauche', label: 'Gauche' }] });
   }
 }
 
-// coloris
-const colorField = { id: 'color', label: 'Coloris', type: 'choice', default: v1.colors[0].code, options: [] };
+// C. Coloris : 3 sélecteurs (tablier / coulisse / lame finale).
 const lamesForColor = (code) => v1.colorPolicies.filter((p) => p.standard.includes(code) || p.pvM2?.codes.includes(code)).map((p) => p.lame);
 const allLames = v1.colorPolicies.map((p) => p.lame);
-for (const c of v1.colors) {
-  const opt = { value: c.code, label: c.label, hex: c.hex };
-  const la = lamesForColor(c.code);
-  if (la.length < allLames.length) opt.availableWhen = inSet('lame', la);
-  colorField.options.push(opt);
+function makeColorField(id, label) {
+  const f = { id, label, type: 'choice', default: v1.colors[0].code, options: [] };
+  for (const c of v1.colors) {
+    const opt = { value: c.code, label: c.label, hex: c.hex };
+    const la = lamesForColor(c.code);
+    if (la.length < allLames.length) opt.availableWhen = inSet('lame', la);
+    f.options.push(opt);
+  }
+  return f;
 }
-fields.push(colorField);
+fields.push(makeColorField('color_tablier', 'Coloris tablier'));
+fields.push(makeColorField('color_coulisse', 'Coloris coulisse'));
+fields.push(makeColorField('color_lame_finale', 'Coloris lame finale'));
 
 // dimensions
 fields.push({ id: 'largeur', label: 'Largeur dos de coulisse', type: 'dimension', unit: 'mm', default: 1200 });
 fields.push({ id: 'hauteur', label: 'Hauteur sous coffre', type: 'dimension', unit: 'mm', default: 1000 });
+// F. Message de contrôle (surface max par lame + puissance moteur selon poids).
+fields.push({ id: 'surface_info', type: 'info',
+  help: 'Surface maximale admissible : CD942 8 m², Alu 56 10 m², Alu 55 12 m². La puissance du moteur est déterminée selon le poids du tablier.' });
 
 // ---- TABLES 2D (grilles) ----
 const d2 = {};
@@ -87,9 +143,14 @@ for (const g of v1.grids) {
 // SUR MESURE : aucun arrondi des cotes. Le PRIX se lit par bande (lookup1d/2d
 // snappent en interne pour trouver la bonne case), mais la surface et la cote
 // fabriquée utilisent les dimensions EXACTES saisies par le client.
+const POIDS_M2 = { cd942: 0, '56': 0, '55': 0 }; // TODO PDG : poids au m² réel par lame
 const derived = [
   { id: 'grid', expr: { op: 'concat', args: ['g_', V('pose'), '_', V('lame'), '_', V('moteur'), '_', V('layer')] } },
   { id: 'surface_m2', expr: { op: '*', args: [{ op: '/', args: [V('largeur'), 1000] }, { op: '/', args: [V('hauteur'), 1000] }] } },
+  // F. Poids indicatif (kg) — non opérationnel tant que POIDS_M2 non fourni.
+  { id: 'poids_kg', expr: { op: '*', args: [V('surface_m2'),
+    { op: 'if', cond: eq('lame', 'cd942'), then: POIDS_M2.cd942,
+      else: { op: 'if', cond: eq('lame', '56'), then: POIDS_M2['56'], else: POIDS_M2['55'] } }] } },
 ];
 
 // Largeur MINIMALE réelle = borne basse « L de » de la 1re bande de la grille,
@@ -111,14 +172,18 @@ const d1 = {};
 priceRules.push({ code: 'base', label: 'Prix de base', kind: 'base',
   amount: { op: 'lookup2d', table: V('grid'), row: V('hauteur'), col: V('largeur') } });
 
-// ajustements -> tables 1D + règles + champs booléens optionnels
-const optionalCodes = {};   // code -> [conditions par ajustement]
-v1.adjustments.forEach((adj, i) => {
+// A. Ajustements — hors coffre PVC (Briquélite/Néothermic/Néobric).
+const COFFRE_PVC = ['coffre_briquelite', 'coffre_neothermic', 'coffre_neobric'];
+const adjustments = v1.adjustments.filter((a) => !COFFRE_PVC.includes(a.code));
+const optionalCodes = {}; // code -> [conditions par ajustement]
+adjustments.forEach((adj, i) => {
   const tid = `adj_${i}`;
   d1[tid] = { keys: Object.keys(adj.baremeParLargeur).map(Number).sort((a, b) => a - b), values: [] };
   d1[tid].values = d1[tid].keys.map((k) => adj.baremeParLargeur[String(k)]);
   const cs = scopeConds(adj.scope, adj.layer);
-  if (adj.optional) {
+  if (adj.code === 'manoeuvre_manuelle') {
+    cs.push(eq('manoeuvre', 'manuelle')); // D. piloté par le champ manœuvre (pas de booléen)
+  } else if (adj.optional) {
     cs.push(eq(adj.code, true));
     (optionalCodes[adj.code] ??= []).push(AND(scopeConds(adj.scope, adj.layer)));
   }
@@ -126,28 +191,57 @@ v1.adjustments.forEach((adj, i) => {
     when: cs.length ? AND(cs) : undefined,
     amount: { op: 'lookup1d', table: tid, key: V('largeur') } });
 });
-// champs booléens pour ajustements optionnels
+// champs booléens pour ajustements optionnels (attaches rigides, sous-face…)
 for (const [code, condList] of Object.entries(optionalCodes)) {
-  const label = v1.adjustments.find((a) => a.code === code).label;
+  const label = adjustments.find((a) => a.code === code).label;
   const uniq = [...new Map(condList.map((c) => [JSON.stringify(c), c])).values()];
   fields.push({ id: code, label, type: 'boolean', visibleWhen: ANY(uniq) });
 }
 
-// coloris : supplément +€/m² (règle formule) — paires (lame, couleur) laquées
-const pvPairs = [];
-let pvM2 = 14;
-for (const p of v1.colorPolicies) for (const code of (p.pvM2?.codes ?? [])) { pvPairs.push(AND([eq('lame', p.lame), eq('color', code)])); pvM2 = p.pvM2.montantParM2; }
-priceRules.push({ code: 'color_pv', label: 'Supplément coloris', kind: 'add',
-  when: ANY(pvPairs),
-  amount: { op: 'round', arg: { op: '*', args: [V('surface_m2'), pvM2] } } });
+// C. Coloris : +value quand une couleur « option » est choisie pour l'élément.
+//    Tablier +40 €/ml (hauteur) ; coulisse +18 €/ml (largeur) ; lame finale à chiffrer.
+const optionColorCond = (fieldId) => ANY(v1.colorPolicies
+  .filter((p) => p.pvM2?.codes?.length)
+  .map((p) => AND([eq('lame', p.lame), inSet(fieldId, p.pvM2.codes)])));
+priceRules.push({ code: 'color_tablier_pv', label: 'Coloris tablier (option)', kind: 'add',
+  when: optionColorCond('color_tablier'),
+  amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 40] } } });
+priceRules.push({ code: 'color_coulisse_pv', label: 'Coloris coulisse (option)', kind: 'add',
+  when: optionColorCond('color_coulisse'),
+  amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('largeur'), 1000] }, 18] } } });
+priceRules.push({ code: 'color_lame_finale_pv', label: 'Coloris lame finale (option)', kind: 'add',
+  when: optionColorCond('color_lame_finale'), amount: 0 }); // TODO PDG : +value lame finale
 
-// options fixes -> champs booléens + règles
+// Options fixes -> champs booléens + règles (genouillères regroupées à part).
+const GENOU = ['genouillere_60', 'genouillere_60a', 'genouillere_90', 'genouillere_90a'];
 for (const o of v1.options) {
+  if (GENOU.includes(o.code)) continue; // E.
   const vis = scopeConds(o.scope, o.layer);
   fields.push({ id: o.code, label: o.label, type: 'boolean', ...(vis.length ? { visibleWhen: AND(vis) } : {}) });
   priceRules.push({ code: `opt_${o.code}`, label: o.label, kind: 'add',
     when: AND([eq(o.code, true), ...vis]),
     amount: o.priceHT });
+}
+
+// E. Genouillère : un seul choix + sous-choix maintenu/fixe (fabrication).
+const genouPrice = (c) => (v1.options.find((o) => o.code === c)?.priceHT ?? 0);
+fields.push({ id: 'genouillere', label: 'Genouillère', type: 'choice', default: 'sc60_incluse',
+  help: 'Sous-coffre 60° et applique 60° non aimantée sont incluses dans le prix.',
+  options: [
+    { value: 'sc60_incluse', label: 'Sous-coffre 60° (incluse)' },
+    { value: 'app60', label: 'En applique 60° non aimantée (incluse)' },
+    { value: 'app90', label: 'En applique 90° non aimantée' },
+    { value: 'app60a', label: 'En applique 60° aimantée' },
+    { value: 'app90a', label: 'En applique 90° aimantée' },
+  ] });
+fields.push({ id: 'genouillere_fix', label: 'Maintien de la genouillère', type: 'choice', role: 'spec', default: 'maintenu',
+  visibleWhen: inSet('genouillere', ['app60', 'app90', 'app60a', 'app90a']),
+  options: [{ value: 'maintenu', label: 'Maintenu' }, { value: 'fixe', label: 'Fixe' }] });
+const GENOU_MAP = { app60: 'genouillere_60', app90: 'genouillere_90', app60a: 'genouillere_60a', app90a: 'genouillere_90a' };
+for (const [val, code] of Object.entries(GENOU_MAP)) {
+  const price = genouPrice(code);
+  if (price > 0) priceRules.push({ code: `opt_${code}`, label: v1.options.find((o) => o.code === code).label, kind: 'add',
+    when: eq('genouillere', val), amount: price });
 }
 
 // champs de fabrication (specFields)
@@ -161,7 +255,6 @@ for (const sf of (v1.specFields ?? [])) {
 
 // ---- CONSTRAINTS (limites dimensionnelles) ----
 const nonPose = v1.limits.filter((l) => !l.pose);
-const byLame = {}; for (const l of nonPose) byLame[l.lame] = l;
 const constraints = [];
 // surface max
 constraints.push({ message: 'Surface maximale dépassée pour cette lame',
@@ -183,14 +276,18 @@ for (const [key, m] of Object.entries(WIDTH_MIN)) {
 constraints.push({ message: 'Largeur inférieure au minimum de la grille pour cette configuration', requires: ANY(minClauses) });
 
 // ---- STEPS (assistant) ----
-const optionFieldIds = [...Object.keys(optionalCodes), ...v1.options.map((o) => o.code)];
+const optionFieldIds = [
+  ...Object.keys(optionalCodes),
+  ...v1.options.filter((o) => !GENOU.includes(o.code)).map((o) => o.code),
+  'genouillere', 'genouillere_fix',
+];
 const specIds = (v1.specFields ?? []).map((s) => s.id);
 const steps = [
-  { id: 'type', title: 'Type de volet', fields: ['type_volet', 'coffre'] },
+  { id: 'type', title: 'Type de volet', fields: ['gamme_tradi', 'type_volet'] },
   { id: 'lame', title: 'Lame', fields: ['lame'] },
-  { id: 'moteur', title: 'Motorisation', fields: ['moteur', 'layer', 'radio_somfy'] },
-  { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', ...specIds] },
-  { id: 'coloris', title: 'Coloris', fields: ['color'] },
+  { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'moteur', 'layer', 'radio_somfy', 'position', 'cote'] },
+  { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'surface_info', ...specIds] },
+  { id: 'coloris', title: 'Coloris', fields: ['color_tablier', 'color_coulisse', 'color_lame_finale'] },
   { id: 'options', title: 'Options', fields: optionFieldIds },
   { id: 'recap', title: 'Récapitulatif', fields: [] },
 ];
