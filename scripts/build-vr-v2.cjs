@@ -233,11 +233,12 @@ priceRules.push({ code: 'color_lame_finale_pv', label: 'Coloris lame finale (opt
   when: flatOptionCond('color_lame_finale'),
   amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('largeur'), 1000] }, 18] } } });
 
-// Motorisation Radio : type d'émetteur (portatif/mural) + rappel de l'émetteur inclus.
+// Motorisation Radio & Solaire (même logique d'émetteurs) : type d'émetteur
+// (portatif/mural) + rappel de l'émetteur inclus.
 fields.push({ id: 'emetteur_type', label: 'Émetteur', type: 'choice', default: 'portatif',
-  visibleWhen: eq('commande', 'radio'),
+  visibleWhen: inSet('commande', ['radio', 'solaire']),
   options: [{ value: 'portatif', label: 'Émetteur portatif' }, { value: 'mural', label: 'Émetteur mural' }] });
-fields.push({ id: 'radio_info', type: 'info', visibleWhen: eq('commande', 'radio'),
+fields.push({ id: 'radio_info', type: 'info', visibleWhen: inSet('commande', ['radio', 'solaire']),
   help: 'Émetteur de base inclus : MN → portatif 1 canal · Somfy → Amy 1 Sun Protect (l’une des 4 possibilités, toutes incluses).' });
 
 // Ajustements de libellé / prix issus de l'arbre Radio (source PDG).
