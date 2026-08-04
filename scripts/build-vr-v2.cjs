@@ -105,20 +105,26 @@ for (const sel of v1.selectors) {
 // C. Coloris : 3 sélecteurs (tablier / coulisse / lame finale).
 const lamesForColor = (code) => v1.colorPolicies.filter((p) => p.standard.includes(code) || p.pvM2?.codes.includes(code)).map((p) => p.lame);
 const allLames = v1.colorPolicies.map((p) => p.lame);
-// perLame=true : couleurs filtrées par lame (tablier). perLame=false : liste
-// propre, indépendante de la lame (coulisse & lame finale — leurs propres slides).
-function makeColorField(id, label, perLame) {
-  const f = { id, label, type: 'choice', default: v1.colors[0].code, options: [] };
-  for (const c of v1.colors) {
+// Listes coulisse & lame finale (identiques, source PDG) — indépendantes de la lame.
+const COL_STD = ['blanc-9010', 'ivoire-1015', 'gris-7035', 'gris-7038', 'gris-7016', 'alu-9006', 'marron-8019'];
+const COL_OPT = ['rouge-3004', 'bleu-5011', 'vert-6005', 'vert-6009', 'vert-6021', 'gris-7011', 'gris-7012',
+  'gris-7021', 'gris-7022', 'gris-7039', 'marron-8014', 'noir-9005', 'gris-9007', 'noir-2100', 'gris-2900'];
+const COL_ALL = [...COL_STD, ...COL_OPT];
+// allow=null : tablier (toutes couleurs, filtrées par lame). allow=[...] : liste
+// propre (coulisse & lame finale), sans filtre lame.
+function makeColorField(id, label, allow) {
+  const src = allow ? v1.colors.filter((c) => allow.includes(c.code)) : v1.colors;
+  const f = { id, label, type: 'choice', default: src[0].code, options: [] };
+  for (const c of src) {
     const opt = { value: c.code, label: c.label, hex: c.hex };
-    if (perLame) { const la = lamesForColor(c.code); if (la.length < allLames.length) opt.availableWhen = inSet('lame', la); }
+    if (!allow) { const la = lamesForColor(c.code); if (la.length < allLames.length) opt.availableWhen = inSet('lame', la); }
     f.options.push(opt);
   }
   return f;
 }
-fields.push(makeColorField('color_tablier', 'Coloris tablier', true));
-fields.push(makeColorField('color_coulisse', 'Coloris coulisse', false));
-fields.push(makeColorField('color_lame_finale', 'Coloris lame finale', false));
+fields.push(makeColorField('color_tablier', 'Coloris tablier', null));
+fields.push(makeColorField('color_coulisse', 'Coloris coulisse', COL_ALL));
+fields.push(makeColorField('color_lame_finale', 'Coloris lame finale', COL_ALL));
 
 // dimensions
 fields.push({ id: 'largeur', label: 'Largeur dos de coulisse', type: 'dimension', unit: 'mm', default: 1200 });
@@ -206,10 +212,8 @@ for (const [code, condList] of Object.entries(optionalCodes)) {
 const optionColorCond = (fieldId) => ANY(v1.colorPolicies
   .filter((p) => p.pvM2?.codes?.length)
   .map((p) => AND([eq('lame', p.lame), inSet(fieldId, p.pvM2.codes)])));
-// Coulisse / lame finale : liste d'options À PLAT (indépendante de la lame).
-// TODO PDG : listes exactes des 2 slides ; par défaut = union des couleurs « option ».
-const OPTION_COLORS_FLAT = [...new Set(v1.colorPolicies.flatMap((p) => p.pvM2?.codes ?? []))];
-const flatOptionCond = (fieldId) => inSet(fieldId, OPTION_COLORS_FLAT);
+// Coulisse / lame finale : couleurs « option » À PLAT (liste PDG, indép. lame).
+const flatOptionCond = (fieldId) => inSet(fieldId, COL_OPT);
 priceRules.push({ code: 'color_tablier_pv', label: 'Coloris tablier (option)', kind: 'add',
   when: optionColorCond('color_tablier'),
   amount: { op: 'round', arg: { op: '*', args: [V('surface_m2'), 14] } } });
