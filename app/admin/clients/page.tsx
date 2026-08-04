@@ -1,16 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { FAMILLES, type FamilleSlug } from '@/lib/familles';
+import { useEffect, useMemo, useState } from 'react';
 import { computeLoyalty } from '@/lib/loyalty';
 import { toast } from '@/components/ui/Toast';
+import { ClientDiscountTree } from '@/components/admin/ClientDiscountTree';
+import { normalizeDiscounts } from '@/lib/pricing/discount-resolver';
+import { children as taxoChildren, type TaxonomyNode } from '@/lib/catalog/taxonomy';
 
 interface Client {
   id: string;
   email: string;
   name: string;
   company: string;
-  discounts: Partial<Record<FamilleSlug, number>>;
+  discounts: Record<string, number>;
   lastSignIn: string | null;
   banned: boolean;
   loyaltyCaHT?: number;
@@ -31,11 +33,29 @@ function formatDate(iso: string | null) {
   return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+/** Résumé compact des remises d'un client : puces par gamme + compteur ciblé. */
+function DiscountSummary({ discounts, nodes }: { discounts: Record<string, number>; nodes: TaxonomyNode[] }) {
+  const norm = useMemo(() => normalizeDiscounts(discounts), [discounts]);
+  const entries = Object.entries(norm).filter(([, v]) => v > 0);
+  if (entries.length === 0) return <span className="adm-no">—</span>;
+  const gammeSlugs = new Set(taxoChildren(nodes, null, false).map((g) => g.slug));
+  const byName = new Map(nodes.map((n) => [n.slug, n.name]));
+  const gammeChips = entries.filter(([s]) => gammeSlugs.has(s));
+  const otherCount = entries.length - gammeChips.length;
+  const chip: React.CSSProperties = { display: 'inline-block', margin: '2px 4px 2px 0', padding: '2px 8px', background: '#e0f2fe', color: '#0c4a6e', borderRadius: 999, fontSize: 12, whiteSpace: 'nowrap' };
+  return (
+    <div>
+      {gammeChips.map(([s, v]) => <span key={s} style={chip}>{byName.get(s) ?? s} {v}%</span>)}
+      {otherCount > 0 && <span style={{ ...chip, background: '#fef9c3', color: '#854d0e' }}>+{otherCount} ciblée{otherCount > 1 ? 's' : ''}</span>}
+    </div>
+  );
+}
+
 export default function AdminClients() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState<string | null>(null);
-  const [drafts, setDrafts] = useState<Record<string, Partial<Record<FamilleSlug, number>>>>({});
+  const [editing, setEditing] = useState<string | null>(null);   // client dont le modal remises est ouvert
+  const [taxNodes, setTaxNodes] = useState<TaxonomyNode[]>([]);
   const [saving, setSaving] = useState<string | null>(null);
   const [acting, setActing] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Client | null>(null);
@@ -47,6 +67,10 @@ export default function AdminClients() {
     fetch('/api/admin/clients')
       .then((r) => r.json())
       .then((data) => { setClients(data); setLoading(false); });
+    fetch('/api/admin/nomenclature')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.items) setTaxNodes(d.items); })
+      .catch(() => {});
     fetch('/api/admin/me')
       .then((r) => (r.ok ? r.json() : null))
       .then((me) => {
@@ -83,23 +107,9 @@ export default function AdminClients() {
     }
   };
 
-  const startEdit = (client: Client) => {
-    setEditing(client.id);
-    setDrafts((prev) => ({ ...prev, [client.id]: { ...client.discounts } }));
-  };
-
-  const setDiscount = (clientId: string, famille: FamilleSlug, val: string) => {
-    const num = val === '' ? 0 : Math.min(50, Math.max(0, parseInt(val) || 0));
-    setDrafts((prev) => ({
-      ...prev,
-      [clientId]: { ...prev[clientId], [famille]: num },
-    }));
-  };
-
-  const save = async (client: Client) => {
+  const save = async (client: Client, discounts: Record<string, number>) => {
     setSaving(client.id);
     try {
-      const discounts = drafts[client.id] ?? {};
       const res = await fetch('/api/admin/clients', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -189,6 +199,21 @@ export default function AdminClients() {
         </div>
       )}
 
+      {editing && (() => {
+        const c = clients.find((x) => x.id === editing);
+        if (!c) return null;
+        return (
+          <ClientDiscountTree
+            clientLabel={c.company || c.name || c.email}
+            nodes={taxNodes}
+            initial={c.discounts}
+            saving={saving === c.id}
+            onSave={(d) => save(c, d)}
+            onClose={() => setEditing(null)}
+          />
+        );
+      })()}
+
       <div className="adm-page-head">
         <h1 className="adm-h1">Clients professionnels</h1>
         <span className="adm-count">{clients.length} compte{clients.length > 1 ? 's' : ''} pro</span>
@@ -213,24 +238,18 @@ export default function AdminClients() {
                 <th style={{ whiteSpace: 'nowrap' }}>Palier {new Date().getFullYear()}</th>
                 {viewerRole === 'admin' && <th>Commercial</th>}
                 <th>Dernière connexion</th>
-                {FAMILLES.map((f) => (
-                  <th key={f.slug} style={{ textAlign: 'center', minWidth: 110 }}>
-                    {f.label}<br /><small style={{ fontWeight: 400, color: 'var(--muted)' }}>remise %</small>
-                  </th>
-                ))}
+                <th style={{ minWidth: 220 }}>Remises B2B <small style={{ fontWeight: 400, color: 'var(--muted)' }}>(par nomenclature)</small></th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               {clients.map((client) => {
-                const isEditing = editing === client.id;
-                const draft = drafts[client.id] ?? client.discounts;
                 const isActing = acting?.startsWith(client.id) ?? false;
 
                 return (
                   <tr
                     key={client.id}
-                    className={`adm-tr${isEditing ? ' adm-tr--editing' : ''}${client.banned ? ' adm-tr--blocked' : ''}`}
+                    className={`adm-tr${client.banned ? ' adm-tr--blocked' : ''}`}
                   >
                     <td>
                       <div className="adm-prod-name">
@@ -282,52 +301,19 @@ export default function AdminClients() {
                     <td>
                       <span className="adm-last-login">{formatDate(client.lastSignIn)}</span>
                     </td>
-                    {FAMILLES.map((f) => (
-                      <td key={f.slug} style={{ textAlign: 'center' }}>
-                        {isEditing ? (
-                          <input
-                            type="number"
-                            min={0}
-                            max={50}
-                            value={draft[f.slug] ?? 0}
-                            onChange={(e) => setDiscount(client.id, f.slug, e.target.value)}
-                            style={{ width: 64, textAlign: 'center' }}
-                          />
-                        ) : (
-                          <span className={client.discounts[f.slug] ? 'adm-yes' : 'adm-no'}>
-                            {client.discounts[f.slug] ? `${client.discounts[f.slug]} %` : '—'}
-                          </span>
-                        )}
-                      </td>
-                    ))}
+                    <td>
+                      <DiscountSummary discounts={client.discounts} nodes={taxNodes} />
+                    </td>
                     <td className="adm-td-actions">
-                      {isEditing ? (
+                      {(
                         <>
                           <button
                             type="button"
                             className="adm-action-btn edit"
-                            onClick={() => save(client)}
-                            disabled={saving === client.id}
-                          >
-                            {saving === client.id ? '…' : 'Enregistrer'}
-                          </button>
-                          <button
-                            type="button"
-                            className="adm-action-btn del"
-                            onClick={() => setEditing(null)}
-                          >
-                            Annuler
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            type="button"
-                            className="adm-action-btn edit"
-                            onClick={() => startEdit(client)}
+                            onClick={() => setEditing(client.id)}
                             disabled={isActing}
                           >
-                            Modifier
+                            Remises…
                           </button>
                           {/* Blocage/suppression : admin uniquement (l'API refuse de toute façon) */}
                           {viewerRole === 'admin' && (client.banned ? (
