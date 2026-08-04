@@ -18,6 +18,7 @@ const v1 = require('../lib/configurateur/data/volet-roulant-traditionnel.json');
 // ---- helpers conditions/expr ----
 const V = (name) => ({ var: name });
 const eq = (name, val) => ({ op: 'eq', left: V(name), right: val });
+const ne = (name, val) => ({ op: 'ne', left: V(name), right: val });
 const inSet = (name, set) => ({ op: 'in', value: V(name), set });
 const gte = (name, n) => ({ op: 'gte', left: V(name), right: n });
 const lte = (name, n) => ({ op: 'lte', left: V(name), right: n });
@@ -42,17 +43,6 @@ const fields = [];
 for (const sel of v1.selectors) {
   if (sel.id === 'coffre') continue; // A. coffre PVC retiré (relève du 1.1.2)
 
-  // D. Manœuvre : choix primaire manuelle/motorisée, juste avant le moteur.
-  if (sel.id === 'moteur') {
-    fields.push({
-      id: 'manoeuvre', label: 'Type de manœuvre', type: 'choice', default: 'motorisee',
-      options: [
-        { value: 'manuelle', label: 'Manuelle', setsValues: { moteur: 'mn', layer: 'filaire' } },
-        { value: 'motorisee', label: 'Motorisation' },
-      ],
-    });
-  }
-
   const f = { id: sel.id, label: sel.label, type: 'choice', options: [] };
   const vis = scopeConds(sel.scope, sel.layer);
   if (vis.length) f.visibleWhen = AND(vis);
@@ -66,12 +56,16 @@ for (const sel of v1.selectors) {
       const ps = [...posesForLame[o.value]];
       if (ps.length < poses.length) opt.availableWhen = inSet('pose', ps); // express -> cd942 seul
     }
+    // radio_somfy : io/rts dispo en commande radio ; solaire en commande solaire.
+    if (sel.id === 'radio_somfy') opt.availableWhen = o.value === 'solaire' ? eq('commande', 'solaire') : eq('commande', 'radio');
     f.options.push(opt);
   }
   // B. type_volet (poses) visible uniquement en Tradi standard.
   if (sel.id === 'type_volet') f.visibleWhen = eq('gamme_tradi', 'standard');
-  // Marque du moteur uniquement en motorisation (la manuelle force MN caché).
-  if (sel.id === 'moteur') f.visibleWhen = eq('manoeuvre', 'motorisee');
+  // Marque du moteur : en motorisation, hors solaire (le solaire force Somfy).
+  if (sel.id === 'moteur') f.visibleWhen = AND([eq('manoeuvre', 'motorisee'), ne('commande', 'solaire')]);
+  // Variante Somfy radio (io/rts) : uniquement commande radio + Somfy.
+  if (sel.id === 'radio_somfy') f.visibleWhen = AND([eq('manoeuvre', 'motorisee'), eq('commande', 'radio'), eq('moteur', 'somfy')]);
 
   fields.push(f);
 
@@ -88,13 +82,20 @@ for (const sel of v1.selectors) {
     });
   }
 
-  // Couche (filaire/radio) après moteur — visible seulement en motorisée.
   if (sel.id === 'moteur') {
+    // Motorisation : choix explicite Filaire / Radio / Solaire (pilote `layer`).
     fields.push({
-      id: 'layer', label: 'Type de commande', type: 'choice', default: 'filaire',
+      id: 'commande', label: 'Motorisation', type: 'choice', default: 'filaire',
       visibleWhen: eq('manoeuvre', 'motorisee'),
-      options: [{ value: 'filaire', label: 'Filaire' }, { value: 'radio', label: 'Radio' }],
+      options: [
+        { value: 'filaire', label: 'Filaire', setsValues: { layer: 'filaire' } },
+        { value: 'radio', label: 'Radio', setsValues: { layer: 'radio' } },
+        { value: 'solaire', label: 'Solaire', setsValues: { layer: 'radio', moteur: 'somfy', radio_somfy: 'solaire' } },
+      ],
     });
+    // `layer` interne (pilote la grille de prix) — non affiché.
+    fields.push({ id: 'layer', type: 'choice', default: 'filaire',
+      options: [{ value: 'filaire', label: 'Filaire' }, { value: 'radio', label: 'Radio' }] });
     // Côté / sortie — libellés selon la branche (arbre PDG), sans +value.
     const coteOpts = [{ value: 'gauche', label: 'Gauche' }, { value: 'droite', label: 'Droite' }];
     const sortieOpts = [{ value: 'sous_coffre', label: 'Sous-coffre' }, { value: 'facade', label: 'Façade' }];
@@ -102,6 +103,15 @@ for (const sel of v1.selectors) {
     fields.push({ id: 'sortie_manoeuvre', label: 'Sortie manœuvre', type: 'choice', role: 'spec', default: 'facade', visibleWhen: eq('manoeuvre', 'manuelle'), options: sortieOpts });
     fields.push({ id: 'cote_fil', label: 'Côté fil', type: 'choice', role: 'spec', default: 'droite', visibleWhen: eq('manoeuvre', 'motorisee'), options: coteOpts });
     fields.push({ id: 'sortie_fil', label: 'Sortie fil', type: 'choice', role: 'spec', default: 'facade', visibleWhen: eq('manoeuvre', 'motorisee'), options: sortieOpts });
+    // Manœuvre en DERNIER : ses setsValues gagnent (manuelle -> MN filaire, même
+    // si une commande radio/solaire avait été choisie auparavant).
+    fields.push({
+      id: 'manoeuvre', label: 'Type de manœuvre', type: 'choice', default: 'motorisee',
+      options: [
+        { value: 'manuelle', label: 'Manuelle', setsValues: { moteur: 'mn', layer: 'filaire' } },
+        { value: 'motorisee', label: 'Motorisation' },
+      ],
+    });
   }
 }
 
@@ -227,6 +237,31 @@ priceRules.push({ code: 'color_lame_finale_pv', label: 'Coloris lame finale (opt
 const GENOU = ['genouillere_60', 'genouillere_60a', 'genouillere_90', 'genouillere_90a'];
 for (const o of v1.options) {
   if (GENOU.includes(o.code)) continue; // E.
+
+  // Inverseur : uniquement en Filaire, +21 € ; 4 variantes (pose × maintien) au même prix.
+  if (o.code === 'inverseur') {
+    const invVis = AND([eq('manoeuvre', 'motorisee'), eq('commande', 'filaire')]);
+    fields.push({ id: 'inverseur', label: 'Inverseur', type: 'boolean', visibleWhen: invVis });
+    priceRules.push({ code: 'opt_inverseur', label: 'Inverseur', kind: 'add',
+      when: AND([eq('inverseur', true), eq('manoeuvre', 'motorisee'), eq('commande', 'filaire')]), amount: o.priceHT });
+    fields.push({ id: 'inverseur_pose', label: 'Inverseur — pose', type: 'choice', role: 'spec', default: 'encastre',
+      visibleWhen: eq('inverseur', true),
+      options: [{ value: 'encastre', label: 'Encastré' }, { value: 'applique', label: 'En applique' }] });
+    fields.push({ id: 'inverseur_maintien', label: 'Inverseur — maintien', type: 'choice', role: 'spec', default: 'maintenu',
+      visibleWhen: eq('inverseur', true),
+      options: [{ value: 'maintenu', label: 'Maintenu' }, { value: 'fixe', label: 'Fixe' }] });
+    continue;
+  }
+
+  // Commande de secours intégrée : +136 € — ne concerne que le moteur (motorisation).
+  if (o.code === 'kit_inverseur_secours') {
+    fields.push({ id: 'kit_inverseur_secours', label: 'Commande de secours', type: 'boolean',
+      visibleWhen: eq('manoeuvre', 'motorisee') });
+    priceRules.push({ code: 'opt_kit_inverseur_secours', label: 'Commande de secours', kind: 'add',
+      when: AND([eq('kit_inverseur_secours', true), eq('manoeuvre', 'motorisee')]), amount: 136 });
+    continue;
+  }
+
   const vis = scopeConds(o.scope, o.layer);
   fields.push({ id: o.code, label: o.label, type: 'boolean', ...(vis.length ? { visibleWhen: AND(vis) } : {}) });
   priceRules.push({ code: `opt_${o.code}`, label: o.label, kind: 'add',
@@ -234,24 +269,21 @@ for (const o of v1.options) {
     amount: o.priceHT });
 }
 
-// E. Genouillère : un seul choix + sous-choix maintenu/fixe (fabrication).
-const genouPrice = (c) => (v1.options.find((o) => o.code === c)?.priceHT ?? 0);
+// E. Genouillère : un seul choix (6 options). Sous-coffre 60° et applique 60°
+//    non aimantée incluses ; aimantées +41, applique 90° +18 / aimantée +59.
 fields.push({ id: 'genouillere', label: 'Genouillère', type: 'choice', default: 'sc60_incluse',
   help: 'Sous-coffre 60° et applique 60° non aimantée sont incluses dans le prix.',
   options: [
     { value: 'sc60_incluse', label: 'Sous-coffre 60° (incluse)' },
+    { value: 'sc60a', label: 'Sous-coffre 60° aimantée (+41 €)' },
     { value: 'app60', label: 'En applique 60° non aimantée (incluse)' },
-    { value: 'app90', label: 'En applique 90° non aimantée' },
-    { value: 'app60a', label: 'En applique 60° aimantée' },
-    { value: 'app90a', label: 'En applique 90° aimantée' },
+    { value: 'app60a', label: 'En applique 60° aimantée (+41 €)' },
+    { value: 'app90', label: 'En applique 90° non aimantée (+18 €)' },
+    { value: 'app90a', label: 'En applique 90° aimantée (+59 €)' },
   ] });
-fields.push({ id: 'genouillere_fix', label: 'Maintien de la genouillère', type: 'choice', role: 'spec', default: 'maintenu',
-  visibleWhen: inSet('genouillere', ['app60', 'app90', 'app60a', 'app90a']),
-  options: [{ value: 'maintenu', label: 'Maintenu' }, { value: 'fixe', label: 'Fixe' }] });
-const GENOU_MAP = { app60: 'genouillere_60', app90: 'genouillere_90', app60a: 'genouillere_60a', app90a: 'genouillere_90a' };
-for (const [val, code] of Object.entries(GENOU_MAP)) {
-  const price = genouPrice(code);
-  if (price > 0) priceRules.push({ code: `opt_${code}`, label: v1.options.find((o) => o.code === code).label, kind: 'add',
+const GENOU_PRICE = { sc60a: 41, app60a: 41, app90: 18, app90a: 59 }; // incluses : sc60_incluse, app60
+for (const [val, price] of Object.entries(GENOU_PRICE)) {
+  priceRules.push({ code: `opt_genouillere_${val}`, label: `Genouillère (${val})`, kind: 'add',
     when: eq('genouillere', val), amount: price });
 }
 
@@ -306,15 +338,17 @@ constraints.push({ message: 'Largeur inférieure au minimum de la grille pour ce
 
 // ---- STEPS (assistant) ----
 const optionFieldIds = [
-  ...Object.keys(optionalCodes),
-  ...v1.options.filter((o) => !GENOU.includes(o.code)).map((o) => o.code),
-  'genouillere', 'genouillere_fix',
+  ...Object.keys(optionalCodes),                                    // attaches_rigides, sous_face_7016
+  'inverseur', 'inverseur_pose', 'inverseur_maintien',             // Filaire
+  'kit_inverseur_secours',                                         // Commande de secours
+  ...v1.options.filter((o) => !GENOU.includes(o.code) && !['inverseur', 'kit_inverseur_secours'].includes(o.code)).map((o) => o.code),
+  'genouillere',
 ];
 const specIds = (v1.specFields ?? []).map((s) => s.id);
 const steps = [
   { id: 'type', title: 'Type & pose', fields: ['gamme_tradi', 'type_volet', ...specIds, 'percage'] },
   { id: 'lame', title: 'Lame & coulisses', fields: ['lame', 'coulisse_express'] },
-  { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'cote_manoeuvre', 'sortie_manoeuvre', 'cote_fil', 'sortie_fil', 'moteur', 'layer', 'radio_somfy'] },
+  { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'cote_manoeuvre', 'sortie_manoeuvre', 'cote_fil', 'sortie_fil', 'commande', 'moteur', 'radio_somfy'] },
   { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'surface_info'] },
   { id: 'coloris', title: 'Coloris', fields: ['color_tablier', 'color_coulisse', 'color_lame_finale'] },
   { id: 'options', title: 'Options', fields: optionFieldIds },
