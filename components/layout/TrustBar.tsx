@@ -9,9 +9,6 @@ export function TrustBar() {
     <>
       <b>Franco de port</b> dès 400 € HT
     </>,
-    <>
-      Paiement <b>3× / 4×</b> · expédition 24‑48h
-    </>,
   ];
   return (
     <div className="trust">
