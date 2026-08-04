@@ -199,18 +199,20 @@ for (const [code, condList] of Object.entries(optionalCodes)) {
 }
 
 // C. Coloris : +value quand une couleur « option » est choisie pour l'élément.
-//    Tablier +40 €/ml (hauteur) ; coulisse +18 €/ml (largeur) ; lame finale à chiffrer.
+//    Tablier +14 €/m² (surface) ; coulisse +40 €/ml (hauteur) ; lame finale +18 €/ml (largeur).
+//    (source arbre PDG : le libellé « + value X linéaire » s'applique à la section qui SUIT.)
 const optionColorCond = (fieldId) => ANY(v1.colorPolicies
   .filter((p) => p.pvM2?.codes?.length)
   .map((p) => AND([eq('lame', p.lame), inSet(fieldId, p.pvM2.codes)])));
 priceRules.push({ code: 'color_tablier_pv', label: 'Coloris tablier (option)', kind: 'add',
   when: optionColorCond('color_tablier'),
-  amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 40] } } });
+  amount: { op: 'round', arg: { op: '*', args: [V('surface_m2'), 14] } } });
 priceRules.push({ code: 'color_coulisse_pv', label: 'Coloris coulisse (option)', kind: 'add',
   when: optionColorCond('color_coulisse'),
-  amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('largeur'), 1000] }, 18] } } });
+  amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 40] } } });
 priceRules.push({ code: 'color_lame_finale_pv', label: 'Coloris lame finale (option)', kind: 'add',
-  when: optionColorCond('color_lame_finale'), amount: 0 }); // TODO PDG : +value lame finale
+  when: optionColorCond('color_lame_finale'),
+  amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('largeur'), 1000] }, 18] } } });
 
 // Options fixes -> champs booléens + règles (genouillères regroupées à part).
 const GENOU = ['genouillere_60', 'genouillere_60a', 'genouillere_90', 'genouillere_90a'];
