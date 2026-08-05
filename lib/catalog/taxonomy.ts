@@ -28,8 +28,8 @@ interface SeedGamme extends SeedLeaf { children: SeedFamille[] }
 
 const TREE: SeedGamme[] = [
   { name: 'Volets roulants', slug: 'volets-roulants', children: [
-    { name: 'Tradi', slug: 'tradi', generatorSlug: 'volet-roulant-traditionnel', children: [
-      { name: 'Tradi', slug: 'tradi-std' }, { name: 'Tradi + coffre', slug: 'tradi-coffre' }, { name: 'Coffre seul', slug: 'coffre-seul' },
+    { name: 'Tradi', slug: 'tradi', children: [
+      { name: 'Tradi', slug: 'tradi-std', generatorSlug: 'volet-roulant-traditionnel' }, { name: 'Tradi + coffre', slug: 'tradi-coffre' }, { name: 'Coffre seul', slug: 'coffre-seul' },
     ] },
     { name: 'Reno', slug: 'reno', children: [
       { name: 'Minibox', slug: 'minibox' }, { name: 'Renobox', slug: 'renobox' }, { name: 'Reno gros coffre', slug: 'reno-gros-coffre' },

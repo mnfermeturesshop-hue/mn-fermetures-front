@@ -426,9 +426,9 @@ const steps = [
 ];
 
 const def = {
-  // Rattaché au nœud 'tradi' (1.1) de la nomenclature : les remises/surcharges
-  // posées sur Tradi (ou la gamme Volets roulants, héritée) s'appliquent au VR.
-  slug: v1.slug, name: v1.name, famille: 'tradi',
+  // Rattaché au nœud 'tradi-std' (1.1.1) — le nœud portant le générateur ; les
+  // remises/surcharges posées sur 1.1.1, 1.1 ou la gamme (héritées) s'appliquent.
+  slug: v1.slug, name: v1.name, famille: 'tradi-std',
   fields, derived, steps, priceRules, tables: { d1, d2 }, constraints,
 };
 
