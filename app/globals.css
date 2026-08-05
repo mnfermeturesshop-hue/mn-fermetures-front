@@ -641,6 +641,8 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
   letter-spacing: .12em; color: var(--muted); margin-bottom: 8px; }
 .devis-emetteur address, .devis-destinataire address {
   font-style: normal; font-size: 13px; line-height: 1.7; }
+.devis-pu-gross { color: #9ca3af; text-decoration: line-through; font-size: 12px; }
+.devis-pu-net { color: #166534; font-weight: 600; }
 .devis-table { width: 100%; border-collapse: collapse; margin-bottom: 28px; font-size: 13px; }
 .devis-table th { background: var(--navy-700); color: #fff; padding: 10px 12px;
   text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }

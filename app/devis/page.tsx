@@ -293,7 +293,10 @@ function DevisContent() {
             </tr>
           </thead>
           <tbody>
-            {devisLines.map((l: CartLine, i: number) => (
+            {devisLines.map((l: CartLine, i: number) => {
+              const gross = l.grossUnitPriceHT ?? l.unitPriceHT;   // avant remise
+              const hasRemise = gross > l.unitPriceHT + 0.005;
+              return (
               <tr key={l.key ?? i}>
                 <td>
                   <div className="devis-line-name">{l.name}</div>
@@ -301,10 +304,13 @@ function DevisContent() {
                 </td>
                 <td className="ref">{l.reference ?? '—'}</td>
                 <td>{l.quantity}</td>
-                <td>{euro(l.unitPriceHT)}</td>
+                <td>
+                  {hasRemise && <div className="devis-pu-gross">{euro(gross)}</div>}
+                  <div className={hasRemise ? 'devis-pu-net' : undefined}>{euro(l.unitPriceHT)}{hasRemise ? ' net' : ''}</div>
+                </td>
                 <td>{euro(l.unitPriceHT * l.quantity)}</td>
               </tr>
-            ))}
+            );})}
           </tbody>
           <tfoot>
             <tr>

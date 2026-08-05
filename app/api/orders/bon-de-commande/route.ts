@@ -14,6 +14,8 @@ interface OrderLine {
   reference?: string;
   detail?: string;
   quantity: number;
+  /** PU HT catalogue (avant remise) — repli sur le net pour les commandes anciennes. */
+  grossUnitPriceHT?: number;
   unitPriceHT: number;
 }
 
@@ -46,7 +48,11 @@ const euro = (n: number) =>
   n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 
 function linesTable(lines: OrderLine[]): string {
-  const rows = lines.map((l) => `
+  const rows = lines.map((l) => {
+    const gross = l.grossUnitPriceHT ?? l.unitPriceHT;   // PU HT catalogue (avant remise)
+    const net = l.unitPriceHT;                            // PU net (après remise)
+    const hasRemise = gross > net + 0.005;
+    return `
     <tr>
       <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;">
         <div style="font-weight:600;color:#1e3a5f;">${escapeHtml(l.name)}</div>
@@ -54,10 +60,12 @@ function linesTable(lines: OrderLine[]): string {
         ${l.detail ? `<div style="font-size:12px;color:#6b7280;">${escapeHtml(l.detail)}</div>` : ''}
       </td>
       <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:center;">${l.quantity}</td>
-      <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">${euro(l.unitPriceHT)} HT</td>
-      <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:700;">${euro(l.unitPriceHT * l.quantity)} HT</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:right;color:${hasRemise ? '#9ca3af' : '#1e3a5f'};${hasRemise ? 'text-decoration:line-through;' : 'font-weight:600;'}">${euro(gross)} HT</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;color:#166534;">${euro(net)} HT</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:700;">${euro(net * l.quantity)} HT</td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 
   return `
     <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;font-size:13px;">
@@ -66,6 +74,7 @@ function linesTable(lines: OrderLine[]): string {
           <th style="padding:10px 12px;text-align:left;color:#6b7280;font-weight:600;">DÉSIGNATION</th>
           <th style="padding:10px 12px;text-align:center;color:#6b7280;font-weight:600;">QTÉ</th>
           <th style="padding:10px 12px;text-align:right;color:#6b7280;font-weight:600;">P.U. HT</th>
+          <th style="padding:10px 12px;text-align:right;color:#6b7280;font-weight:600;">P.U. NET HT</th>
           <th style="padding:10px 12px;text-align:right;color:#6b7280;font-weight:600;">TOTAL HT</th>
         </tr>
       </thead>

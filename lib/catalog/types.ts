@@ -153,6 +153,9 @@ export interface CartLine {
   name: string;
   detail?: string;             // "1200×1250 mm · attaches rigides"
   reference?: string;
+  /** PU HT catalogue (base + surcharge) AVANT remise — présent sur les lignes
+   *  re-tarifées serveur (devis/commandes) ; absent sur le panier en direct. */
+  grossUnitPriceHT?: MoneyHT;
   unitPriceHT: MoneyHT;
   quantity: number;
   uom: Uom;

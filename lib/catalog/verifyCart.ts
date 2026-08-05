@@ -26,6 +26,9 @@ export interface VerifiedLine {
   name: string;
   detail?: string;
   reference?: string;
+  /** PU HT « catalogue » (base + surcharge) AVANT remise client. */
+  grossUnitPriceHT: number;
+  /** PU HT net après remise client (= ce qui est facturé). */
   unitPriceHT: number;
   quantity: number;
   uom: Uom;
@@ -178,7 +181,7 @@ export async function verifyCartLines(
     }
 
     // Surcharge temporaire appliquée à la base (avant remise) ; jamais sur un prix négocié.
-    const surcharged = applySurcharge(base, resolveB2BSurcharge(surcharges, node, taxonomy));
+    const surcharged = isNegotiated ? base : applySurcharge(base, resolveB2BSurcharge(surcharges, node, taxonomy));
     const unitPriceHT = isNegotiated ? base : applyDiscount(surcharged, resolveB2BDiscount(discounts as Record<string, number>, node, taxonomy));
     productsHT += unitPriceHT * qty;
 
@@ -187,7 +190,8 @@ export async function verifyCartLines(
       name,                            // libellé autoritaire
       detail: raw.detail,              // affichage seulement
       reference: raw.reference,
-      unitPriceHT,
+      grossUnitPriceHT: surcharged,    // PU HT catalogue (avant remise)
+      unitPriceHT,                     // PU HT net (après remise)
       quantity: qty,
       uom: raw.uom,
     });
