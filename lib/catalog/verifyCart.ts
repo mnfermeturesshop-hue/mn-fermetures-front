@@ -179,7 +179,7 @@ export async function verifyCartLines(
       name = hit.product.name;
       node = hit.product.taxonomySlug ?? hit.product.famille;
     } else {
-      return { ok: false, error: `Ligne non vérifiable (descripteur de re-tarification manquant) : « ${String(raw?.name ?? raw?.detail ?? raw?.key ?? '?')} ». Retirez-la et re-configurez-la.` };
+      return { ok: false, error: `Ligne non vérifiable : « ${String(raw?.name ?? raw?.key ?? '?')} » — pricing=${JSON.stringify(raw?.pricing ?? null)} ref=${String(raw?.reference ?? '∅')}` };
     }
 
     if (base == null) {
