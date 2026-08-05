@@ -307,9 +307,9 @@ for (const o of v1.options) {
     amount: price });
 }
 
-// E. Genouillère : un seul choix (6 options). Sous-coffre 60° et applique 60°
-//    non aimantée incluses ; aimantées +41, applique 90° +18 / aimantée +59.
+// E. Genouillère — MOTORISATION (6 options : sous-coffre / en applique).
 fields.push({ id: 'genouillere', label: 'Genouillère', type: 'choice', default: 'sc60_incluse',
+  visibleWhen: eq('manoeuvre', 'motorisee'),
   help: 'Sous-coffre 60° et applique 60° non aimantée sont incluses dans le prix.',
   options: [
     { value: 'sc60_incluse', label: 'Sous-coffre 60° (incluse)' },
@@ -322,7 +322,22 @@ fields.push({ id: 'genouillere', label: 'Genouillère', type: 'choice', default:
 const GENOU_PRICE = { sc60a: 41, app60a: 41, app90: 18, app90a: 59 }; // incluses : sc60_incluse, app60
 for (const [val, price] of Object.entries(GENOU_PRICE)) {
   priceRules.push({ code: `opt_genouillere_${val}`, label: `Genouillère (${val})`, kind: 'add',
-    when: eq('genouillere', val), amount: price });
+    when: AND([eq('manoeuvre', 'motorisee'), eq('genouillere', val)]), amount: price });
+}
+
+// E'. Genouillère — MANŒUVRE MANUELLE (4 options, libellés capture PDG).
+fields.push({ id: 'genouillere_manuelle', label: 'Genouillère', type: 'choice', default: 'g60',
+  visibleWhen: eq('manoeuvre', 'manuelle'),
+  options: [
+    { value: 'g60', label: 'Genouillère 60° (incluse)' },
+    { value: 'g60a', label: 'Genouillère 60° aimantée (+41 €)' },
+    { value: 'g90', label: 'Genouillère 90° (+18 €)' },
+    { value: 'g90a', label: 'Genouillère 90° aimantée (+59 €)' },
+  ] });
+const GENOU_MAN_PRICE = { g60a: 41, g90: 18, g90a: 59 }; // g60 inclus
+for (const [val, price] of Object.entries(GENOU_MAN_PRICE)) {
+  priceRules.push({ code: `opt_genouillere_man_${val}`, label: `Genouillère ${val}`, kind: 'add',
+    when: AND([eq('manoeuvre', 'manuelle'), eq('genouillere_manuelle', val)]), amount: price });
 }
 
 // Coulisse Tradi Express « 53×22 à aile » : +8,50 €/ml (hauteur) × 2 coulisses.
@@ -384,7 +399,7 @@ const optionFieldIds = [
   'kit_inverseur_secours',                                         // Commande de secours
   'radio_info',                                                    // Radio (émetteur inclus)
   ...v1.options.filter((o) => !GENOU.includes(o.code) && !['inverseur', 'kit_inverseur_secours'].includes(o.code)).map((o) => o.code),
-  'genouillere',
+  'genouillere', 'genouillere_manuelle',
 ];
 const specIds = (v1.specFields ?? []).map((s) => s.id);
 const steps = [
