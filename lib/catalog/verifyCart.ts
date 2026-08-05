@@ -35,6 +35,9 @@ export interface VerifiedLine {
   surchargePct?: number;
   surchargeGrossUnitHT?: number;
   surchargeUnitHT?: number;
+  /** Descripteur de re-tarification conservé — permet de re-commander un devis
+   *  (le panier rechargé reste re-tarifable au taux courant). */
+  pricing?: CartLine['pricing'];
   quantity: number;
   uom: Uom;
 }
@@ -179,7 +182,7 @@ export async function verifyCartLines(
       name = hit.product.name;
       node = hit.product.taxonomySlug ?? hit.product.famille;
     } else {
-      return { ok: false, error: `Ligne non vérifiable : « ${String(raw?.name ?? raw?.key ?? '?')} » — pricing=${JSON.stringify(raw?.pricing ?? null)} ref=${String(raw?.reference ?? '∅')}` };
+      return { ok: false, error: `La ligne « ${String(raw?.name ?? '?')} » n'est plus re-tarifable (article ou devis ancien). Retirez-la du panier et re-configurez-la.` };
     }
 
     if (base == null) {
@@ -203,6 +206,7 @@ export async function verifyCartLines(
       grossUnitPriceHT: base,          // PU HT produit (avant remise, hors surcharge)
       unitPriceHT,                     // PU HT produit net
       ...(surchargeUnitHT > 0 ? { surchargePct, surchargeGrossUnitHT, surchargeUnitHT } : {}),
+      ...(raw.pricing ? { pricing: raw.pricing } : {}),   // conservé pour re-commander
       quantity: qty,
       uom: raw.uom,
     });
