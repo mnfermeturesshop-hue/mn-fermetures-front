@@ -2,25 +2,39 @@ import { NextResponse } from 'next/server';
 import { getTaxonomy } from '@/lib/catalog/taxonomy-loader';
 import { surchargeMapFromNodes } from '@/lib/pricing/discount-resolver';
 import { TAXONOMY_SEED } from '@/lib/catalog/taxonomy';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-/** Surcharges temporaires par nœud (lecture publique — donnée non sensible,
- *  reflétée dans les prix affichés ; le serveur re-tarife de toute façon). */
+/** Surcharges temporaires par nœud (lecture publique). */
 export async function GET() {
   const nodes = await getTaxonomy();
-  const tradi = nodes.find((n) => n.slug === 'tradi');
-  const body = {
+
+  // Sonde directe : montre l'erreur SQL exacte (ex. colonne surcharge absente).
+  let probe: unknown = null;
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from('taxonomy_nodes')
+      .select('slug, surcharge')
+      .eq('slug', 'tradi')
+      .maybeSingle();
+    probe = { data, error: error?.message ?? null };
+  } catch (e) {
+    probe = { thrown: e instanceof Error ? e.message : String(e) };
+  }
+
+  const supabaseHost = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/^https?:\/\//, '').split('.')[0];
+
+  return NextResponse.json({
     surcharges: surchargeMapFromNodes(nodes),
-    // Diagnostic temporaire — à retirer une fois la surcharge confirmée.
     _debug: {
       source: nodes === TAXONOMY_SEED ? 'seed' : 'db',
       count: nodes.length,
       hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-      tradiSurcharge: tradi ? (tradi.surcharge ?? null) : 'noeud tradi absent',
-      withSurcharge: nodes.filter((n) => typeof n.surcharge === 'number' && n.surcharge > 0).map((n) => `${n.slug}=${n.surcharge}`),
+      supabaseProject: supabaseHost || null, // ref du projet Supabase vu par l'app
+      probe,                                  // { data, error } ou { thrown }
     },
-  };
-  return NextResponse.json(body, { headers: { 'Cache-Control': 'no-store' } });
+  }, { headers: { 'Cache-Control': 'no-store' } });
 }
