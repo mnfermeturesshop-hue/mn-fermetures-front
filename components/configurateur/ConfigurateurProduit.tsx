@@ -7,6 +7,7 @@ import type { DefV2, Field, Primitive, Values } from '@/lib/configurateur/v2/typ
 import { Stepper } from './Stepper';
 import { applyDiscount, resolveB2BDiscountSeed, applySurcharge, resolveB2BSurchargeSeed } from '@/lib/pricing/discount-resolver';
 import { useSurchargeStore } from '@/lib/store/surcharge';
+import { generatorNode, TAXONOMY_SEED } from '@/lib/catalog/taxonomy';
 import { useCartStore } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
 import { toast } from '@/components/ui/Toast';
@@ -55,8 +56,10 @@ export function ConfigurateurProduit({ slug }: Props) {
 
   const result = useMemo(() => (def ? resolvePrice(def, values) : null), [def, values]);
   const surchargeMap = useSurchargeStore((s) => s.map);
-  const discountPct = def ? resolveB2BDiscountSeed(user?.proDiscounts ?? {}, def.famille) : 0;
-  const surchargePct = def ? resolveB2BSurchargeSeed(surchargeMap, def.famille) : 0;
+  // Nœud de rattachement : celui qui porte ce générateur (ex. 'tradi'), sinon def.famille.
+  const node = def ? (generatorNode(TAXONOMY_SEED, def.slug) ?? def.famille) : undefined;
+  const discountPct = node ? resolveB2BDiscountSeed(user?.proDiscounts ?? {}, node) : 0;
+  const surchargePct = node ? resolveB2BSurchargeSeed(surchargeMap, node) : 0;
   const unitNet = result?.ok ? applyDiscount(applySurcharge(result.total, surchargePct), discountPct) : 0;
 
   // ── États de garde ──

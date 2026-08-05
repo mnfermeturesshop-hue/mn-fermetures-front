@@ -4,6 +4,7 @@ import { isMatrix, isUnit, isKit, type Product, type CartLine, type Uom } from '
 import { type DiscountMap } from '@/lib/familles';
 import { resolveB2BDiscount, applyDiscount, applySurcharge, resolveB2BSurcharge, surchargeMapFromNodes } from '@/lib/pricing/discount-resolver';
 import { getTaxonomy } from '@/lib/catalog/taxonomy-loader';
+import { generatorNode } from '@/lib/catalog/taxonomy';
 import { laquageForfaitHT } from '@/lib/pricing/shipping';
 import { resoudrePrix } from '@/lib/tablier/engine';
 import { loadConfiguratorDef } from '@/lib/configurateur/loader';
@@ -162,7 +163,8 @@ export async function verifyCartLines(
       if (!res.ok) return { ok: false, error: `Configuration hors barème : ${def.name}` };
       base = res.total;
       name = raw.name ? String(raw.name) : def.name;
-      node = def.famille;
+      // Rattachement : nœud portant ce générateur (ex. 'tradi'), sinon def.famille.
+      node = generatorNode(taxonomy, def.slug) ?? def.famille;
       // Coloris laqué (RAL) → forfait laquage par commande (recalcul autoritaire) :
       // détecté par la présence du supplément coloris dans le résultat.
       if (res.lineItems.some((li) => li.code.startsWith('color_') && li.code.endsWith('_pv'))) hasLaque = true;

@@ -93,6 +93,12 @@ export function bySlug(nodes: TaxonomyNode[]): Map<string, TaxonomyNode> {
   return new Map(nodes.map((n) => [n.slug, n]));
 }
 
+/** Nœud portant un générateur (configurateur) donné — rattachement autoritaire
+ *  pour résoudre remises/surcharges d'un configurateur, indépendamment de def.famille. */
+export function generatorNode(nodes: TaxonomyNode[], generatorSlug: string | undefined): string | undefined {
+  return generatorSlug ? nodes.find((n) => n.generatorSlug === generatorSlug)?.slug : undefined;
+}
+
 /** Chaîne du nœud jusqu'à la gamme : [feuille, …, gamme]. */
 export function chainSlugs(nodes: TaxonomyNode[], slug: string): string[] {
   const map = bySlug(nodes);
