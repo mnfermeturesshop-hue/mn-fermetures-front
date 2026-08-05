@@ -67,4 +67,40 @@ export function resolveB2BDiscountSeed(
   return resolveB2BDiscount(discounts, nodeOrFamille, TAXONOMY_SEED);
 }
 
+/* =====================================================================
+   Surcharge temporaire (PDG) — % positif posé sur un nœud, hérité comme les
+   remises (la plus précise l'emporte) mais GLOBAL (pas par client). Stocké sur
+   les nœuds (`taxonomy_nodes.surcharge`) ; résolu par la même mécanique.
+   ===================================================================== */
+
+/** Applique une surcharge % (positive) à un prix HT. */
+export function applySurcharge(priceHT: number, pct: number): number {
+  if (!pct || pct <= 0) return priceHT;
+  return Math.round(priceHT * (1 + pct / 100) * 100) / 100;
+}
+
+/** Carte de surcharges (slug de nœud → %) à partir des nœuds de taxonomie. */
+export function surchargeMapFromNodes(nodes: TaxonomyNode[]): NodeDiscountMap {
+  const out: NodeDiscountMap = {};
+  for (const n of nodes) if (typeof n.surcharge === 'number' && n.surcharge > 0) out[n.slug] = n.surcharge;
+  return out;
+}
+
+/** Surcharge effective (héritée) pour un produit (nœud ou ancienne famille). */
+export function resolveB2BSurcharge(
+  surcharges: NodeDiscountMap | undefined,
+  nodeOrFamille: string | undefined,
+  nodes: TaxonomyNode[],
+): number {
+  return resolveDiscount(surcharges, legacyFamilleToNode(nodeOrFamille), nodes);
+}
+
+/** Variante d'affichage client : résout via le SEED de nomenclature. */
+export function resolveB2BSurchargeSeed(
+  surcharges: NodeDiscountMap | undefined,
+  nodeOrFamille: string | undefined,
+): number {
+  return resolveB2BSurcharge(surcharges, nodeOrFamille, TAXONOMY_SEED);
+}
+
 export { applyDiscount };

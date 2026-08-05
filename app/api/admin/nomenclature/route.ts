@@ -50,7 +50,7 @@ export async function GET() {
 type Action =
   | { action: 'seed' }
   | { action: 'create'; name: string; parentSlug: string | null; generatorSlug?: string | null }
-  | { action: 'update'; slug: string; name?: string; active?: boolean; generatorSlug?: string | null }
+  | { action: 'update'; slug: string; name?: string; active?: boolean; generatorSlug?: string | null; surcharge?: number }
   | { action: 'move'; slug: string; parentSlug: string | null }
   | { action: 'reorder'; parentSlug: string | null; orderedSlugs: string[] }
   | { action: 'delete'; slug: string };
@@ -110,6 +110,7 @@ export async function POST(req: NextRequest) {
         if (typeof body.name === 'string' && body.name.trim()) patch.name = body.name.trim();
         if (typeof body.active === 'boolean') patch.active = body.active;
         if ('generatorSlug' in body) patch.generator_slug = body.generatorSlug || null;
+        if (typeof body.surcharge === 'number') patch.surcharge = Math.min(200, Math.max(0, Math.round(body.surcharge)));
         const { error } = await admin.from('taxonomy_nodes').update(patch).eq('slug', body.slug);
         if (error) throw error;
         return NextResponse.json({ ok: true });

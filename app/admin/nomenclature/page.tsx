@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from '@/components/ui/Toast';
 import type { TaxonomyNode } from '@/lib/catalog/taxonomy';
+import { resolveDiscount, surchargeMapFromNodes } from '@/lib/pricing/discount-resolver';
 
 type Source = 'db' | 'seed';
 
@@ -88,6 +89,14 @@ export default function AdminNomenclature() {
 
   const dbReady = source === 'db';
 
+  // Surcharge temporaire (héritée comme les remises) : taux effectif par nœud.
+  const surchargeMap = useMemo(() => surchargeMapFromNodes(nodes), [nodes]);
+  const effectiveSurcharge = (slug: string) => resolveDiscount(surchargeMap, slug, nodes);
+  const setSurcharge = (n: TaxonomyNode, val: string) => {
+    const num = val === '' ? 0 : Math.min(200, Math.max(0, Math.round(Number(val) || 0)));
+    if (num !== (n.surcharge ?? 0)) call({ action: 'update', slug: n.slug, surcharge: num }, 'Surcharge mise à jour.');
+  };
+
   const Row = ({ n }: { n: TaxonomyNode }) => {
     const kids = childrenOf(n.slug);
     const canHaveChild = n.level !== 'sous_famille';
@@ -108,6 +117,16 @@ export default function AdminNomenclature() {
           )}
           <span className="nom-level">{LEVEL_LABEL[n.level]}</span>
           {n.generatorSlug && <span className="nom-gen" title="Générateur rattaché">⚙ {n.generatorSlug}</span>}
+
+          <span className="nom-surcharge" title="Surcharge temporaire (%) — héritée par les enfants">
+            <input
+              type="number" min={0} max={200} defaultValue={n.surcharge ?? 0} disabled={busy || !dbReady}
+              onBlur={(e) => setSurcharge(n, e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+            />
+            <span className="nom-surcharge-unit">% surch.</span>
+            {(() => { const eff = effectiveSurcharge(n.slug); return (!n.surcharge && eff > 0) ? <em className="nom-surcharge-inh">hérité {eff}%</em> : null; })()}
+          </span>
 
           <span className="nom-actions">
             <button disabled={busy} title="Monter" onClick={() => reorder(n.parentSlug, n.slug, -1)}>↑</button>
@@ -181,7 +200,11 @@ export default function AdminNomenclature() {
         .nom-edit { font:inherit; padding:2px 6px; border:1px solid #94a3b8; border-radius:6px; }
         .nom-level { font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:.03em; }
         .nom-gen { font-size:12px; color:#0f766e; background:#ccfbf1; padding:1px 8px; border-radius:999px; }
-        .nom-actions { margin-left:auto; display:flex; gap:4px; }
+        .nom-surcharge { margin-left:auto; display:flex; align-items:center; gap:5px; font-size:12px; color:#64748b; }
+        .nom-surcharge input { width:52px; text-align:center; font:inherit; padding:2px 5px; border:1px solid #cbd5e1; border-radius:6px; }
+        .nom-surcharge-unit { color:#94a3b8; }
+        .nom-surcharge-inh { font-style:normal; color:#a16207; background:#fef9c3; padding:1px 6px; border-radius:999px; }
+        .nom-actions { display:flex; gap:4px; }
         .nom-actions button { border:1px solid #e2e8f0; background:#fff; border-radius:6px; width:28px; height:28px; cursor:pointer; font-size:13px; }
         .nom-actions button:hover:not(:disabled) { background:#f1f5f9; }
         .nom-actions button:disabled { opacity:.4; cursor:not-allowed; }

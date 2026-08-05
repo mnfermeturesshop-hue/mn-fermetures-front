@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { type UnitProduct, type ProductVariant } from '@/lib/catalog/types';
 import { useCartStore, euro } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
-import { resolveB2BDiscountSeed, applyDiscount } from '@/lib/pricing/discount-resolver';
+import { resolveB2BDiscountSeed, applyDiscount, applySurcharge, resolveB2BSurchargeSeed } from '@/lib/pricing/discount-resolver';
+import { useSurchargeStore } from '@/lib/store/surcharge';
 import { toast } from '@/components/ui/Toast';
 import { trackAddToCart } from '@/lib/analytics';
 
@@ -23,6 +24,8 @@ export function UnitProductPanel({ product }: { product: UnitProduct }) {
   const TVA = 0.20;
 
   const discountPct = resolveB2BDiscountSeed(user?.proDiscounts, product.taxonomySlug ?? product.famille);
+  const surchargePct = resolveB2BSurchargeSeed(useSurchargeStore((s) => s.map), product.taxonomySlug ?? product.famille);
+  const net = (base: number) => applyDiscount(applySurcharge(base, surchargePct), discountPct);
 
   const variant: ProductVariant | undefined = product.variants.find((v) => v.reference === selectedRef);
 
@@ -33,7 +36,7 @@ export function UnitProductPanel({ product }: { product: UnitProduct }) {
       name: product.name,
       detail: variant.label,
       reference: variant.reference,
-      unitPriceHT: applyDiscount(variant.priceHT, discountPct),
+      unitPriceHT: net(variant.priceHT),
       quantity: qty,
       uom: product.uom,
     });
@@ -121,8 +124,8 @@ export function UnitProductPanel({ product }: { product: UnitProduct }) {
               )}
               <div className="pr">
                 {showTTC
-                  ? <>{euro(applyDiscount(variant.priceHT, discountPct) * qty * (1 + TVA))}<small> TTC</small></>
-                  : <>{euro(applyDiscount(variant.priceHT, discountPct) * qty)}<small> HT</small></>
+                  ? <>{euro(net(variant.priceHT) * qty * (1 + TVA))}<small> TTC</small></>
+                  : <>{euro(net(variant.priceHT) * qty)}<small> HT</small></>
                 }
               </div>
               {discountPct > 0 && (
@@ -132,8 +135,8 @@ export function UnitProductPanel({ product }: { product: UnitProduct }) {
               )}
               <div className="unit-uprice">
                 {showTTC
-                  ? <>{euro(applyDiscount(variant.priceHT, discountPct) * (1 + TVA))} TTC / {uomLabel}</>
-                  : <>{euro(applyDiscount(variant.priceHT, discountPct))} HT / {uomLabel}</>
+                  ? <>{euro(net(variant.priceHT) * (1 + TVA))} TTC / {uomLabel}</>
+                  : <>{euro(net(variant.priceHT))} HT / {uomLabel}</>
                 }
               </div>
             </div>

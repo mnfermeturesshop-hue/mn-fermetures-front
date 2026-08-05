@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { type KitProduct } from '@/lib/catalog/types';
 import { useCartStore, euro } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
-import { resolveB2BDiscountSeed, applyDiscount } from '@/lib/pricing/discount-resolver';
+import { resolveB2BDiscountSeed, applyDiscount, applySurcharge, resolveB2BSurchargeSeed } from '@/lib/pricing/discount-resolver';
+import { useSurchargeStore } from '@/lib/store/surcharge';
 import { toast } from '@/components/ui/Toast';
 import { trackAddToCart } from '@/lib/analytics';
 
@@ -15,7 +16,9 @@ export function KitConfigurator({ product }: { product: KitProduct }) {
 
   const config = product.configs.find((c) => c.reference === selectedRef) ?? product.configs[0];
   const discountPct = resolveB2BDiscountSeed(user?.proDiscounts, product.taxonomySlug ?? product.famille);
-  const finalPriceHT = applyDiscount(config.priceHT, discountPct);
+  const surchargePct = resolveB2BSurchargeSeed(useSurchargeStore((s) => s.map), product.taxonomySlug ?? product.famille);
+  const net = (base: number) => applyDiscount(applySurcharge(base, surchargePct), discountPct);
+  const finalPriceHT = net(config.priceHT);
 
   const handleAdd = () => {
     addLine({
@@ -43,7 +46,7 @@ export function KitConfigurator({ product }: { product: KitProduct }) {
             onClick={() => setSelectedRef(c.reference)}
           >
             <span className="kit-cfg-label">{c.label}</span>
-            <span className="kit-cfg-price">{euro(applyDiscount(c.priceHT, discountPct))} HT</span>
+            <span className="kit-cfg-price">{euro(net(c.priceHT))} HT</span>
           </button>
         ))}
       </div>

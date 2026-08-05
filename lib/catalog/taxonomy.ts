@@ -17,6 +17,7 @@ export interface TaxonomyNode {
   sortOrder: number;
   active: boolean;
   generatorSlug?: string;       // configurateur rattaché (facultatif)
+  surcharge?: number;           // surcharge temporaire % (héritée), 0 par défaut
 }
 
 /* ---------- Seed (arbre lisible → aplati en liste) ---------- */

@@ -14,6 +14,7 @@ import { CartDrawer } from '@/components/cart/CartDrawer';
 import { ToastContainer } from '@/components/ui/Toast';
 import { OrganizationJsonLd } from '@/components/seo/JsonLd';
 import { AuthSync } from '@/components/auth/AuthSync';
+import { SurchargeSync } from '@/components/pricing/SurchargeSync';
 
 const archivo = Archivo({
   subsets: ['latin'],
@@ -64,6 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="fr" className={`${archivo.variable} ${inter.variable} ${jetbrainsMono.variable}`}>
       <body>
         <AuthSync />
+        <SurchargeSync />
         <Header />
         <TrustBar />
         <main>{children}</main>

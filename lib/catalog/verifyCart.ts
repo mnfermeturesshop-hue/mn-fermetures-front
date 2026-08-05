@@ -2,7 +2,7 @@ import { getAllProducts } from './db';
 import { resolveMatrixPrice } from './resolvePrice';
 import { isMatrix, isUnit, isKit, type Product, type CartLine, type Uom } from './types';
 import { type DiscountMap } from '@/lib/familles';
-import { resolveB2BDiscount, applyDiscount } from '@/lib/pricing/discount-resolver';
+import { resolveB2BDiscount, applyDiscount, applySurcharge, resolveB2BSurcharge, surchargeMapFromNodes } from '@/lib/pricing/discount-resolver';
 import { getTaxonomy } from '@/lib/catalog/taxonomy-loader';
 import { laquageForfaitHT } from '@/lib/pricing/shipping';
 import { resoudrePrix } from '@/lib/tablier/engine';
@@ -79,6 +79,7 @@ export async function verifyCartLines(
   const products = await getAllProducts();
   const bySlug = new Map<string, Product>(products.map((p) => [p.slug, p]));
   const taxonomy = await getTaxonomy();   // remises B2B héritées (Gamme › Famille › Sous‑famille)
+  const surcharges = surchargeMapFromNodes(taxonomy);   // surcharge temporaire (globale, héritée)
 
   // Index référence → prix de base (unit variants + kit configs)
   const byRef = new Map<string, { product: Product; base: number }>();
@@ -176,7 +177,9 @@ export async function verifyCartLines(
       return { ok: false, error: 'Prix indisponible pour un article (hors abaque ?).' };
     }
 
-    const unitPriceHT = isNegotiated ? base : applyDiscount(base, resolveB2BDiscount(discounts as Record<string, number>, node, taxonomy));
+    // Surcharge temporaire appliquée à la base (avant remise) ; jamais sur un prix négocié.
+    const surcharged = applySurcharge(base, resolveB2BSurcharge(surcharges, node, taxonomy));
+    const unitPriceHT = isNegotiated ? base : applyDiscount(surcharged, resolveB2BDiscount(discounts as Record<string, number>, node, taxonomy));
     productsHT += unitPriceHT * qty;
 
     verified.push({
