@@ -20,6 +20,7 @@ const V = (name) => ({ var: name });
 const eq = (name, val) => ({ op: 'eq', left: V(name), right: val });
 const ne = (name, val) => ({ op: 'ne', left: V(name), right: val });
 const inSet = (name, set) => ({ op: 'in', value: V(name), set });
+const lt = (name, n) => ({ op: 'lt', left: V(name), right: n });
 const gte = (name, n) => ({ op: 'gte', left: V(name), right: n });
 const lte = (name, n) => ({ op: 'lte', left: V(name), right: n });
 const AND = (cs) => (cs.length === 1 ? cs[0] : { all: cs });
@@ -217,6 +218,10 @@ adjustments.forEach((adj, i) => {
     // Moins-value uniquement pour la tringle oscillante (le tirage direct = prix filaire MN plein).
     cs.push(eq('manoeuvre', 'manuelle'));
     cs.push(eq('manoeuvre_type', 'tringle'));
+  } else if (adj.code === 'attaches_rigides') {
+    // Moins-value optionnelle, mais OBLIGATOIRE (appliquée d'office) si largeur < 650 mm.
+    cs.push(ANY([eq('attaches_rigides', true), lt('largeur', 650)]));
+    (optionalCodes[adj.code] ??= []).push(AND(scopeConds(adj.scope, adj.layer)));
   } else if (adj.optional) {
     cs.push(eq(adj.code, true));
     (optionalCodes[adj.code] ??= []).push(AND(scopeConds(adj.scope, adj.layer)));
@@ -229,7 +234,13 @@ adjustments.forEach((adj, i) => {
 for (const [code, condList] of Object.entries(optionalCodes)) {
   const label = adjustments.find((a) => a.code === code).label;
   const uniq = [...new Map(condList.map((c) => [JSON.stringify(c), c])).values()];
-  fields.push({ id: code, label, type: 'boolean', visibleWhen: ANY(uniq) });
+  if (code === 'attaches_rigides') {
+    // Choix proposé seulement ≥ 650 mm ; en dessous elles sont obligatoires (auto).
+    fields.push({ id: code, label, type: 'boolean', visibleWhen: AND([ANY(uniq), gte('largeur', 650)]),
+      help: 'Moins-value. Obligatoires (appliquées automatiquement) si largeur < 650 mm.' });
+  } else {
+    fields.push({ id: code, label, type: 'boolean', visibleWhen: ANY(uniq) });
+  }
 }
 
 // C. Coloris : +value quand une couleur « option » est choisie pour l'élément.
@@ -366,6 +377,8 @@ fields.push({ id: 'coulisse_express', label: 'Coulisses', type: 'choice', defaul
     { value: 'c53x22', label: 'Coulisse 53×22 (sans plus-value)' },
     { value: 'c53x22_aile', label: 'Coulisse 53×22 à aile (+8,50 €/ml)' },
   ] });
+fields.push({ id: 'express_attaches_info', type: 'info', visibleWhen: eq('gamme_tradi', 'express'),
+  help: 'Tradi Express : attaches rigides incluses de série.' });
 
 // ---- CONSTRAINTS (limites dimensionnelles) ----
 const nonPose = v1.limits.filter((l) => !l.pose);
@@ -404,7 +417,7 @@ const optionFieldIds = [
 const specIds = (v1.specFields ?? []).map((s) => s.id);
 const steps = [
   { id: 'type', title: 'Type & pose', fields: ['gamme_tradi', 'type_volet', ...specIds, 'percage'] },
-  { id: 'lame', title: 'Lame & coulisses', fields: ['lame', 'coulisse_express'] },
+  { id: 'lame', title: 'Lame & coulisses', fields: ['lame', 'coulisse_express', 'express_attaches_info'] },
   { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'surface_info'] },
   { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'manoeuvre_type', 'cote_manoeuvre', 'sortie_manoeuvre', 'cote_fil', 'sortie_fil', 'commande', 'moteur', 'radio_somfy', 'emetteur_type'] },
   { id: 'coloris', title: 'Coloris', fields: ['color_tablier', 'color_coulisse', 'color_lame_finale'] },
