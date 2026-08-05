@@ -117,6 +117,17 @@ for (const sel of v1.selectors) {
         { value: 'motorisee', label: 'Motorisation' },
       ],
     });
+    // Sous-choix de la manœuvre manuelle :
+    //  - tringle oscillante = prix filaire MN + moins-value (−72 si L<451, −13 sinon) ;
+    //  - tirage direct      = prix filaire MN SANS moins-value, largeur 630–2000 mm.
+    fields.push({
+      id: 'manoeuvre_type', label: 'Manœuvre manuelle', type: 'choice', default: 'tringle',
+      visibleWhen: eq('manoeuvre', 'manuelle'),
+      options: [
+        { value: 'tringle', label: 'Par tringle oscillante' },
+        { value: 'tirage', label: 'Par tirage direct' },
+      ],
+    });
   }
 }
 
@@ -203,7 +214,9 @@ adjustments.forEach((adj, i) => {
   d1[tid].values = d1[tid].keys.map((k) => adj.baremeParLargeur[String(k)]);
   const cs = scopeConds(adj.scope, adj.layer);
   if (adj.code === 'manoeuvre_manuelle') {
-    cs.push(eq('manoeuvre', 'manuelle')); // D. piloté par le champ manœuvre (pas de booléen)
+    // Moins-value uniquement pour la tringle oscillante (le tirage direct = prix filaire MN plein).
+    cs.push(eq('manoeuvre', 'manuelle'));
+    cs.push(eq('manoeuvre_type', 'tringle'));
   } else if (adj.optional) {
     cs.push(eq(adj.code, true));
     (optionalCodes[adj.code] ??= []).push(AND(scopeConds(adj.scope, adj.layer)));
@@ -360,6 +373,9 @@ for (const [key, m] of Object.entries(WIDTH_MIN)) {
   }
 }
 constraints.push({ message: 'Largeur inférieure au minimum de la grille pour cette configuration', requires: ANY(minClauses) });
+// Tirage direct : lecture de la grille filaire MN, largeur bornée 630–2000 mm.
+constraints.push({ message: 'Tirage direct : largeur autorisée entre 630 et 2000 mm',
+  requires: ANY([ne('manoeuvre', 'manuelle'), ne('manoeuvre_type', 'tirage'), AND([gte('largeur', 630), lte('largeur', 2000)])]) });
 
 // ---- STEPS (assistant) ----
 const optionFieldIds = [
@@ -375,7 +391,7 @@ const steps = [
   { id: 'type', title: 'Type & pose', fields: ['gamme_tradi', 'type_volet', ...specIds, 'percage'] },
   { id: 'lame', title: 'Lame & coulisses', fields: ['lame', 'coulisse_express'] },
   { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'surface_info'] },
-  { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'cote_manoeuvre', 'sortie_manoeuvre', 'cote_fil', 'sortie_fil', 'commande', 'moteur', 'radio_somfy', 'emetteur_type'] },
+  { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'manoeuvre_type', 'cote_manoeuvre', 'sortie_manoeuvre', 'cote_fil', 'sortie_fil', 'commande', 'moteur', 'radio_somfy', 'emetteur_type'] },
   { id: 'coloris', title: 'Coloris', fields: ['color_tablier', 'color_coulisse', 'color_lame_finale'] },
   { id: 'options', title: 'Options', fields: optionFieldIds },
   { id: 'recap', title: 'Récapitulatif', fields: [] },
