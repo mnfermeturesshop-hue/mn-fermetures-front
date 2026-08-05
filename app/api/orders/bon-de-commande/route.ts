@@ -276,6 +276,7 @@ async function sendEmail(to: string, subject: string, html: string) {
 }
 
 export async function POST(req: NextRequest) {
+ try {
   const payload: BonDeCommandePayload = await req.json();
   const { orderNumber, email, customerName, shippingMethod, shippingAddress } = payload;
 
@@ -366,4 +367,8 @@ export async function POST(req: NextRequest) {
   );
 
   return NextResponse.json({ orderNumber });
+ } catch (err) {
+  console.error('[bon-de-commande] erreur handler:', err);
+  return NextResponse.json({ error: err instanceof Error ? err.message : 'Erreur serveur' }, { status: 500 });
+ }
 }

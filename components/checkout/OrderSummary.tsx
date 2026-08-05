@@ -1,5 +1,6 @@
 'use client';
 
+import { Fragment } from 'react';
 import { useCartStore, euro } from '@/lib/store/cart';
 import { useCheckoutStore, shippingCostHT } from '@/lib/store/checkout';
 
@@ -20,13 +21,23 @@ export function OrderSummary() {
 
       <ul className="order-summary-lines">
         {lines.map((l) => (
-          <li key={l.key} className="os-line">
-            <div className="os-line-info">
-              <span className="os-line-name">{l.name}</span>
-              {l.detail && <span className="os-line-detail">{l.detail}</span>}
-            </div>
-            <span className="os-line-price">{euro(l.unitPriceHT * l.quantity)}</span>
-          </li>
+          <Fragment key={l.key}>
+            <li className="os-line">
+              <div className="os-line-info">
+                <span className="os-line-name">{l.name}</span>
+                {l.detail && <span className="os-line-detail">{l.detail}</span>}
+              </div>
+              <span className="os-line-price">{euro(l.unitPriceHT * l.quantity)}</span>
+            </li>
+            {!!l.surchargeUnitHT && (
+              <li className="os-line">
+                <div className="os-line-info">
+                  <span className="os-line-detail">Surcharge temporaire (+{l.surchargePct}%)</span>
+                </div>
+                <span className="os-line-price">{euro(l.surchargeUnitHT * l.quantity)}</span>
+              </li>
+            )}
+          </Fragment>
         ))}
       </ul>
 

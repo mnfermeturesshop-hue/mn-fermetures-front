@@ -116,7 +116,10 @@ export default function CommandeProPage() {
         }),
       });
 
-      if (!res.ok) throw new Error('api');
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? 'api');
+      }
 
       useCheckoutStore.setState({
         placedOrder: {
@@ -134,8 +137,9 @@ export default function CommandeProPage() {
 
       clearCart();
       router.push(`/commande/${orderNumber}`);
-    } catch {
-      setError("Une erreur s'est produite. Veuillez réessayer ou nous contacter au 04 67 78 06 63.");
+    } catch (e) {
+      const msg = e instanceof Error && e.message && e.message !== 'api' ? e.message : null;
+      setError(msg ?? "Une erreur s'est produite. Veuillez réessayer ou nous contacter au 04 67 78 06 63.");
       setSubmitting(false);
     }
   };
