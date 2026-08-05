@@ -266,8 +266,20 @@ export default function ComptePage() {
       return;
     }
 
-    // Devis créés sur le site : recharge le panier et suit le flux BC classique
-    setLines(d.lines);
+    // Devis créés sur le site : RE-TARIFE au taux courant (surcharge/remise) puis
+    // recharge le panier — l'aperçu du checkout reflète alors le vrai prix, pas
+    // le prix figé du devis. Repli sur les lignes du devis si l'API échoue.
+    try {
+      const res = await fetch('/api/cart/reprice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lines: d.lines }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setLines(res.ok && Array.isArray(data.lines) ? (data.lines as typeof d.lines) : d.lines);
+    } catch {
+      setLines(d.lines);
+    }
     // Marquer le devis comme converti (masque le bouton immédiatement)
     setDevis((prev) => prev.map((x) => x.id === d.id ? { ...x, status: 'converted' } : x));
     fetch('/api/devis', {
