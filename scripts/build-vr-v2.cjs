@@ -374,8 +374,8 @@ const specIds = (v1.specFields ?? []).map((s) => s.id);
 const steps = [
   { id: 'type', title: 'Type & pose', fields: ['gamme_tradi', 'type_volet', ...specIds, 'percage'] },
   { id: 'lame', title: 'Lame & coulisses', fields: ['lame', 'coulisse_express'] },
-  { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'cote_manoeuvre', 'sortie_manoeuvre', 'cote_fil', 'sortie_fil', 'commande', 'moteur', 'radio_somfy', 'emetteur_type'] },
   { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'surface_info'] },
+  { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'cote_manoeuvre', 'sortie_manoeuvre', 'cote_fil', 'sortie_fil', 'commande', 'moteur', 'radio_somfy', 'emetteur_type'] },
   { id: 'coloris', title: 'Coloris', fields: ['color_tablier', 'color_coulisse', 'color_lame_finale'] },
   { id: 'options', title: 'Options', fields: optionFieldIds },
   { id: 'recap', title: 'Récapitulatif', fields: [] },
