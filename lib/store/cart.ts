@@ -46,9 +46,12 @@ export const useCartStore = create<CartStore>()(
           const qty = incoming.quantity ?? 1;
           const exists = state.lines.find((l) => l.key === incoming.key);
           if (exists) {
+            // Ré-ajout d'une même clé : on RAFRAÎCHIT toute la ligne (prix, pricing,
+            // surcharge…) et on cumule la quantité — sinon une ancienne ligne sans
+            // descripteur `pricing` resterait non re-tarifable.
             return {
               lines: state.lines.map((l) =>
-                l.key === incoming.key ? { ...l, quantity: l.quantity + qty } : l
+                l.key === incoming.key ? { ...incoming, quantity: l.quantity + qty } : l
               ),
             };
           }
