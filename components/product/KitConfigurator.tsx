@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { type KitProduct } from '@/lib/catalog/types';
 import { useCartStore, euro } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
-import { resolveB2BDiscountSeed, applyDiscount, applySurcharge, resolveB2BSurchargeSeed } from '@/lib/pricing/discount-resolver';
+import { resolveB2BDiscountSeed, resolveB2BSurchargeSeed, splitB2BPrice } from '@/lib/pricing/discount-resolver';
 import { useSurchargeStore } from '@/lib/store/surcharge';
 import { toast } from '@/components/ui/Toast';
 import { trackAddToCart } from '@/lib/analytics';
@@ -17,16 +17,19 @@ export function KitConfigurator({ product }: { product: KitProduct }) {
   const config = product.configs.find((c) => c.reference === selectedRef) ?? product.configs[0];
   const discountPct = resolveB2BDiscountSeed(user?.proDiscounts, product.taxonomySlug ?? product.famille);
   const surchargePct = resolveB2BSurchargeSeed(useSurchargeStore((s) => s.map), product.taxonomySlug ?? product.famille);
-  const net = (base: number) => applyDiscount(applySurcharge(base, surchargePct), discountPct);
+  const net = (base: number) => { const s = splitB2BPrice(base, surchargePct, discountPct); return s.productNet + s.surchargeNet; };
   const finalPriceHT = net(config.priceHT);
 
   const handleAdd = () => {
+    const s = splitB2BPrice(config.priceHT, surchargePct, discountPct);
     addLine({
       key: config.reference,
       name: product.name,
       detail: config.label,
       reference: config.reference,
-      unitPriceHT: finalPriceHT,
+      grossUnitPriceHT: config.priceHT,
+      unitPriceHT: s.productNet,
+      ...(s.surchargeNet > 0 ? { surchargePct, surchargeGrossUnitHT: s.surchargeGross, surchargeUnitHT: s.surchargeNet } : {}),
       quantity: 1,
       uom: 'unite',
     });

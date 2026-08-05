@@ -2,7 +2,7 @@ import { getAllProducts } from './db';
 import { resolveMatrixPrice } from './resolvePrice';
 import { isMatrix, isUnit, isKit, type Product, type CartLine, type Uom } from './types';
 import { type DiscountMap } from '@/lib/familles';
-import { resolveB2BDiscount, applyDiscount, applySurcharge, resolveB2BSurcharge, surchargeMapFromNodes } from '@/lib/pricing/discount-resolver';
+import { resolveB2BDiscount, applyDiscount, resolveB2BSurcharge, surchargeMapFromNodes } from '@/lib/pricing/discount-resolver';
 import { getTaxonomy } from '@/lib/catalog/taxonomy-loader';
 import { generatorNode } from '@/lib/catalog/taxonomy';
 import { laquageForfaitHT } from '@/lib/pricing/shipping';
@@ -27,10 +27,14 @@ export interface VerifiedLine {
   name: string;
   detail?: string;
   reference?: string;
-  /** PU HT « catalogue » (base + surcharge) AVANT remise client. */
+  /** PU HT catalogue du produit AVANT remise (hors surcharge). */
   grossUnitPriceHT: number;
-  /** PU HT net après remise client (= ce qui est facturé). */
+  /** PU HT net du produit après remise (hors surcharge). */
   unitPriceHT: number;
+  /** Surcharge temporaire — sous-ligne dédiée (remise appliquée). */
+  surchargePct?: number;
+  surchargeGrossUnitHT?: number;
+  surchargeUnitHT?: number;
   quantity: number;
   uom: Uom;
 }
@@ -182,18 +186,23 @@ export async function verifyCartLines(
       return { ok: false, error: 'Prix indisponible pour un article (hors abaque ?).' };
     }
 
-    // Surcharge temporaire appliquée à la base (avant remise) ; jamais sur un prix négocié.
-    const surcharged = isNegotiated ? base : applySurcharge(base, resolveB2BSurcharge(surcharges, node, taxonomy));
-    const unitPriceHT = isNegotiated ? base : applyDiscount(surcharged, resolveB2BDiscount(discounts as Record<string, number>, node, taxonomy));
-    productsHT += unitPriceHT * qty;
+    // Produit tarifé à sa base (remise appliquée). La surcharge temporaire est
+    // une SOUS-LIGNE dédiée (remise appliquée dessus aussi) ; jamais sur un négocié.
+    const surchargePct = isNegotiated ? 0 : resolveB2BSurcharge(surcharges, node, taxonomy);
+    const discountPct = isNegotiated ? 0 : resolveB2BDiscount(discounts as Record<string, number>, node, taxonomy);
+    const unitPriceHT = isNegotiated ? base : applyDiscount(base, discountPct);
+    const surchargeGrossUnitHT = surchargePct > 0 ? Math.round(base * surchargePct) / 100 : 0;
+    const surchargeUnitHT = surchargeGrossUnitHT > 0 ? applyDiscount(surchargeGrossUnitHT, discountPct) : 0;
+    productsHT += (unitPriceHT + surchargeUnitHT) * qty;
 
     verified.push({
       key: String(raw.key ?? name),
       name,                            // libellé autoritaire
       detail: raw.detail,              // affichage seulement
       reference: raw.reference,
-      grossUnitPriceHT: surcharged,    // PU HT catalogue (avant remise)
-      unitPriceHT,                     // PU HT net (après remise)
+      grossUnitPriceHT: base,          // PU HT produit (avant remise, hors surcharge)
+      unitPriceHT,                     // PU HT produit net
+      ...(surchargeUnitHT > 0 ? { surchargePct, surchargeGrossUnitHT, surchargeUnitHT } : {}),
       quantity: qty,
       uom: raw.uom,
     });

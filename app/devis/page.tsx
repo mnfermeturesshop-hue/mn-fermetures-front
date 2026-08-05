@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Fragment, Suspense, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCheckoutStore, type Address } from '@/lib/store/checkout';
@@ -294,10 +294,14 @@ function DevisContent() {
           </thead>
           <tbody>
             {devisLines.map((l: CartLine, i: number) => {
-              const gross = l.grossUnitPriceHT ?? l.unitPriceHT;   // avant remise
+              const gross = l.grossUnitPriceHT ?? l.unitPriceHT;   // produit avant remise
               const hasRemise = gross > l.unitPriceHT + 0.005;
+              const sNet = l.surchargeUnitHT ?? 0;
+              const sGross = l.surchargeGrossUnitHT ?? 0;
+              const sHasRemise = sGross > sNet + 0.005;
               return (
-              <tr key={l.key ?? i}>
+              <Fragment key={l.key ?? i}>
+              <tr>
                 <td>
                   <div className="devis-line-name">{l.name}</div>
                   {l.detail && <div className="devis-line-detail">{l.detail}</div>}
@@ -310,6 +314,19 @@ function DevisContent() {
                 </td>
                 <td>{euro(l.unitPriceHT * l.quantity)}</td>
               </tr>
+              {sNet > 0 && (
+                <tr className="devis-surcharge-row">
+                  <td><div className="devis-line-detail">Surcharge temporaire (+{l.surchargePct}%)</div></td>
+                  <td className="ref">—</td>
+                  <td>{l.quantity}</td>
+                  <td>
+                    {sHasRemise && <div className="devis-pu-gross">{euro(sGross)}</div>}
+                    <div className={sHasRemise ? 'devis-pu-net' : undefined}>{euro(sNet)}{sHasRemise ? ' net' : ''}</div>
+                  </td>
+                  <td>{euro(sNet * l.quantity)}</td>
+                </tr>
+              )}
+              </Fragment>
             );})}
           </tbody>
           <tfoot>

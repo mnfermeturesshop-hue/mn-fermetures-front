@@ -5,7 +5,7 @@ import { resolvePrice } from '@/lib/configurateur/v2/engine';
 import { repairValues, availableOptions, isVisible, withDerivedValues } from '@/lib/configurateur/v2/cascade';
 import type { DefV2, Field, Primitive, Values } from '@/lib/configurateur/v2/types';
 import { Stepper } from './Stepper';
-import { applyDiscount, resolveB2BDiscountSeed, applySurcharge, resolveB2BSurchargeSeed } from '@/lib/pricing/discount-resolver';
+import { resolveB2BDiscountSeed, resolveB2BSurchargeSeed, splitB2BPrice } from '@/lib/pricing/discount-resolver';
 import { useSurchargeStore } from '@/lib/store/surcharge';
 import { generatorNode, TAXONOMY_SEED } from '@/lib/catalog/taxonomy';
 import { useCartStore } from '@/lib/store/cart';
@@ -60,7 +60,8 @@ export function ConfigurateurProduit({ slug }: Props) {
   const node = def ? (generatorNode(TAXONOMY_SEED, def.slug) ?? def.famille) : undefined;
   const discountPct = node ? resolveB2BDiscountSeed(user?.proDiscounts ?? {}, node) : 0;
   const surchargePct = node ? resolveB2BSurchargeSeed(surchargeMap, node) : 0;
-  const unitNet = result?.ok ? applyDiscount(applySurcharge(result.total, surchargePct), discountPct) : 0;
+  const split = result?.ok ? splitB2BPrice(result.total, surchargePct, discountPct) : null;
+  const unitNet = split ? split.productNet + split.surchargeNet : 0;
 
   // ── États de garde ──
   if (status === 'gated') {
@@ -204,7 +205,9 @@ export function ConfigurateurProduit({ slug }: Props) {
       key: `cfg-${slug}-${JSON.stringify(values)}`,
       name: def.name,
       detail: buildDetail(),
-      unitPriceHT: unitNet,
+      grossUnitPriceHT: result.total,
+      unitPriceHT: split!.productNet,
+      ...(split!.surchargeNet > 0 ? { surchargePct, surchargeGrossUnitHT: split!.surchargeGross, surchargeUnitHT: split!.surchargeNet } : {}),
       quantity: qty,
       uom: 'unite',
       pricing: { kind: 'configurateur', slug, values, laque },
@@ -285,8 +288,11 @@ export function ConfigurateurProduit({ slug }: Props) {
                     <span>{li.kind === 'base' ? euro(li.montant) : `${li.montant < 0 ? '−' : '+'}${euro(Math.abs(li.montant))}`}</span>
                   </div>
                 ))}
-                {discountPct > 0 && (
-                  <div className="cfg-price-row"><span>Remise pro −{discountPct}%</span><span>−{euro(result.total - unitNet)}</span></div>
+                {surchargePct > 0 && split && (
+                  <div className="cfg-price-row"><span>Surcharge temporaire +{surchargePct}%</span><span>+{euro(split.surchargeGross)}</span></div>
+                )}
+                {discountPct > 0 && split && (
+                  <div className="cfg-price-row"><span>Remise pro −{discountPct}%</span><span>−{euro(result.total + split.surchargeGross - unitNet)}</span></div>
                 )}
               </div>
               <div className="cfg-total"><span>Prix unitaire HT</span><strong>{euro(unitNet)}</strong></div>

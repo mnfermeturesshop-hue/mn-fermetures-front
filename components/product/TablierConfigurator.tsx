@@ -6,7 +6,7 @@ import { type MatrixProduct } from '@/lib/catalog/types';
 import { resolveMatrixPrice } from '@/lib/catalog/resolvePrice';
 import { useCartStore, euro } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
-import { resolveB2BDiscountSeed, applyDiscount, applySurcharge, resolveB2BSurchargeSeed } from '@/lib/pricing/discount-resolver';
+import { resolveB2BDiscountSeed, resolveB2BSurchargeSeed, splitB2BPrice } from '@/lib/pricing/discount-resolver';
 import { useSurchargeStore } from '@/lib/store/surcharge';
 import { toast } from '@/components/ui/Toast';
 import { trackAddToCart } from '@/lib/analytics';
@@ -52,7 +52,8 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
   );
   const discountPct = resolveB2BDiscountSeed(user?.proDiscounts, product.taxonomySlug ?? product.famille);
   const surchargePct = resolveB2BSurchargeSeed(useSurchargeStore((s) => s.map), product.taxonomySlug ?? product.famille);
-  const finalPrice = price === null ? null : applyDiscount(applySurcharge(price, surchargePct), discountPct);
+  const split = price === null ? null : splitB2BPrice(price, surchargePct, discountPct);
+  const finalPrice = split === null ? null : split.productNet + split.surchargeNet;
 
   const handleAdd = () => {
     if (finalPrice === null) return;
@@ -70,7 +71,9 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
       key: `${product.slug}-${height}-${width}-${color}-${sortedOpts.join('+')}`,
       name: product.name,
       detail,
-      unitPriceHT: finalPrice,
+      grossUnitPriceHT: price ?? undefined,
+      unitPriceHT: split!.productNet,
+      ...(split!.surchargeNet > 0 ? { surchargePct, surchargeGrossUnitHT: split!.surchargeGross, surchargeUnitHT: split!.surchargeNet } : {}),
       quantity: 1,
       uom: 'unite',
       // Descripteur pour le recalcul serveur (audit S2) — le prix ci-dessus

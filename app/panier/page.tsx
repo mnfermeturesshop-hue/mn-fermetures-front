@@ -1,5 +1,6 @@
 'use client';
 
+import { Fragment } from 'react';
 import Link from 'next/link';
 import { useCartStore, euro } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
@@ -10,6 +11,7 @@ import { B2C_ENABLED } from '@/lib/config';
 function LineRow({ line }: { line: CartLine }) {
   const { updateQty, removeLine } = useCartStore();
   return (
+    <Fragment>
     <tr className="cart-tr">
       <td className="cart-td-name">
         <div className="cart-name">{line.name}</div>
@@ -29,6 +31,16 @@ function LineRow({ line }: { line: CartLine }) {
         <button type="button" className="cart-del" onClick={() => removeLine(line.key)} aria-label="Supprimer">✕</button>
       </td>
     </tr>
+    {!!line.surchargeUnitHT && (
+      <tr className="cart-tr cart-surcharge-tr">
+        <td className="cart-td-name"><div className="cart-detail">Surcharge temporaire (+{line.surchargePct}%)</div></td>
+        <td className="cart-td-price">{euro(line.surchargeUnitHT)} HT</td>
+        <td className="cart-td-qty" style={{ textAlign: 'center' }}>{line.quantity}</td>
+        <td className="cart-td-total">{euro(line.surchargeUnitHT * line.quantity)} HT</td>
+        <td className="cart-td-del"></td>
+      </tr>
+    )}
+    </Fragment>
   );
 }
 

@@ -17,6 +17,9 @@ interface OrderLine {
   /** PU HT catalogue (avant remise) — repli sur le net pour les commandes anciennes. */
   grossUnitPriceHT?: number;
   unitPriceHT: number;
+  surchargePct?: number;
+  surchargeGrossUnitHT?: number;
+  surchargeUnitHT?: number;
 }
 
 interface Address {
@@ -48,11 +51,15 @@ const euro = (n: number) =>
   n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 
 function linesTable(lines: OrderLine[]): string {
-  const rows = lines.map((l) => {
-    const gross = l.grossUnitPriceHT ?? l.unitPriceHT;   // PU HT catalogue (avant remise)
-    const net = l.unitPriceHT;                            // PU net (après remise)
+  const puCell = (gross: number, net: number) => {
     const hasRemise = gross > net + 0.005;
-    return `
+    return `<td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:right;color:${hasRemise ? '#9ca3af' : '#1e3a5f'};${hasRemise ? 'text-decoration:line-through;' : 'font-weight:600;'}">${euro(gross)} HT</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;color:#166534;">${euro(net)} HT</td>`;
+  };
+  const rows = lines.map((l) => {
+    const gross = l.grossUnitPriceHT ?? l.unitPriceHT;   // PU HT produit (avant remise)
+    const net = l.unitPriceHT;                            // PU net produit (après remise)
+    const productRow = `
     <tr>
       <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;">
         <div style="font-weight:600;color:#1e3a5f;">${escapeHtml(l.name)}</div>
@@ -60,11 +67,18 @@ function linesTable(lines: OrderLine[]): string {
         ${l.detail ? `<div style="font-size:12px;color:#6b7280;">${escapeHtml(l.detail)}</div>` : ''}
       </td>
       <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:center;">${l.quantity}</td>
-      <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:right;color:${hasRemise ? '#9ca3af' : '#1e3a5f'};${hasRemise ? 'text-decoration:line-through;' : 'font-weight:600;'}">${euro(gross)} HT</td>
-      <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;color:#166534;">${euro(net)} HT</td>
+      ${puCell(gross, net)}
       <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:700;">${euro(net * l.quantity)} HT</td>
-    </tr>
-  `;
+    </tr>`;
+    const sNet = l.surchargeUnitHT ?? 0;
+    const surchargeRow = sNet > 0 ? `
+    <tr>
+      <td style="padding:8px 12px 8px 24px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-style:italic;">Surcharge temporaire (+${l.surchargePct}%)</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:center;color:#6b7280;">${l.quantity}</td>
+      ${puCell(l.surchargeGrossUnitHT ?? sNet, sNet)}
+      <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:700;">${euro(sNet * l.quantity)} HT</td>
+    </tr>` : '';
+    return productRow + surchargeRow;
   }).join('');
 
   return `

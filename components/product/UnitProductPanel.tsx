@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { type UnitProduct, type ProductVariant } from '@/lib/catalog/types';
 import { useCartStore, euro } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
-import { resolveB2BDiscountSeed, applyDiscount, applySurcharge, resolveB2BSurchargeSeed } from '@/lib/pricing/discount-resolver';
+import { resolveB2BDiscountSeed, resolveB2BSurchargeSeed, splitB2BPrice } from '@/lib/pricing/discount-resolver';
 import { useSurchargeStore } from '@/lib/store/surcharge';
 import { toast } from '@/components/ui/Toast';
 import { trackAddToCart } from '@/lib/analytics';
@@ -25,18 +25,22 @@ export function UnitProductPanel({ product }: { product: UnitProduct }) {
 
   const discountPct = resolveB2BDiscountSeed(user?.proDiscounts, product.taxonomySlug ?? product.famille);
   const surchargePct = resolveB2BSurchargeSeed(useSurchargeStore((s) => s.map), product.taxonomySlug ?? product.famille);
-  const net = (base: number) => applyDiscount(applySurcharge(base, surchargePct), discountPct);
+  // Prix affiché = produit net + surcharge nette (tout compris) ; la ligne panier stocke le détail.
+  const net = (base: number) => { const s = splitB2BPrice(base, surchargePct, discountPct); return s.productNet + s.surchargeNet; };
 
   const variant: ProductVariant | undefined = product.variants.find((v) => v.reference === selectedRef);
 
   const handleAdd = () => {
     if (!variant) return;
+    const s = splitB2BPrice(variant.priceHT, surchargePct, discountPct);
     addLine({
       key: `${variant.reference}`,
       name: product.name,
       detail: variant.label,
       reference: variant.reference,
-      unitPriceHT: net(variant.priceHT),
+      grossUnitPriceHT: variant.priceHT,
+      unitPriceHT: s.productNet,
+      ...(s.surchargeNet > 0 ? { surchargePct, surchargeGrossUnitHT: s.surchargeGross, surchargeUnitHT: s.surchargeNet } : {}),
       quantity: qty,
       uom: product.uom,
     });

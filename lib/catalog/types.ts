@@ -153,10 +153,14 @@ export interface CartLine {
   name: string;
   detail?: string;             // "1200×1250 mm · attaches rigides"
   reference?: string;
-  /** PU HT catalogue (base + surcharge) AVANT remise — présent sur les lignes
-   *  re-tarifées serveur (devis/commandes) ; absent sur le panier en direct. */
+  /** PU HT catalogue du produit AVANT remise (hors surcharge). */
   grossUnitPriceHT?: MoneyHT;
+  /** PU HT net du produit après remise (hors surcharge). */
   unitPriceHT: MoneyHT;
+  /** Surcharge temporaire (affichée en sous-ligne dédiée, remise appliquée). */
+  surchargePct?: number;              // ex. 5
+  surchargeGrossUnitHT?: MoneyHT;     // base × pct% (avant remise)
+  surchargeUnitHT?: MoneyHT;          // surcharge après remise (ajoutée au total)
   quantity: number;
   uom: Uom;
   /** Métadonnées de re-tarification serveur (obligatoire pour les tabliers). */

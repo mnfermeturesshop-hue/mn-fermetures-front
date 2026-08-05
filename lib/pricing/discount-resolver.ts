@@ -79,6 +79,15 @@ export function applySurcharge(priceHT: number, pct: number): number {
   return Math.round(priceHT * (1 + pct / 100) * 100) / 100;
 }
 
+/** Découpe un prix de base en : produit net (remise), + surcharge en sous-ligne
+ *  (montant brut base×pct%, puis net après la même remise). */
+export function splitB2BPrice(base: number, surchargePct: number, discountPct: number) {
+  const productNet = applyDiscount(base, discountPct);
+  const surchargeGross = surchargePct > 0 ? Math.round(base * surchargePct) / 100 : 0;
+  const surchargeNet = surchargeGross > 0 ? applyDiscount(surchargeGross, discountPct) : 0;
+  return { productNet, surchargeGross, surchargeNet };
+}
+
 /** Carte de surcharges (slug de nœud → %) à partir des nœuds de taxonomie. */
 export function surchargeMapFromNodes(nodes: TaxonomyNode[]): NodeDiscountMap {
   const out: NodeDiscountMap = {};
