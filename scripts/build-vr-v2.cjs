@@ -52,6 +52,10 @@ for (const sel of v1.selectors) {
     const opt = { value: o.value, label: o.label };
     if (o.hint) opt.hint = o.hint;
     if (o.derivedAxes) opt.setsValues = o.derivedAxes;
+    // Poses tunnel = 1.1.1 : mêmes prix qu'Indépendant/Drapeau (grille independant).
+    // Les grilles `coffre` correspondaient au 1.1.2 (Tradi + coffre).
+    if (sel.id === 'type_volet' && o.value === 'tunnel_mn') { opt.label = 'Tradi tunnel MN'; opt.setsValues = { pose: 'independant' }; }
+    if (sel.id === 'type_volet' && o.value === 'tunnel_inconnu') { opt.label = 'Tradi tunnel inconnu'; opt.setsValues = { pose: 'independant' }; }
     if (sel.id === 'lame') {
       const ps = [...posesForLame[o.value]];
       if (ps.length < poses.length) opt.availableWhen = inSet('pose', ps); // express -> cd942 seul
