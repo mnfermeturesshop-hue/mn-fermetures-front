@@ -95,13 +95,18 @@ export function surchargeMapFromNodes(nodes: TaxonomyNode[]): NodeDiscountMap {
   return out;
 }
 
-/** Surcharge effective (héritée) pour un produit (nœud ou ancienne famille). */
+/** Surcharge d'un produit — INDÉPENDANTE (pas d'héritage) : uniquement le taux
+ *  posé sur le nœud EXACT du produit (typiquement une sous-famille). Contrairement
+ *  aux remises client (héritées), une surcharge sur la gamme ne descend pas.
+ *  Le 3e paramètre (nodes) est ignoré, conservé pour compat des appels. */
 export function resolveB2BSurcharge(
   surcharges: NodeDiscountMap | undefined,
   nodeOrFamille: string | undefined,
-  nodes: TaxonomyNode[],
+  _nodes?: TaxonomyNode[],
 ): number {
-  return resolveDiscount(surcharges, legacyFamilleToNode(nodeOrFamille), nodes);
+  const node = legacyFamilleToNode(nodeOrFamille);
+  const v = node ? surcharges?.[node] : undefined;
+  return typeof v === 'number' && v > 0 ? v : 0;
 }
 
 /** Variante d'affichage client : résout via le SEED de nomenclature. */

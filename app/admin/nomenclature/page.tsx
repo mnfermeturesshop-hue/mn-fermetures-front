@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from '@/components/ui/Toast';
 import type { TaxonomyNode } from '@/lib/catalog/taxonomy';
-import { resolveDiscount, surchargeMapFromNodes } from '@/lib/pricing/discount-resolver';
 
 type Source = 'db' | 'seed';
 
@@ -89,9 +88,8 @@ export default function AdminNomenclature() {
 
   const dbReady = source === 'db';
 
-  // Surcharge temporaire (héritée comme les remises) : taux effectif par nœud.
-  const surchargeMap = useMemo(() => surchargeMapFromNodes(nodes), [nodes]);
-  const effectiveSurcharge = (slug: string) => resolveDiscount(surchargeMap, slug, nodes);
+  // Surcharge temporaire INDÉPENDANTE (sans héritage) : le taux vaut pour le
+  // nœud exact seulement (à poser sur la sous-famille).
   const setSurcharge = (n: TaxonomyNode, val: string) => {
     const num = val === '' ? 0 : Math.min(200, Math.max(0, Math.round(Number(val) || 0)));
     if (num !== (n.surcharge ?? 0)) call({ action: 'update', slug: n.slug, surcharge: num }, 'Surcharge mise à jour.');
@@ -118,14 +116,13 @@ export default function AdminNomenclature() {
           <span className="nom-level">{LEVEL_LABEL[n.level]}</span>
           {n.generatorSlug && <span className="nom-gen" title="Générateur rattaché">⚙ {n.generatorSlug}</span>}
 
-          <span className="nom-surcharge" title="Surcharge temporaire (%) — héritée par les enfants">
+          <span className="nom-surcharge" title="Surcharge temporaire (%) sur CE nœud — sans héritage (à poser sur la sous-famille)">
             <input
               type="number" min={0} max={200} defaultValue={n.surcharge ?? 0} disabled={busy || !dbReady}
               onBlur={(e) => setSurcharge(n, e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
             />
             <span className="nom-surcharge-unit">% surch.</span>
-            {(() => { const eff = effectiveSurcharge(n.slug); return (!n.surcharge && eff > 0) ? <em className="nom-surcharge-inh">hérité {eff}%</em> : null; })()}
           </span>
 
           <span className="nom-actions">
