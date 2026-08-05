@@ -56,6 +56,7 @@ for (const sel of v1.selectors) {
     // Les grilles `coffre` correspondaient au 1.1.2 (Tradi + coffre).
     if (sel.id === 'type_volet' && o.value === 'tunnel_mn') { opt.label = 'Tradi tunnel MN'; opt.setsValues = { pose: 'independant' }; }
     if (sel.id === 'type_volet' && o.value === 'tunnel_inconnu') { opt.label = 'Tradi tunnel inconnu'; opt.setsValues = { pose: 'independant' }; }
+    if (sel.id === 'moteur' && o.value === 'somfy') opt.label = 'Moteur Somfy';
     if (sel.id === 'lame') {
       const ps = [...posesForLame[o.value]];
       if (ps.length < poses.length) opt.availableWhen = inSet('pose', ps); // express -> cd942 seul
