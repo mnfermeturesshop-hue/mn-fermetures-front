@@ -116,19 +116,21 @@ export default function CommandeProPage() {
         }),
       });
 
+      const data = await res.json().catch(() => ({} as Record<string, unknown>));
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? 'api');
+        throw new Error((data as { error?: string }).error ?? 'api');
       }
 
+      // Prix autoritaires renvoyés par le serveur (re-tarifés) → aperçu cohérent avec l'email.
+      const srv = data as { lines?: typeof lines; totalHT?: number; totalTTC?: number; fraisHT?: number };
       useCheckoutStore.setState({
         placedOrder: {
           id: orderNumber,
           date: new Date().toLocaleDateString('fr-FR'),
-          lines: [...lines],
-          totalHT: grandHT,
-          totalTTC: grandTTC,
-          fraisHT,
+          lines: srv.lines ?? [...lines],
+          totalHT: srv.totalHT ?? grandHT,
+          totalTTC: srv.totalTTC ?? grandTTC,
+          fraisHT: srv.fraisHT ?? fraisHT,
           shippingAddress: address,
           shippingMethod: shipping,
           paymentMethod: 'bon_de_commande',

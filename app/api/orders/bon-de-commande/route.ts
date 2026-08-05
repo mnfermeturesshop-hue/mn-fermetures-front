@@ -366,7 +366,15 @@ export async function POST(req: NextRequest) {
     buildCustomerEmail(finalPayload),
   );
 
-  return NextResponse.json({ orderNumber });
+  // Renvoie les lignes/totaux RE-TARIFÉS (autoritaires) pour l'aperçu client —
+  // sinon la confirmation afficherait les prix périmés du panier.
+  return NextResponse.json({
+    orderNumber,
+    lines: verified.lines,
+    totalHT: totals.totalHT,
+    totalTTC: totals.totalTTC,
+    fraisHT: totals.fraisHT,
+  });
  } catch (err) {
   console.error('[bon-de-commande] erreur handler:', err);
   return NextResponse.json({ error: err instanceof Error ? err.message : 'Erreur serveur' }, { status: 500 });
