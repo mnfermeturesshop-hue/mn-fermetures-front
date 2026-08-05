@@ -15,12 +15,15 @@ export async function GET() {
   let probe: unknown = null;
   try {
     const admin = createAdminClient();
+    // Requête EXACTE de getTaxonomy (toutes les colonnes) pour reproduire l'erreur.
     const { data, error } = await admin
       .from('taxonomy_nodes')
-      .select('slug, surcharge')
-      .eq('slug', 'tradi')
-      .maybeSingle();
-    probe = { data, error: error?.message ?? null };
+      .select('slug, parent_slug, level, code, name, sort_order, active, generator_slug, surcharge');
+    probe = {
+      rows: data?.length ?? null,
+      error: error?.message ?? null,
+      tradi: (data ?? []).find((r) => r.slug === 'tradi') ?? null,
+    };
   } catch (e) {
     probe = { thrown: e instanceof Error ? e.message : String(e) };
   }
