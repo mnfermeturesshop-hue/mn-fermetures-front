@@ -560,7 +560,9 @@ const steps = [
   { id: 'coffre', title: 'Coffre', fields: ['coffre', 'coffre_gamme', 'coffre_face', 'coffre_section', 'coffre_sous_face'] },
   { id: 'lame', title: 'Lame & coulisses', fields: ['lame', 'coulisse_express', 'express_attaches_info'] },
   { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'surface_info', 'pattes_maintien', 'coffre_hat_info'] },
-  { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'manoeuvre_type', 'cote_manoeuvre', 'sortie_manoeuvre', 'cote_fil', 'sortie_fil', 'commande', 'moteur', 'radio_somfy', 'emetteur_type'] },
+  // Radio/Solaire : on choisit le type d'émetteur (portatif/mural) AVANT la marque
+  // de motorisation (MN/Somfy) — d'où `emetteur_type` placé avant `moteur`.
+  { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'manoeuvre_type', 'cote_manoeuvre', 'sortie_manoeuvre', 'cote_fil', 'sortie_fil', 'commande', 'emetteur_type', 'moteur', 'radio_somfy'] },
   { id: 'coloris', title: 'Coloris', fields: ['color_tablier', 'color_coulisse', 'color_lame_finale'] },
   { id: 'options', title: 'Options', fields: optionFieldIds },
   { id: 'recap', title: 'Récapitulatif', fields: [] },
