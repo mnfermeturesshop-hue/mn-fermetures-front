@@ -42,7 +42,9 @@ for (const k of gridKeys) (posesForLame[k.lame] ??= new Set()).add(k.pose);
 const fields = [];
 
 for (const sel of v1.selectors) {
-  if (sel.id === 'coffre') continue; // A. coffre PVC retiré (relève du 1.1.2)
+  // Le sélecteur `coffre` (Thermic/Briquélite/Néothermic/Néobric) sert les
+  // sous-familles 1.1.2 (Tradi + coffre) et 1.1.3 (Coffre seul). Sa visibilité
+  // vient du scope pose=coffre (posé par `sous_famille`) + gating sous-famille.
 
   const f = { id: sel.id, label: sel.label, type: 'choice', options: [] };
   const vis = scopeConds(sel.scope, sel.layer);
@@ -84,6 +86,20 @@ for (const sel of v1.selectors) {
       options: [
         { value: 'standard', label: 'Tradi standard' },
         { value: 'express', label: 'Tradi Express', setsValues: { pose: 'express' } },
+      ],
+    });
+    // Sélecteur de SOUS-FAMILLE (pilote étapes + nœud de surcharge/remise, cf.
+    // def.nodeField). Placé APRÈS gamme_tradi pour que son `pose:'coffre'` gagne
+    // sur la pose posée par type_volet/gamme_tradi, et AVANT `lame` pour que le
+    // filtrage des lames voie pose=coffre (cd942/56 seulement). Valeurs = slugs
+    // de nœuds de nomenclature (tradi-std 1.1.1 / tradi-coffre 1.1.2 / coffre-seul 1.1.3).
+    fields.push({
+      id: 'sous_famille', label: 'Type de produit', type: 'choice', default: 'tradi-std',
+      help: 'Volet traditionnel seul, volet avec coffre, ou coffre seul. Ce choix pilote les étapes visibles et le tarif.',
+      options: [
+        { value: 'tradi-std', label: 'Volet traditionnel (volet seul)' },
+        { value: 'tradi-coffre', label: 'Volet + coffre', setsValues: { pose: 'coffre' } },
+        { value: 'coffre-seul', label: 'Coffre seul', setsValues: { pose: 'coffre' } },
       ],
     });
   }
@@ -201,13 +217,21 @@ const WIDTH_MIN = {
 const priceRules = [];
 const d1 = {};
 
-// base
+// base volet (Tradi standard 1.1.1 & Tradi + coffre 1.1.2) — lecture grille.
+// Exclue du Coffre seul (1.1.3), qui a sa propre base ci-dessous.
 priceRules.push({ code: 'base', label: 'Prix de base', kind: 'base',
+  when: ne('sous_famille', 'coffre-seul'),
   amount: { op: 'lookup2d', table: V('grid'), row: V('hauteur'), col: V('largeur') } });
+// base Coffre seul (1.1.3) — TARIF PROVISOIRE (placeholder) en attendant la
+// grille du PDG (par dimension × type de coffre PVC). À remplacer par un lookup.
+priceRules.push({ code: 'base_coffre_seul', label: 'Coffre seul (tarif provisoire)', kind: 'base',
+  when: eq('sous_famille', 'coffre-seul'),
+  amount: { op: 'round', arg: { op: '+', args: [{ op: '*', args: [V('surface_m2'), 150] }, 90] } } });
 
-// A. Ajustements — hors coffre PVC (Briquélite/Néothermic/Néobric).
-const COFFRE_PVC = ['coffre_briquelite', 'coffre_neothermic', 'coffre_neobric'];
-const adjustments = v1.adjustments.filter((a) => !COFFRE_PVC.includes(a.code));
+// Ajustements — coffre PVC (Briquélite/Néothermic/Néobric) inclus : ils ne
+// s'appliquent qu'en pose=coffre (sous-familles 1.1.2 / 1.1.3), via leur scope
+// {pose:'coffre', coffre:X}. En Tradi standard (pose≠coffre) ils ne tirent jamais.
+const adjustments = v1.adjustments;
 const optionalCodes = {}; // code -> [conditions par ajustement]
 adjustments.forEach((adj, i) => {
   const tid = `adj_${i}`;
@@ -405,6 +429,30 @@ constraints.push({ message: 'Largeur inférieure au minimum de la grille pour ce
 constraints.push({ message: 'Tirage direct : largeur autorisée entre 630 et 2000 mm',
   requires: ANY([ne('manoeuvre', 'manuelle'), ne('manoeuvre_type', 'tirage'), AND([gte('largeur', 630), lte('largeur', 2000)])]) });
 
+// ---- GATING par sous-famille (1.1.1 tradi-std / 1.1.2 tradi-coffre / 1.1.3 coffre-seul) ----
+// Chaque champ reçoit, EN PLUS de sa condition propre, une condition sur
+// `sous_famille`. Les axes posés par setsValues (pose…) restent lisibles dans le
+// contexte de visibilité (le wizard applique withDerivedValues avant isVisible).
+const gate = (ids, cond) => {
+  for (const f of fields) {
+    if (!ids.includes(f.id)) continue;
+    f.visibleWhen = f.visibleWhen ? AND([f.visibleWhen, cond]) : cond;
+  }
+};
+const STD = eq('sous_famille', 'tradi-std');
+const VOLET = inSet('sous_famille', ['tradi-std', 'tradi-coffre']);           // a un tablier
+const COFFRE_VIS = inSet('sous_famille', ['tradi-coffre', 'coffre-seul']);    // a un coffre PVC
+// Présents pour toutes les sous-familles (dimensions, sélecteur, axe interne).
+const GATE_ALWAYS = ['sous_famille', 'largeur', 'hauteur', 'surface_info', 'layer'];
+// Réservés au Tradi standard (poses, gamme Standard/Express, Express).
+const GATE_STD_ONLY = ['type_volet', 'gamme_tradi', 'coulisse_express', 'express_attaches_info'];
+gate(GATE_STD_ONLY, STD);
+gate(['coffre'], COFFRE_VIS);
+// Tout le reste = champs « volet » (tradi-std + tradi-coffre), masqués en coffre seul.
+const gateVoletIds = fields.map((f) => f.id)
+  .filter((id) => !GATE_ALWAYS.includes(id) && !GATE_STD_ONLY.includes(id) && id !== 'coffre');
+gate(gateVoletIds, VOLET);
+
 // ---- STEPS (assistant) ----
 const optionFieldIds = [
   ...Object.keys(optionalCodes),                                    // attaches_rigides, sous_face_7016
@@ -416,7 +464,9 @@ const optionFieldIds = [
 ];
 const specIds = (v1.specFields ?? []).map((s) => s.id);
 const steps = [
+  { id: 'produit', title: 'Type de produit', fields: ['sous_famille'] },
   { id: 'type', title: 'Type & pose', fields: ['gamme_tradi', 'type_volet', ...specIds, 'percage'] },
+  { id: 'coffre', title: 'Coffre', fields: ['coffre'] },
   { id: 'lame', title: 'Lame & coulisses', fields: ['lame', 'coulisse_express', 'express_attaches_info'] },
   { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'surface_info'] },
   { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'manoeuvre_type', 'cote_manoeuvre', 'sortie_manoeuvre', 'cote_fil', 'sortie_fil', 'commande', 'moteur', 'radio_somfy', 'emetteur_type'] },
@@ -426,9 +476,11 @@ const steps = [
 ];
 
 const def = {
-  // Rattaché au nœud 'tradi-std' (1.1.1) — le nœud portant le générateur ; les
-  // remises/surcharges posées sur 1.1.1, 1.1 ou la gamme (héritées) s'appliquent.
-  slug: v1.slug, name: v1.name, famille: 'tradi-std',
+  // Le configurateur sert TOUTE la famille Tradi (1.1). Le nœud de surcharge/
+  // remise est DYNAMIQUE : il vaut la valeur du champ `sous_famille` (tradi-std
+  // 1.1.1 / tradi-coffre 1.1.2 / coffre-seul 1.1.3), cf. def.nodeField. `famille`
+  // = repli (nœud famille 1.1) si aucune sous-famille n'est sélectionnée.
+  slug: v1.slug, name: v1.name, famille: 'tradi', nodeField: 'sous_famille',
   fields, derived, steps, priceRules, tables: { d1, d2 }, constraints,
 };
 

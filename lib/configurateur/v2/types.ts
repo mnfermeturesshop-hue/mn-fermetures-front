@@ -114,7 +114,11 @@ export interface Constraint {
 export interface DefV2 {
   slug: string;
   name: string;
-  famille: string;                                        // remise B2B
+  famille: string;                                        // remise B2B (repli)
+  /** Id d'un champ dont la VALEUR est le slug du nœud de nomenclature à utiliser
+   *  pour la remise/surcharge (générateur multi-sous-familles). Sinon `famille`
+   *  / le nœud portant le générateur sont utilisés. */
+  nodeField?: string;
   fields: Field[];
   derived?: { id: string; expr: Expr }[];                 // variables calculées (surface, snaps…)
   steps: Step[];

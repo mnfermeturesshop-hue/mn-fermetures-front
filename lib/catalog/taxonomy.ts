@@ -28,8 +28,11 @@ interface SeedGamme extends SeedLeaf { children: SeedFamille[] }
 
 const TREE: SeedGamme[] = [
   { name: 'Volets roulants', slug: 'volets-roulants', children: [
-    { name: 'Tradi', slug: 'tradi', children: [
-      { name: 'Tradi', slug: 'tradi-std', generatorSlug: 'volet-roulant-traditionnel' }, { name: 'Tradi + coffre', slug: 'tradi-coffre' }, { name: 'Coffre seul', slug: 'coffre-seul' },
+    // Le configurateur `volet-roulant-traditionnel` sert TOUTE la famille Tradi
+    // (le nœud de surcharge/remise est choisi dynamiquement via le champ
+    // `sous_famille`), donc le generatorSlug est porté par la FAMILLE (1.1).
+    { name: 'Tradi', slug: 'tradi', generatorSlug: 'volet-roulant-traditionnel', children: [
+      { name: 'Tradi', slug: 'tradi-std' }, { name: 'Tradi + coffre', slug: 'tradi-coffre' }, { name: 'Coffre seul', slug: 'coffre-seul' },
     ] },
     { name: 'Reno', slug: 'reno', children: [
       { name: 'Minibox', slug: 'minibox' }, { name: 'Renobox', slug: 'renobox' }, { name: 'Reno gros coffre', slug: 'reno-gros-coffre' },

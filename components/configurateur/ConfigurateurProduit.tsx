@@ -56,8 +56,12 @@ export function ConfigurateurProduit({ slug }: Props) {
 
   const result = useMemo(() => (def ? resolvePrice(def, values) : null), [def, values]);
   const surchargeMap = useSurchargeStore((s) => s.map);
-  // Nœud de rattachement : celui qui porte ce générateur (ex. 'tradi'), sinon def.famille.
-  const node = def ? (generatorNode(TAXONOMY_SEED, def.slug) ?? def.famille) : undefined;
+  // Nœud de rattachement : la valeur du champ `nodeField` (sous-famille choisie)
+  // prime — sinon le nœud portant le générateur, sinon def.famille.
+  const selNode = def?.nodeField ? values[def.nodeField] : undefined;
+  const node = def
+    ? (typeof selNode === 'string' && selNode ? selNode : (generatorNode(TAXONOMY_SEED, def.slug) ?? def.famille))
+    : undefined;
   const discountPct = node ? resolveB2BDiscountSeed(user?.proDiscounts ?? {}, node) : 0;
   const surchargePct = node ? resolveB2BSurchargeSeed(surchargeMap, node) : 0;
   const split = result?.ok ? splitB2BPrice(result.total, surchargePct, discountPct) : null;
@@ -168,7 +172,10 @@ export function ConfigurateurProduit({ slug }: Props) {
       const hasDim = fields.some((f) => f.type === 'dimension' || f.type === 'number');
       const isRecap = s.id === 'recap';
       return { ...s, fields, hasDim, isRecap };
-    });
+    })
+    // Étapes sans aucun champ visible masquées (ex. coffre seul : pas de lame /
+    // manœuvre / coloris). Le récapitulatif est toujours conservé.
+    .filter((s) => s.isRecap || s.fields.length > 0);
   const cur = Math.min(stepIdx, steps.length - 1);
   const step = steps[cur];
   const isLast = cur === steps.length - 1;
