@@ -61,6 +61,8 @@ for (const sel of v1.selectors) {
     if (sel.id === 'type_volet' && o.value === 'tunnel_mn') { opt.label = 'Tradi tunnel MN'; opt.setsValues = { pose: 'independant' }; }
     if (sel.id === 'type_volet' && o.value === 'tunnel_inconnu') { opt.label = 'Tradi tunnel inconnu'; opt.setsValues = { pose: 'independant' }; }
     if (sel.id === 'moteur' && o.value === 'somfy') opt.label = 'Moteur Somfy';
+    // Solaire = Somfy uniquement (le PDG ne fait pas de moteur solaire MN).
+    if (sel.id === 'moteur' && o.value === 'mn') opt.availableWhen = ne('commande', 'solaire');
     if (sel.id === 'lame') {
       const ps = [...posesForLame[o.value]];
       if (ps.length < poses.length) opt.availableWhen = inSet('pose', ps); // express -> cd942 seul
@@ -122,10 +124,10 @@ for (const sel of v1.selectors) {
       options: [
         { value: 'filaire', label: 'Filaire', setsValues: { layer: 'filaire' } },
         { value: 'radio', label: 'Radio', setsValues: { layer: 'radio' } },
-        // Solaire : prix « radio » (layer radio) + marque LIBRE (MN/Somfy, comme
-        // l'arbre solaire). `radio_somfy:'solaire'` sert l'option alim de dépannage
-        // (Somfy solaire). Ne force plus la marque.
-        { value: 'solaire', label: 'Solaire', setsValues: { layer: 'radio', radio_somfy: 'solaire' } },
+        // Solaire = Somfy uniquement (MN ne fait pas de moteur solaire) : prix
+        // « radio » (layer radio) + kit solaire Somfy. La marque est forcée Somfy
+        // (l'option MN est masquée en solaire). `radio_somfy:'solaire'` → alim dépannage.
+        { value: 'solaire', label: 'Solaire', setsValues: { layer: 'radio', moteur: 'somfy', radio_somfy: 'solaire' } },
       ],
     });
     // `layer` interne (pilote la grille de prix) — non affiché.
