@@ -42,9 +42,10 @@ for (const k of gridKeys) (posesForLame[k.lame] ??= new Set()).add(k.pose);
 const fields = [];
 
 for (const sel of v1.selectors) {
-  // Le sélecteur `coffre` (Thermic/Briquélite/Néothermic/Néobric) sert les
-  // sous-familles 1.1.2 (Tradi + coffre) et 1.1.3 (Coffre seul). Sa visibilité
-  // vient du scope pose=coffre (posé par `sous_famille`) + gating sous-famille.
+  // L'ancien sélecteur `coffre` PVC (Thermic/Briquélite/…) est retiré : le coffre
+  // (1.1.2 & 1.1.3) est désormais décrit par la cascade GAMME/FACE/SECTION (bloc
+  // coffre seul), partagée par tradi-coffre et coffre-seul.
+  if (sel.id === 'coffre') continue;
 
   const f = { id: sel.id, label: sel.label, type: 'choice', options: [] };
   const vis = scopeConds(sel.scope, sel.layer);
@@ -63,6 +64,10 @@ for (const sel of v1.selectors) {
     if (sel.id === 'lame') {
       const ps = [...posesForLame[o.value]];
       if (ps.length < poses.length) opt.availableWhen = inSet('pose', ps); // express -> cd942 seul
+      // 1.1.2 (tradi-coffre) : uniquement lames CD942 (42) et 56 (pas la 55).
+      if (o.value === '55') opt.availableWhen = opt.availableWhen
+        ? AND([opt.availableWhen, ne('sous_famille', 'tradi-coffre')])
+        : ne('sous_famille', 'tradi-coffre');
     }
     // radio_somfy : io/rts dispo en commande radio ; solaire en commande solaire.
     if (sel.id === 'radio_somfy') opt.availableWhen = o.value === 'solaire' ? eq('commande', 'solaire') : eq('commande', 'radio');
@@ -91,16 +96,18 @@ for (const sel of v1.selectors) {
       ],
     });
     // Sélecteur de SOUS-FAMILLE (pilote étapes + nœud de surcharge/remise, cf.
-    // def.nodeField). Placé APRÈS gamme_tradi pour que son `pose:'coffre'` gagne
-    // sur la pose posée par type_volet/gamme_tradi, et AVANT `lame` pour que le
-    // filtrage des lames voie pose=coffre (cd942/56 seulement). Valeurs = slugs
-    // de nœuds de nomenclature (tradi-std 1.1.1 / tradi-coffre 1.1.2 / coffre-seul 1.1.3).
+    // def.nodeField). Placé APRÈS gamme_tradi (sa pose gagne) et AVANT `lame` (le
+    // filtrage des lames voit la pose). Valeurs = slugs de nœuds (tradi-std 1.1.1 /
+    // tradi-coffre 1.1.2 / coffre-seul 1.1.3).
+    //  - tradi-coffre (1.1.2) = coffre (cascade 1.1.3) + volet « tradi tunnel MN »
+    //    (= grille INDÉPENDANT, lames CD942/56 seulement) → pose:'independant'.
+    //  - coffre-seul (1.1.3) = coffre seul (pas de volet) → pose:'coffre'.
     fields.push({
       id: 'sous_famille', label: 'Type de produit', type: 'choice', default: 'tradi-std',
       help: 'Volet traditionnel seul, volet avec coffre, ou coffre seul. Ce choix pilote les étapes visibles et le tarif.',
       options: [
         { value: 'tradi-std', label: 'Volet traditionnel (volet seul)' },
-        { value: 'tradi-coffre', label: 'Volet + coffre', setsValues: { pose: 'coffre' } },
+        { value: 'tradi-coffre', label: 'Volet + coffre', setsValues: { pose: 'independant' } },
         { value: 'coffre-seul', label: 'Coffre seul', setsValues: { pose: 'coffre' } },
       ],
     });
@@ -225,10 +232,11 @@ priceRules.push({ code: 'base', label: 'Prix de base', kind: 'base',
   when: ne('sous_famille', 'coffre-seul'),
   amount: { op: 'lookup2d', table: V('grid'), row: V('hauteur'), col: V('largeur') } });
 
-// Ajustements — coffre PVC (Briquélite/Néothermic/Néobric) inclus : ils ne
-// s'appliquent qu'en pose=coffre (sous-familles 1.1.2 / 1.1.3), via leur scope
-// {pose:'coffre', coffre:X}. En Tradi standard (pose≠coffre) ils ne tirent jamais.
-const adjustments = v1.adjustments;
+// Ajustements — hors coffre PVC (Briquélite/Néothermic/Néobric) : le coffre est
+// désormais tarifé par la cascade GAMME/FACE/SECTION (grille cs_<section>), pas
+// par ces anciens ajustements.
+const COFFRE_PVC = ['coffre_briquelite', 'coffre_neothermic', 'coffre_neobric'];
+const adjustments = v1.adjustments.filter((a) => !COFFRE_PVC.includes(a.code));
 const optionalCodes = {}; // code -> [conditions par ajustement]
 adjustments.forEach((adj, i) => {
   const tid = `adj_${i}`;
@@ -477,13 +485,17 @@ fields.push({ id: 'coffre_sous_face', label: 'Sous-face', type: 'choice', defaul
 for (const s of COFFRE_SEUL_SECTIONS) {
   d1[`cs_${s.code}`] = { keys: s.grid.map((r) => r[0]), values: s.grid.map((r) => r[1]) };
 }
-// base Coffre seul (1.1.3) : lecture de la grille de la section choisie.
-priceRules.push({ code: 'base_coffre_seul', label: 'Coffre seul', kind: 'base',
-  when: eq('sous_famille', 'coffre-seul'),
+// Le coffre (cascade + pattes + sous-face) est tarifé pour les DEUX sous-familles
+// qui portent un coffre : 1.1.2 (tradi-coffre, en plus du volet) et 1.1.3 (coffre seul).
+const CS_ON = inSet('sous_famille', ['tradi-coffre', 'coffre-seul']);
+// base coffre : lecture de la grille de la section choisie (kind:'base'). En
+// tradi-coffre, elle S'AJOUTE à la base volet (deux bases sommées).
+priceRules.push({ code: 'base_coffre_seul', label: 'Coffre', kind: 'base',
+  when: CS_ON,
   amount: { op: 'lookup1d', table: { op: 'concat', args: ['cs_', V('coffre_section')] }, key: V('largeur') } });
 // Pattes de maintien : quantité × 8,80 € (au-delà de 2300 mm).
 priceRules.push({ code: 'coffre_seul_pattes', label: 'Pattes de maintien supplémentaires', kind: 'add',
-  when: AND([eq('sous_famille', 'coffre-seul'), gte('largeur', 2300), gte('pattes_maintien', 1)]),
+  when: AND([CS_ON, gte('largeur', 2300), gte('pattes_maintien', 1)]),
   amount: { op: '*', args: [V('pattes_maintien'), 8.8] } });
 
 // Sous-face — barèmes par largeur (mêmes bornes CS_WIDTHS). Plus-value couleur
@@ -494,10 +506,10 @@ d1['cs_pv_couleur'] = { keys: CS_WIDTHS, values: [
 d1['cs_mv_cacherail'] = { keys: CS_WIDTHS, values: [
   -5, -6, -7, -8, -12, -13, -14, -15, -16, -16, -17, -18, -19, -21, -22, -23, -24, -24, -42, -45, -46, -49, -50, -52, -54, -55, -57, -58, -61, -63, -64, -67, -68, -69, -71, -72, -73, -75, -77, -78, -80] };
 priceRules.push({ code: 'coffre_sf_couleur', label: 'Sous-face couleur (plus-value)', kind: 'add',
-  when: AND([eq('sous_famille', 'coffre-seul'), inSet('coffre_sous_face', ['7016', '7039', '2100'])]),
+  when: AND([CS_ON, inSet('coffre_sous_face', ['7016', '7039', '2100'])]),
   amount: { op: 'lookup1d', table: 'cs_pv_couleur', key: V('largeur') } });
 priceRules.push({ code: 'coffre_sf_cacherail', label: 'Cache-rail (sans sous-face)', kind: 'add',
-  when: AND([eq('sous_famille', 'coffre-seul'), eq('coffre_sous_face', 'cache_rail')]),
+  when: AND([CS_ON, eq('coffre_sous_face', 'cache_rail')]),
   amount: { op: 'lookup1d', table: 'cs_mv_cacherail', key: V('largeur') } });
 
 // GARDE : toutes les règles VOLET (base, ajustements, options, coloris, moins-values
@@ -538,9 +550,10 @@ constraints.push({ message: 'Tirage direct : largeur autorisée entre 630 et 200
 // Les contraintes ci-dessus sont des limites VOLET (lame/pose/manœuvre) : elles
 // ne s'appliquent pas au Coffre seul (1.1.3). On les neutralise pour lui.
 for (const c of constraints) c.requires = ANY([eq('sous_famille', 'coffre-seul'), c.requires]);
-// Bornes L mini / L max propres au Coffre seul, par section (⚠️ placeholder).
+// Bornes L mini / L max du coffre, par section — appliquées dès qu'un coffre est
+// présent (tradi-coffre 1.1.2 & coffre-seul 1.1.3).
 constraints.push({ message: 'Largeur hors bornes pour cette section de coffre',
-  requires: ANY([ne('sous_famille', 'coffre-seul'),
+  requires: ANY([{ not: inSet('sous_famille', ['tradi-coffre', 'coffre-seul']) },
     ANY(COFFRE_SEUL_SECTIONS.map((s) => AND([eq('coffre_section', s.code), gte('largeur', s.lmin), lte('largeur', s.lmax)])))]) });
 
 // ---- GATING par sous-famille (1.1.1 tradi-std / 1.1.2 tradi-coffre / 1.1.3 coffre-seul) ----
@@ -555,20 +568,19 @@ const gate = (ids, cond) => {
 };
 const STD = eq('sous_famille', 'tradi-std');
 const VOLET = inSet('sous_famille', ['tradi-std', 'tradi-coffre']);           // a un tablier
-const TRADI_COFFRE = eq('sous_famille', 'tradi-coffre');                      // volet + coffre PVC
-const COFFRE_SEUL = eq('sous_famille', 'coffre-seul');                        // coffre seul (cascade)
+const COFFRE = inSet('sous_famille', ['tradi-coffre', 'coffre-seul']);        // porte un coffre (cascade)
 // Présents pour toutes les sous-familles (largeur, sélecteur, axe interne).
 const GATE_ALWAYS = ['sous_famille', 'largeur', 'layer'];
 // Réservés au Tradi standard (poses, gamme Standard/Express, Express).
 const GATE_STD_ONLY = ['type_volet', 'gamme_tradi', 'coulisse_express', 'express_attaches_info'];
-// Cascade « coffre seul » (1.1.3) — gamme/face/section + pattes de maintien.
-const GATE_COFFRE_SEUL = ['coffre_gamme', 'coffre_face', 'coffre_section', 'coffre_sous_face', 'pattes_maintien', 'coffre_hat_info'];
+// Cascade coffre (1.1.2 tradi-coffre + 1.1.3 coffre-seul) — gamme/face/section/
+// sous-face + pattes de maintien + hors avis technique.
+const GATE_COFFRE = ['coffre_gamme', 'coffre_face', 'coffre_section', 'coffre_sous_face', 'pattes_maintien', 'coffre_hat_info'];
 gate(GATE_STD_ONLY, STD);
-gate(['coffre'], TRADI_COFFRE);          // sélecteur coffre PVC : 1.1.2 uniquement (1.1.1+1.1.3 plus tard)
-gate(GATE_COFFRE_SEUL, COFFRE_SEUL);
+gate(GATE_COFFRE, COFFRE);
 // Champs « volet » (tablier / manœuvre / coloris / options / hauteur / surface) :
 // tradi-std + tradi-coffre, masqués en coffre seul.
-const gateExplicit = new Set([...GATE_ALWAYS, ...GATE_STD_ONLY, ...GATE_COFFRE_SEUL, 'coffre']);
+const gateExplicit = new Set([...GATE_ALWAYS, ...GATE_STD_ONLY, ...GATE_COFFRE]);
 const gateVoletIds = fields.map((f) => f.id).filter((id) => !gateExplicit.has(id));
 gate(gateVoletIds, VOLET);
 
@@ -595,8 +607,10 @@ const optionFieldIds = [
 ];
 const steps = [
   { id: 'produit', title: 'Type de produit', fields: ['sous_famille'] },
+  // Étape 1 (tradi-coffre & coffre-seul) : configuration du COFFRE. Placée avant la
+  // config volet (« Étape 2 » du tradi + coffre). Masquée en tradi-std (étape vide).
+  { id: 'coffre', title: 'Coffre', fields: ['coffre_gamme', 'coffre_face', 'coffre_section', 'coffre_sous_face'] },
   { id: 'type', title: 'Type & pose', fields: ['gamme_tradi', 'type_volet', ...specIds, 'percage'] },
-  { id: 'coffre', title: 'Coffre', fields: ['coffre', 'coffre_gamme', 'coffre_face', 'coffre_section', 'coffre_sous_face'] },
   { id: 'lame', title: 'Lame & coulisses', fields: ['lame', 'coulisse_express', 'express_attaches_info'] },
   { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'surface_info', 'pattes_maintien', 'coffre_hat_info'] },
   // Radio/Solaire : on choisit le type d'émetteur (portatif/mural) AVANT la marque
