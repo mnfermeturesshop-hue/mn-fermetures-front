@@ -71,7 +71,9 @@ for (const sel of v1.selectors) {
   // B. type_volet (poses) visible uniquement en Tradi standard.
   if (sel.id === 'type_volet') f.visibleWhen = eq('gamme_tradi', 'standard');
   // Marque du moteur : en motorisation, hors solaire (le solaire force Somfy).
-  if (sel.id === 'moteur') f.visibleWhen = AND([eq('manoeuvre', 'motorisee'), ne('commande', 'solaire')]);
+  // `moteur` = MARQUE du moteur (MN / Somfy) — renommé pour lever l'ambiguïté avec
+  // le champ « Motorisation » (type Filaire/Radio/Solaire = `commande`).
+  if (sel.id === 'moteur') { f.label = 'Marque du moteur'; f.visibleWhen = AND([eq('manoeuvre', 'motorisee'), ne('commande', 'solaire')]); }
   // Variante Somfy radio (io/rts) : uniquement commande radio + Somfy.
   if (sel.id === 'radio_somfy') f.visibleWhen = AND([eq('manoeuvre', 'motorisee'), eq('commande', 'radio'), eq('moteur', 'somfy')]);
 
