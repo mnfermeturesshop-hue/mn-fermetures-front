@@ -91,7 +91,8 @@ export default function AdminNomenclature() {
   // Surcharge temporaire INDÉPENDANTE (sans héritage) : le taux vaut pour le
   // nœud exact seulement (à poser sur la sous-famille).
   const setSurcharge = (n: TaxonomyNode, val: string) => {
-    const num = val === '' ? 0 : Math.min(200, Math.max(0, Math.round(Number(val) || 0)));
+    // Taux à décimales autorisé (ex. 5,5 %) — arrondi à 2 décimales, borné 0–200.
+    const num = val === '' ? 0 : Math.min(200, Math.max(0, Math.round((Number(val) || 0) * 100) / 100));
     if (num !== (n.surcharge ?? 0)) call({ action: 'update', slug: n.slug, surcharge: num }, 'Surcharge mise à jour.');
   };
 
@@ -118,7 +119,7 @@ export default function AdminNomenclature() {
 
           <span className="nom-surcharge" title="Surcharge temporaire (%) sur CE nœud — sans héritage (à poser sur la sous-famille)">
             <input
-              type="number" min={0} max={200} defaultValue={n.surcharge ?? 0} disabled={busy || !dbReady}
+              type="number" min={0} max={200} step="any" defaultValue={n.surcharge ?? 0} disabled={busy || !dbReady}
               onBlur={(e) => setSurcharge(n, e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
             />

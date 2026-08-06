@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
         if (typeof body.name === 'string' && body.name.trim()) patch.name = body.name.trim();
         if (typeof body.active === 'boolean') patch.active = body.active;
         if ('generatorSlug' in body) patch.generator_slug = body.generatorSlug || null;
-        if (typeof body.surcharge === 'number') patch.surcharge = Math.min(200, Math.max(0, Math.round(body.surcharge)));
+        if (typeof body.surcharge === 'number') patch.surcharge = Math.min(200, Math.max(0, Math.round(body.surcharge * 100) / 100));
         const { error } = await admin.from('taxonomy_nodes').update(patch).eq('slug', body.slug);
         if (error) throw error;
         return NextResponse.json({ ok: true });
