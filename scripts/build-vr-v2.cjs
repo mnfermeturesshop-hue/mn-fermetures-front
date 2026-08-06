@@ -218,15 +218,10 @@ const priceRules = [];
 const d1 = {};
 
 // base volet (Tradi standard 1.1.1 & Tradi + coffre 1.1.2) — lecture grille.
-// Exclue du Coffre seul (1.1.3), qui a sa propre base ci-dessous.
+// Exclue du Coffre seul (1.1.3), qui a sa propre base par section (voir bloc dédié).
 priceRules.push({ code: 'base', label: 'Prix de base', kind: 'base',
   when: ne('sous_famille', 'coffre-seul'),
   amount: { op: 'lookup2d', table: V('grid'), row: V('hauteur'), col: V('largeur') } });
-// base Coffre seul (1.1.3) — TARIF PROVISOIRE (placeholder) en attendant la
-// grille du PDG (par dimension × type de coffre PVC). À remplacer par un lookup.
-priceRules.push({ code: 'base_coffre_seul', label: 'Coffre seul (tarif provisoire)', kind: 'base',
-  when: eq('sous_famille', 'coffre-seul'),
-  amount: { op: 'round', arg: { op: '+', args: [{ op: '*', args: [V('surface_m2'), 150] }, 90] } } });
 
 // Ajustements — coffre PVC (Briquélite/Néothermic/Néobric) inclus : ils ne
 // s'appliquent qu'en pose=coffre (sous-familles 1.1.2 / 1.1.3), via leur scope
@@ -404,6 +399,105 @@ fields.push({ id: 'coulisse_express', label: 'Coulisses', type: 'choice', defaul
 fields.push({ id: 'express_attaches_info', type: 'info', visibleWhen: eq('gamme_tradi', 'express'),
   help: 'Tradi Express : attaches rigides incluses de série.' });
 
+// ===================================================================
+// 1.1.3 COFFRE SEUL — cascade GAMME › FACE › SECTION (arbre de décision PDG)
+// -------------------------------------------------------------------
+// Chaque SECTION (modèle + hauteur) porte SA PROPRE grille largeur→prix HT (1D),
+// pour la sous-face BLANCHE (défaut). Largeurs = bornes hautes 500…4500 mm par
+// pas de 100 (snap-up). Prix HT source PDG (« TARIF TRADI 2026 »). Au-delà de
+// 3800 mm : HORS AVIS TECHNIQUE (vendable mais signalé, cf. champ info).
+const CS_WIDTHS = [];
+for (let w = 500; w <= 4500; w += 100) CS_WIDTHS.push(w);   // 41 bornes
+const CS_LMIN = 500, CS_LMAX = 4500, CS_HAT = 3800;         // bornes + seuil hors avis technique
+const CS_PRICES = {
+  thermic_280: [69, 77, 84, 92, 99, 107, 114, 122, 130, 135, 143, 150, 157, 165, 172, 177, 185, 192, 205, 212, 220, 227, 240, 244, 251, 258, 265, 273, 280, 287, 295, 303, 310, 317, 324, 331, 338, 345, 352, 360, 367],
+  thermic_300: [73, 81, 89, 97, 105, 113, 121, 129, 137, 143, 151, 159, 167, 175, 183, 188, 196, 204, 217, 225, 233, 241, 254, 258, 266, 274, 281, 289, 297, 304, 313, 321, 328, 336, 344, 351, 359, 366, 374, 382, 389],
+  briquelite_280: [98, 110, 121, 133, 144, 152, 163, 170, 181, 192, 203, 214, 225, 236, 247, 258, 262, 273, 289, 300, 311, 322, 338, 349, 360, 370, 376, 381, 392, 402, 418, 429, 439, 450, 447, 457, 468, 478, 488, 498, 508],
+  neothermic_280: [88, 99, 109, 116, 126, 135, 145, 155, 165, 175, 180, 189, 199, 216, 224, 233, 241, 262, 275, 283, 291, 298, 343, 350, 358, 366, 374, 413, 420, 428, 441, 449, 488, 496, 503, 511, 519, 558, 566, 573, 581],
+  neobric_280: [115, 129, 143, 157, 171, 181, 195, 203, 222, 236, 244, 257, 270, 291, 303, 315, 327, 344, 360, 371, 382, 394, 423, 433, 444, 454, 465, 507, 517, 528, 543, 554, 596, 606, 617, 628, 638, 680, 691, 701, 712],
+};
+const COFFRE_SEUL_SECTIONS = [
+  { code: 'thermic_280',    label: "Thermic'élite 280 mm", gamme: 'classique', face: 'fibre'  },
+  { code: 'thermic_300',    label: "Thermic'élite 300 mm", gamme: 'classique', face: 'fibre'  },
+  { code: 'briquelite_280', label: 'Briquelite 280 mm',    gamme: 'classique', face: 'brique' },
+  { code: 'neothermic_280', label: 'Néothermic 280 mm',    gamme: 'renforce',  face: 'fibre'  },
+  { code: 'neobric_280',    label: 'Néobric 280 mm',       gamme: 'renforce',  face: 'brique' },
+].map((s) => ({ ...s, lmin: CS_LMIN, lmax: CS_LMAX, grid: CS_PRICES[s.code].map((p, i) => [CS_WIDTHS[i], p]) }));
+// GAMME (coffre classique / renforcé) — 1er niveau de la cascade coffre seul.
+fields.push({ id: 'coffre_gamme', label: 'Gamme de coffre', type: 'choice', default: 'classique',
+  options: [
+    { value: 'classique', label: 'Coffre classique' },
+    { value: 'renforce', label: 'Coffre renforcé' },
+  ] });
+// FACE (fibre / brique) — 2e niveau (les deux existent sous chaque gamme).
+fields.push({ id: 'coffre_face', label: 'Face', type: 'choice', default: 'fibre',
+  options: [
+    { value: 'fibre', label: 'Face fibre' },
+    { value: 'brique', label: 'Face brique' },
+  ] });
+// SECTION (modèle + hauteur) — 3e niveau, filtré par gamme + face.
+fields.push({ id: 'coffre_section', label: 'Section', type: 'choice', default: COFFRE_SEUL_SECTIONS[0].code,
+  options: COFFRE_SEUL_SECTIONS.map((s) => ({
+    value: s.code, label: s.label,
+    availableWhen: AND([eq('coffre_gamme', s.gamme), eq('coffre_face', s.face)]),
+  })) });
+// Pattes de maintien supplémentaires — proposées UNIQUEMENT au-delà de 2300 mm
+// de largeur (arbre PDG), à l'unité, +8,80 € pièce.
+fields.push({ id: 'pattes_maintien', label: 'Pattes de maintien supplémentaires', type: 'number',
+  unit: 'u', default: 0, min: 0, visibleWhen: gte('largeur', 2300),
+  help: 'À partir de 2300 mm : ajoutez une ou plusieurs pattes de maintien (8,80 € l’unité).' });
+// Avertissement hors avis technique (largeur ≥ 3800 mm) — vendable mais signalé.
+fields.push({ id: 'coffre_hat_info', type: 'info', visibleWhen: gte('largeur', CS_HAT),
+  help: 'Largeur ≥ 3800 mm : coffre HORS AVIS TECHNIQUE (jusqu’à 4500 mm).' });
+// Sous-face : blanche (incluse, défaut) / couleurs à plus-value (RAL 7016, gris
+// 7039, noir 2100 sablé — MÊME plus-value par largeur) / cache-rail seul sans
+// sous-face (moins-value par largeur). Barèmes source PDG.
+fields.push({ id: 'coffre_sous_face', label: 'Sous-face', type: 'choice', default: 'blanche',
+  options: [
+    { value: 'blanche', label: 'Sous-face blanche (incluse)' },
+    { value: '7016', label: 'Sous-face RAL 7016 (plus-value)' },
+    { value: '7039', label: 'Sous-face gris RAL 7039 (plus-value)' },
+    { value: '2100', label: 'Sous-face noir 2100 sablé (plus-value)' },
+    { value: 'cache_rail', label: 'Cache-rail seul, sans sous-face (moins-value)' },
+  ] });
+
+// Grilles 1D par section (id `cs_<code>`).
+for (const s of COFFRE_SEUL_SECTIONS) {
+  d1[`cs_${s.code}`] = { keys: s.grid.map((r) => r[0]), values: s.grid.map((r) => r[1]) };
+}
+// base Coffre seul (1.1.3) : lecture de la grille de la section choisie.
+priceRules.push({ code: 'base_coffre_seul', label: 'Coffre seul', kind: 'base',
+  when: eq('sous_famille', 'coffre-seul'),
+  amount: { op: 'lookup1d', table: { op: 'concat', args: ['cs_', V('coffre_section')] }, key: V('largeur') } });
+// Pattes de maintien : quantité × 8,80 € (au-delà de 2300 mm).
+priceRules.push({ code: 'coffre_seul_pattes', label: 'Pattes de maintien supplémentaires', kind: 'add',
+  when: AND([eq('sous_famille', 'coffre-seul'), gte('largeur', 2300), gte('pattes_maintien', 1)]),
+  amount: { op: '*', args: [V('pattes_maintien'), 8.8] } });
+
+// Sous-face — barèmes par largeur (mêmes bornes CS_WIDTHS). Plus-value couleur
+// (positive, MÊME barème pour 7016 / 7039 / 2100 sablé) ; cache-rail = moins-value
+// (négative). Blanche = 0 (aucune règle).
+d1['cs_pv_couleur'] = { keys: CS_WIDTHS, values: [
+  6, 8, 12, 13, 14, 16, 17, 18, 20, 21, 22, 24, 25, 27, 31, 33, 35, 36, 37, 39, 40, 42, 43, 46, 48, 50, 51, 54, 55, 57, 58, 60, 61, 64, 65, 68, 69, 71, 72, 75, 77] };
+d1['cs_mv_cacherail'] = { keys: CS_WIDTHS, values: [
+  -5, -6, -7, -8, -12, -13, -14, -15, -16, -16, -17, -18, -19, -21, -22, -23, -24, -24, -42, -45, -46, -49, -50, -52, -54, -55, -57, -58, -61, -63, -64, -67, -68, -69, -71, -72, -73, -75, -77, -78, -80] };
+priceRules.push({ code: 'coffre_sf_couleur', label: 'Sous-face couleur (plus-value)', kind: 'add',
+  when: AND([eq('sous_famille', 'coffre-seul'), inSet('coffre_sous_face', ['7016', '7039', '2100'])]),
+  amount: { op: 'lookup1d', table: 'cs_pv_couleur', key: V('largeur') } });
+priceRules.push({ code: 'coffre_sf_cacherail', label: 'Cache-rail (sans sous-face)', kind: 'add',
+  when: AND([eq('sous_famille', 'coffre-seul'), eq('coffre_sous_face', 'cache_rail')]),
+  amount: { op: 'lookup1d', table: 'cs_mv_cacherail', key: V('largeur') } });
+
+// GARDE : toutes les règles VOLET (base, ajustements, options, coloris, moins-values
+// attaches/manœuvre…) ne doivent JAMAIS tirer sur le Coffre seul (1.1.3), qui n'a
+// que sa base par section + pattes + sous-face. On ajoute `sous_famille ≠ coffre-seul`
+// à chaque règle sauf les règles propres au coffre seul.
+const CS_ONLY_RULES = new Set(['base_coffre_seul', 'coffre_seul_pattes', 'coffre_sf_couleur', 'coffre_sf_cacherail']);
+for (const r of priceRules) {
+  if (CS_ONLY_RULES.has(r.code)) continue;
+  r.when = r.when ? AND([r.when, ne('sous_famille', 'coffre-seul')]) : ne('sous_famille', 'coffre-seul');
+}
+
 // ---- CONSTRAINTS (limites dimensionnelles) ----
 const nonPose = v1.limits.filter((l) => !l.pose);
 const constraints = [];
@@ -429,6 +523,14 @@ constraints.push({ message: 'Largeur inférieure au minimum de la grille pour ce
 constraints.push({ message: 'Tirage direct : largeur autorisée entre 630 et 2000 mm',
   requires: ANY([ne('manoeuvre', 'manuelle'), ne('manoeuvre_type', 'tirage'), AND([gte('largeur', 630), lte('largeur', 2000)])]) });
 
+// Les contraintes ci-dessus sont des limites VOLET (lame/pose/manœuvre) : elles
+// ne s'appliquent pas au Coffre seul (1.1.3). On les neutralise pour lui.
+for (const c of constraints) c.requires = ANY([eq('sous_famille', 'coffre-seul'), c.requires]);
+// Bornes L mini / L max propres au Coffre seul, par section (⚠️ placeholder).
+constraints.push({ message: 'Largeur hors bornes pour cette section de coffre',
+  requires: ANY([ne('sous_famille', 'coffre-seul'),
+    ANY(COFFRE_SEUL_SECTIONS.map((s) => AND([eq('coffre_section', s.code), gte('largeur', s.lmin), lte('largeur', s.lmax)])))]) });
+
 // ---- GATING par sous-famille (1.1.1 tradi-std / 1.1.2 tradi-coffre / 1.1.3 coffre-seul) ----
 // Chaque champ reçoit, EN PLUS de sa condition propre, une condition sur
 // `sous_famille`. Les axes posés par setsValues (pose…) restent lisibles dans le
@@ -441,16 +543,21 @@ const gate = (ids, cond) => {
 };
 const STD = eq('sous_famille', 'tradi-std');
 const VOLET = inSet('sous_famille', ['tradi-std', 'tradi-coffre']);           // a un tablier
-const COFFRE_VIS = inSet('sous_famille', ['tradi-coffre', 'coffre-seul']);    // a un coffre PVC
-// Présents pour toutes les sous-familles (dimensions, sélecteur, axe interne).
-const GATE_ALWAYS = ['sous_famille', 'largeur', 'hauteur', 'surface_info', 'layer'];
+const TRADI_COFFRE = eq('sous_famille', 'tradi-coffre');                      // volet + coffre PVC
+const COFFRE_SEUL = eq('sous_famille', 'coffre-seul');                        // coffre seul (cascade)
+// Présents pour toutes les sous-familles (largeur, sélecteur, axe interne).
+const GATE_ALWAYS = ['sous_famille', 'largeur', 'layer'];
 // Réservés au Tradi standard (poses, gamme Standard/Express, Express).
 const GATE_STD_ONLY = ['type_volet', 'gamme_tradi', 'coulisse_express', 'express_attaches_info'];
+// Cascade « coffre seul » (1.1.3) — gamme/face/section + pattes de maintien.
+const GATE_COFFRE_SEUL = ['coffre_gamme', 'coffre_face', 'coffre_section', 'coffre_sous_face', 'pattes_maintien', 'coffre_hat_info'];
 gate(GATE_STD_ONLY, STD);
-gate(['coffre'], COFFRE_VIS);
-// Tout le reste = champs « volet » (tradi-std + tradi-coffre), masqués en coffre seul.
-const gateVoletIds = fields.map((f) => f.id)
-  .filter((id) => !GATE_ALWAYS.includes(id) && !GATE_STD_ONLY.includes(id) && id !== 'coffre');
+gate(['coffre'], TRADI_COFFRE);          // sélecteur coffre PVC : 1.1.2 uniquement (1.1.1+1.1.3 plus tard)
+gate(GATE_COFFRE_SEUL, COFFRE_SEUL);
+// Champs « volet » (tablier / manœuvre / coloris / options / hauteur / surface) :
+// tradi-std + tradi-coffre, masqués en coffre seul.
+const gateExplicit = new Set([...GATE_ALWAYS, ...GATE_STD_ONLY, ...GATE_COFFRE_SEUL, 'coffre']);
+const gateVoletIds = fields.map((f) => f.id).filter((id) => !gateExplicit.has(id));
 gate(gateVoletIds, VOLET);
 
 // ---- STEPS (assistant) ----
@@ -466,9 +573,9 @@ const specIds = (v1.specFields ?? []).map((s) => s.id);
 const steps = [
   { id: 'produit', title: 'Type de produit', fields: ['sous_famille'] },
   { id: 'type', title: 'Type & pose', fields: ['gamme_tradi', 'type_volet', ...specIds, 'percage'] },
-  { id: 'coffre', title: 'Coffre', fields: ['coffre'] },
+  { id: 'coffre', title: 'Coffre', fields: ['coffre', 'coffre_gamme', 'coffre_face', 'coffre_section', 'coffre_sous_face'] },
   { id: 'lame', title: 'Lame & coulisses', fields: ['lame', 'coulisse_express', 'express_attaches_info'] },
-  { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'surface_info'] },
+  { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'surface_info', 'pattes_maintien', 'coffre_hat_info'] },
   { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'manoeuvre_type', 'cote_manoeuvre', 'sortie_manoeuvre', 'cote_fil', 'sortie_fil', 'commande', 'moteur', 'radio_somfy', 'emetteur_type'] },
   { id: 'coloris', title: 'Coloris', fields: ['color_tablier', 'color_coulisse', 'color_lame_finale'] },
   { id: 'options', title: 'Options', fields: optionFieldIds },
