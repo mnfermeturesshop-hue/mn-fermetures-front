@@ -324,12 +324,14 @@ for (const o of v1.options) {
     continue;
   }
 
-  // Commande de secours intégrée : +136 € — ne concerne que le moteur (motorisation).
+  // Commande de secours intégrée : +136 € — option de la MOTORISATION FILAIRE
+  // (arbre PDG), ne concerne que le moteur.
   if (o.code === 'kit_inverseur_secours') {
-    fields.push({ id: 'kit_inverseur_secours', label: 'Commande de secours', type: 'boolean',
-      visibleWhen: eq('manoeuvre', 'motorisee') });
-    priceRules.push({ code: 'opt_kit_inverseur_secours', label: 'Commande de secours', kind: 'add',
-      when: AND([eq('kit_inverseur_secours', true), eq('manoeuvre', 'motorisee')]), amount: 136 });
+    const secVis = AND([eq('manoeuvre', 'motorisee'), eq('commande', 'filaire')]);
+    fields.push({ id: 'kit_inverseur_secours', label: 'Commande de secours intégrée', type: 'boolean',
+      visibleWhen: secVis });
+    priceRules.push({ code: 'opt_kit_inverseur_secours', label: 'Commande de secours intégrée', kind: 'add',
+      when: AND([eq('kit_inverseur_secours', true), secVis]), amount: 136 });
     continue;
   }
 
@@ -343,8 +345,26 @@ for (const o of v1.options) {
     amount: price });
 }
 
-// E. Genouillère — UNIQUEMENT en manœuvre MANUELLE (mécanisme de manivelle).
-// En motorisation il n'y a pas de manivelle → aucune genouillère (pas de champ).
+// E. Genouillère — MOTORISATION FILAIRE (6 options : sous-coffre / en applique).
+//    Uniquement en filaire (l'arbre radio/solaire n'a pas de genouillère).
+const GENOU_FIL_VIS = AND([eq('manoeuvre', 'motorisee'), eq('commande', 'filaire')]);
+fields.push({ id: 'genouillere', label: 'Genouillère', type: 'choice', default: 'sc60_incluse',
+  visibleWhen: GENOU_FIL_VIS,
+  help: 'Sous-coffre 60° et applique 60° non aimantée sont incluses dans le prix.',
+  options: [
+    { value: 'sc60_incluse', label: 'Sous-coffre 60° (incluse)' },
+    { value: 'sc60a', label: 'Sous-coffre 60° aimantée (+41 €)' },
+    { value: 'app60', label: 'En applique 60° non aimantée (incluse)' },
+    { value: 'app60a', label: 'En applique 60° aimantée (+41 €)' },
+    { value: 'app90', label: 'En applique 90° non aimantée (+18 €)' },
+    { value: 'app90a', label: 'En applique 90° aimantée (+59 €)' },
+  ] });
+const GENOU_PRICE = { sc60a: 41, app60a: 41, app90: 18, app90a: 59 }; // incluses : sc60_incluse, app60
+for (const [val, price] of Object.entries(GENOU_PRICE)) {
+  priceRules.push({ code: `opt_genouillere_${val}`, label: `Genouillère (${val})`, kind: 'add',
+    when: AND([GENOU_FIL_VIS, eq('genouillere', val)]), amount: price });
+}
+
 // E'. Genouillère — MANŒUVRE MANUELLE (4 options, libellés capture PDG).
 fields.push({ id: 'genouillere_manuelle', label: 'Genouillère', type: 'choice', default: 'g60',
   visibleWhen: eq('manoeuvre', 'manuelle'),
@@ -558,7 +578,8 @@ const optionFieldIds = [
   'radio_info',                                                    // Radio (émetteur inclus)
   'centralisation_info',                                           // Somfy : bloc centralisation
   ...v1.options.filter((o) => !GENOU.includes(o.code) && !['inverseur', 'kit_inverseur_secours'].includes(o.code)).map((o) => o.code),
-  'genouillere_manuelle',   // genouillère : manœuvre manuelle uniquement (pas en motorisation)
+  'genouillere',            // genouillère : motorisation FILAIRE
+  'genouillere_manuelle',   // genouillère : manœuvre manuelle
 ];
 const specIds = (v1.specFields ?? []).map((s) => s.id);
 const steps = [
