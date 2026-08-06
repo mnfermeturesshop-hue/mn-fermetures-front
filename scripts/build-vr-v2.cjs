@@ -571,17 +571,26 @@ const gateVoletIds = fields.map((f) => f.id).filter((id) => !gateExplicit.has(id
 gate(gateVoletIds, VOLET);
 
 // ---- STEPS (assistant) ----
-const optionFieldIds = [
-  ...Object.keys(optionalCodes),                                    // attaches_rigides, sous_face_7016
-  'inverseur', 'inverseur_pose', 'inverseur_maintien',             // Filaire
-  'kit_inverseur_secours',                                         // Commande de secours
-  'radio_info',                                                    // Radio (émetteur inclus)
-  'centralisation_info',                                           // Somfy : bloc centralisation
-  ...v1.options.filter((o) => !GENOU.includes(o.code) && !['inverseur', 'kit_inverseur_secours'].includes(o.code)).map((o) => o.code),
-  'genouillere',            // genouillère : motorisation FILAIRE
-  'genouillere_manuelle',   // genouillère : manœuvre manuelle
-];
 const specIds = (v1.specFields ?? []).map((s) => s.id);
+// Émetteurs / centralisation (group 'commande', hors inverseur traité à part) +
+// alim solaire — rattachés à la MANŒUVRE (motorisation).
+const emetteurCmdIds = v1.options
+  .filter((o) => o.group === 'commande' && o.code !== 'inverseur')
+  .map((o) => o.code);
+// Tout ce qui relève du CHOIX DE MOTORISATION / MANŒUVRE est regroupé dans l'onglet
+// Manœuvre (meilleure UX : un seul endroit) — filaire, radio, solaire, manuelle.
+// La visibilité par branche (filaire/radio/somfy/solaire/manuelle) reste gérée par
+// les `visibleWhen` de chaque champ, donc valable aussi en Tradi Express.
+const manoeuvreOptionIds = [
+  'inverseur', 'inverseur_pose', 'inverseur_maintien', 'kit_inverseur_secours', 'genouillere',  // FILAIRE
+  'radio_info', 'centralisation_info', ...emetteurCmdIds,                                         // Radio/Solaire
+  'genouillere_manuelle',                                                                         // Manœuvre manuelle
+];
+// Onglet Options : uniquement les options GÉNÉRALES (ni motorisation ni manœuvre).
+const optionFieldIds = [
+  ...Object.keys(optionalCodes),                                                                  // attaches rigides, sous-face…
+  ...v1.options.filter((o) => o.group === 'divers' && o.code !== 'kit_inverseur_secours').map((o) => o.code),  // serrure, flasques
+];
 const steps = [
   { id: 'produit', title: 'Type de produit', fields: ['sous_famille'] },
   { id: 'type', title: 'Type & pose', fields: ['gamme_tradi', 'type_volet', ...specIds, 'percage'] },
@@ -589,8 +598,10 @@ const steps = [
   { id: 'lame', title: 'Lame & coulisses', fields: ['lame', 'coulisse_express', 'express_attaches_info'] },
   { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'surface_info', 'pattes_maintien', 'coffre_hat_info'] },
   // Radio/Solaire : on choisit le type d'émetteur (portatif/mural) AVANT la marque
-  // de motorisation (MN/Somfy) — d'où `emetteur_type` placé avant `moteur`.
-  { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'manoeuvre_type', 'cote_manoeuvre', 'sortie_manoeuvre', 'cote_fil', 'sortie_fil', 'commande', 'emetteur_type', 'moteur', 'radio_somfy'] },
+  // de motorisation (MN/Somfy) — d'où `emetteur_type` placé avant `moteur`. Toutes
+  // les options de motorisation/manœuvre (inverseur, secours, genouillère, émetteurs,
+  // centralisation, alim solaire, genouillère manuelle) sont regroupées ici.
+  { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'manoeuvre_type', 'cote_manoeuvre', 'sortie_manoeuvre', 'cote_fil', 'sortie_fil', 'commande', 'emetteur_type', 'moteur', 'radio_somfy', ...manoeuvreOptionIds] },
   { id: 'coloris', title: 'Coloris', fields: ['color_tablier', 'color_coulisse', 'color_lame_finale'] },
   { id: 'options', title: 'Options', fields: optionFieldIds },
   { id: 'recap', title: 'Récapitulatif', fields: [] },
