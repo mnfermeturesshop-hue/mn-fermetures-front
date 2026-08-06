@@ -288,14 +288,20 @@ fields.push({ id: 'emetteur_type', label: 'Émetteur', type: 'choice', default: 
   options: [{ value: 'portatif', label: 'Émetteur portatif' }, { value: 'mural', label: 'Émetteur mural' }] });
 fields.push({ id: 'radio_info', type: 'info', visibleWhen: inSet('commande', ['radio', 'solaire']),
   help: 'Émetteur de base inclus : MN → portatif 1 canal · Somfy → Amy 1 Sun Protect (l’une des 4 possibilités, toutes incluses).' });
+// Intitulé du bloc « centralisation » — uniquement en Somfy radio/solaire.
+fields.push({ id: 'centralisation_info', type: 'info', visibleWhen: AND([eq('moteur', 'somfy'), eq('layer', 'radio')]),
+  help: 'Options de centralisation (Somfy uniquement) : la Situo IO 1 canal remplace l’Amy 1 (+23 €) ; vous pouvez ajouter la Situo IO 5 Pure 2 ou l’Amy 4 IO.' });
 
-// Ajustements de libellé / prix issus de l'arbre Radio (source PDG).
+// Ajustements de libellé / prix issus de l'arbre Radio/Solaire (source PDG) :
+//  - MN : émetteur de base 1 canal INCLUS ; option 5 canaux +80 € (portatif/mural).
+//  - Somfy : Amy 1 Sun Protect INCLUS ; options de CENTRALISATION (Somfy uniquement) :
+//    Situo IO 1 canal (remplace l'Amy 1) +23 €, Situo IO 5 Pure 2 +135 €, Amy 4 IO +131 €.
 const OPTION_OVERRIDE = {
   emetteur_portatif_5c: { label: 'Émetteur portatif 5 canaux', extraWhen: eq('emetteur_type', 'portatif') },
   emetteur_mural_5c: { label: 'Émetteur mural 5 canaux', extraWhen: eq('emetteur_type', 'mural') },
-  situo_io_1c: { label: 'Situo IO 1 canal (remplace l’Amy 1)', priceHT: 23 },
-  situo_io_5c: { label: 'Situo IO 5 Pure 2 (5 canaux)' },
-  amy_4c_io: { label: 'Émetteur Amy 4 IO' },
+  situo_io_1c: { label: 'Émetteur portatif Situo IO 1 canal (remplace l’Amy 1)', priceHT: 23 },
+  situo_io_5c: { label: 'Émetteur portatif Situo IO 5 Pure 2 (5 canaux)' },
+  amy_4c_io: { label: 'Émetteur portatif Amy 4 IO' },
 };
 
 // Options fixes -> champs booléens + règles (genouillères regroupées à part).
@@ -550,6 +556,7 @@ const optionFieldIds = [
   'inverseur', 'inverseur_pose', 'inverseur_maintien',             // Filaire
   'kit_inverseur_secours',                                         // Commande de secours
   'radio_info',                                                    // Radio (émetteur inclus)
+  'centralisation_info',                                           // Somfy : bloc centralisation
   ...v1.options.filter((o) => !GENOU.includes(o.code) && !['inverseur', 'kit_inverseur_secours'].includes(o.code)).map((o) => o.code),
   'genouillere_manuelle',   // genouillère : manœuvre manuelle uniquement (pas en motorisation)
 ];
