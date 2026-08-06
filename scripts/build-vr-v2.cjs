@@ -53,6 +53,9 @@ for (const sel of v1.selectors) {
 
   for (const o of sel.options) {
     if (sel.id === 'type_volet' && (o.value === 'express' || o.value === 'zf')) continue; // express -> gamme_tradi ; ZF retiré
+    // Radio Somfy : on ne garde que RS100 io (Amy inclus). RTS (Smoove) retiré ;
+    // le « solaire » n'est plus une variante ici (géré par la motorisation Solaire).
+    if (sel.id === 'radio_somfy' && (o.value === 'rts' || o.value === 'solaire')) continue;
     const opt = { value: o.value, label: o.label };
     if (o.hint) opt.hint = o.hint;
     if (o.derivedAxes) opt.setsValues = o.derivedAxes;
@@ -82,8 +85,8 @@ for (const sel of v1.selectors) {
   // le champ « Motorisation » (type Filaire/Radio/Solaire = `commande`). Visible pour
   // toute motorisation, Y COMPRIS solaire (l'arbre solaire propose aussi MN/Somfy).
   if (sel.id === 'moteur') { f.label = 'Marque du moteur'; f.visibleWhen = eq('manoeuvre', 'motorisee'); }
-  // Variante Somfy radio (io/rts) : uniquement commande radio + Somfy.
-  if (sel.id === 'radio_somfy') f.visibleWhen = AND([eq('manoeuvre', 'motorisee'), eq('commande', 'radio'), eq('moteur', 'somfy')]);
+  // Commande radio Somfy (RS100 io, Amy inclus) : uniquement commande radio + Somfy.
+  if (sel.id === 'radio_somfy') { f.label = 'Commande radio Somfy'; f.visibleWhen = AND([eq('manoeuvre', 'motorisee'), eq('commande', 'radio'), eq('moteur', 'somfy')]); }
 
   fields.push(f);
 
@@ -125,9 +128,9 @@ for (const sel of v1.selectors) {
         { value: 'filaire', label: 'Filaire', setsValues: { layer: 'filaire' } },
         { value: 'radio', label: 'Radio', setsValues: { layer: 'radio' } },
         // Solaire = Somfy uniquement (MN ne fait pas de moteur solaire) : prix
-        // « radio » (layer radio) + kit solaire Somfy. La marque est forcée Somfy
-        // (l'option MN est masquée en solaire). `radio_somfy:'solaire'` → alim dépannage.
-        { value: 'solaire', label: 'Solaire', setsValues: { layer: 'radio', moteur: 'somfy', radio_somfy: 'solaire' } },
+        // « radio » (layer radio) + kit solaire Somfy (déclenché par commande=solaire).
+        // La marque est forcée Somfy (l'option MN est masquée en solaire).
+        { value: 'solaire', label: 'Solaire', setsValues: { layer: 'radio', moteur: 'somfy' } },
       ],
     });
     // `layer` interne (pilote la grille de prix) — non affiché.
@@ -242,13 +245,17 @@ priceRules.push({ code: 'base', label: 'Prix de base', kind: 'base',
 // désormais tarifé par la cascade GAMME/FACE/SECTION (grille cs_<section>), pas
 // par ces anciens ajustements.
 const COFFRE_PVC = ['coffre_briquelite', 'coffre_neothermic', 'coffre_neobric'];
-const adjustments = v1.adjustments.filter((a) => !COFFRE_PVC.includes(a.code));
+// somfy_rts (RTS Smoove +55 €) retiré : plus proposé.
+const adjustments = v1.adjustments.filter((a) => !COFFRE_PVC.includes(a.code) && a.code !== 'somfy_rts');
 const optionalCodes = {}; // code -> [conditions par ajustement]
 adjustments.forEach((adj, i) => {
   const tid = `adj_${i}`;
   d1[tid] = { keys: Object.keys(adj.baremeParLargeur).map(Number).sort((a, b) => a - b), values: [] };
   d1[tid].values = d1[tid].keys.map((k) => adj.baremeParLargeur[String(k)]);
   const cs = scopeConds(adj.scope, adj.layer);
+  // Kit solaire Somfy (+232 €) : déclenché par la motorisation Solaire (Somfy only),
+  // plus par la variante radio_somfy (l'option a été retirée du champ radio Somfy).
+  if (adj.code === 'somfy_solaire') { cs.length = 0; cs.push(eq('commande', 'solaire')); }
   if (adj.code === 'manoeuvre_manuelle') {
     // Moins-value uniquement pour la tringle oscillante (le tirage direct = prix filaire MN plein).
     cs.push(eq('manoeuvre', 'manuelle'));
@@ -354,7 +361,11 @@ for (const o of v1.options) {
   const ov = OPTION_OVERRIDE[o.code] || {};
   const label = ov.label ?? o.label;
   const price = ov.priceHT ?? o.priceHT;
-  const vis = [...scopeConds(o.scope, o.layer), ...(ov.extraWhen ? [ov.extraWhen] : [])];
+  // Alim de dépannage (solaire) : rattachée à la motorisation Solaire (Somfy),
+  // depuis `commande=solaire` (l'option radio_somfy=solaire a été retirée).
+  const vis = o.code === 'alim_depannage'
+    ? [eq('commande', 'solaire')]
+    : [...scopeConds(o.scope, o.layer), ...(ov.extraWhen ? [ov.extraWhen] : [])];
   fields.push({ id: o.code, label, type: 'boolean', ...(vis.length ? { visibleWhen: AND(vis) } : {}) });
   priceRules.push({ code: `opt_${o.code}`, label, kind: 'add',
     when: AND([eq(o.code, true), ...vis]),
