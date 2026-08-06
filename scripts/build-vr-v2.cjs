@@ -77,8 +77,9 @@ for (const sel of v1.selectors) {
   if (sel.id === 'type_volet') f.visibleWhen = eq('gamme_tradi', 'standard');
   // Marque du moteur : en motorisation, hors solaire (le solaire force Somfy).
   // `moteur` = MARQUE du moteur (MN / Somfy) — renommé pour lever l'ambiguïté avec
-  // le champ « Motorisation » (type Filaire/Radio/Solaire = `commande`).
-  if (sel.id === 'moteur') { f.label = 'Marque du moteur'; f.visibleWhen = AND([eq('manoeuvre', 'motorisee'), ne('commande', 'solaire')]); }
+  // le champ « Motorisation » (type Filaire/Radio/Solaire = `commande`). Visible pour
+  // toute motorisation, Y COMPRIS solaire (l'arbre solaire propose aussi MN/Somfy).
+  if (sel.id === 'moteur') { f.label = 'Marque du moteur'; f.visibleWhen = eq('manoeuvre', 'motorisee'); }
   // Variante Somfy radio (io/rts) : uniquement commande radio + Somfy.
   if (sel.id === 'radio_somfy') f.visibleWhen = AND([eq('manoeuvre', 'motorisee'), eq('commande', 'radio'), eq('moteur', 'somfy')]);
 
@@ -121,7 +122,10 @@ for (const sel of v1.selectors) {
       options: [
         { value: 'filaire', label: 'Filaire', setsValues: { layer: 'filaire' } },
         { value: 'radio', label: 'Radio', setsValues: { layer: 'radio' } },
-        { value: 'solaire', label: 'Solaire', setsValues: { layer: 'radio', moteur: 'somfy', radio_somfy: 'solaire' } },
+        // Solaire : prix « radio » (layer radio) + marque LIBRE (MN/Somfy, comme
+        // l'arbre solaire). `radio_somfy:'solaire'` sert l'option alim de dépannage
+        // (Somfy solaire). Ne force plus la marque.
+        { value: 'solaire', label: 'Solaire', setsValues: { layer: 'radio', radio_somfy: 'solaire' } },
       ],
     });
     // `layer` interne (pilote la grille de prix) — non affiché.
