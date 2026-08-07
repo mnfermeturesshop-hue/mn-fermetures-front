@@ -69,7 +69,7 @@ function linesTable(lines: OrderLine[]): string {
         <div style="font-weight:600;color:#1e3a5f;">${escapeHtml(l.name)}</div>
         ${l.reference ? `<div style="font-size:12px;color:#6b7280;font-family:monospace;">${escapeHtml(l.reference)}</div>` : ''}
         ${l.detail ? `<div style="font-size:12px;color:#6b7280;">${escapeHtml(l.detail)}</div>` : ''}
-        ${eco > 0 ? `<div style="font-size:12px;color:#6b7280;">dont éco-contribution : ${euro(eco)}/u (non remisable)</div>` : ''}
+        ${eco > 0 ? `<div style="font-size:12px;color:#166534;">dont éco-contribution : <strong>${euro(eco)}/u</strong> (non remisable)</div>` : ''}
       </td>
       <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:center;">${l.quantity}</td>
       ${puCell(gross, net)}
