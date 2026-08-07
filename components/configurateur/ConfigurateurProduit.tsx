@@ -135,10 +135,21 @@ export function ConfigurateurProduit({ slug }: Props) {
   const visibleFields = (ids: string[]): Field[] =>
     ids.map(fieldById).filter((f): f is Field => !!f && isVisible(f.visibleWhen, ctx));
   const optionLabel = (f: Field, val: Primitive | undefined) => f.options?.find((o) => o.value === val)?.label ?? '';
+  // Un champ de choix « couleur » (pastilles) : on préfixe son libellé dans le détail
+  // pour lever l'ambiguïté (Coloris tablier / coulisse / lame finale).
+  const isColorField = (f: Field) => !!f.options?.some((o) => o.hex);
+  // Interpolation `{{var}}` depuis le contexte résolu (valeurs + dérivées, ex.
+  // `coulisse_defaut`). Permet aux champs info d'afficher une valeur calculée.
+  const hasTemplate = (s: string | undefined): s is string => !!s && /\{\{\w+\}\}/.test(s);
+  const interpolate = (text: string) =>
+    text.replace(/\{\{(\w+)\}\}/g, (_, k) => { const v = result?.context?.[k]; return v == null ? '' : String(v); });
 
   // ── Rendu générique d'un champ ──
   const renderField = (f: Field): ReactNode => {
-    if (f.type === 'info') return <p className="cfg-dim-hint" key={f.id}>{f.help}</p>;
+    if (f.type === 'info') {
+      const txt = hasTemplate(f.help) ? interpolate(f.help) : (f.help ?? '');
+      return <p className="cfg-dim-hint" key={f.id}>{f.label ? `${f.label} : ${txt}` : txt}</p>;
+    }
 
     if (f.type === 'boolean') {
       return (
@@ -242,11 +253,16 @@ export function ConfigurateurProduit({ slug }: Props) {
         if (val != null && val !== '') parts.push(`${f.label} ${val}${f.unit ? ' ' + f.unit : ''}`);
       } else if (f.type === 'choice') {
         const lbl = optionLabel(f, val);
-        if (lbl) parts.push(lbl);
+        // Coloris : préfixé par la nature (Coloris tablier/coulisse/lame finale).
+        if (lbl) parts.push(isColorField(f) ? `${f.label} : ${lbl}` : lbl);
       } else if (f.type === 'boolean') {
         if (val === true) parts.push(f.label);
       } else if (f.type === 'text') {
         if (val) parts.push(`${f.label} : ${val}`);
+      } else if (f.type === 'info' && hasTemplate(f.help)) {
+        // Info calculée (ex. coulisse par défaut) → remontée au détail/devis/BC.
+        const v = interpolate(f.help);
+        if (v) parts.push(f.label ? `${f.label} : ${v}` : v);
       }
     }
     return parts.filter(Boolean).join(' — ');
@@ -283,6 +299,7 @@ export function ConfigurateurProduit({ slug }: Props) {
           else if (f.type === 'boolean') display = val === true ? 'Oui' : '';
           else if ((f.type === 'dimension' || f.type === 'number')) display = val != null ? `${val} ${f.unit ?? ''}`.trim() : '';
           else if (f.type === 'text') display = String(val ?? '');
+          else if (f.type === 'info' && hasTemplate(f.help)) display = interpolate(f.help);   // ex. coulisse par défaut
           if (!display) return null;
           return <li key={f.id}><span>{f.label}</span><strong>{display}</strong></li>;
         })}

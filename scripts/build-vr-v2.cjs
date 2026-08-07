@@ -219,6 +219,19 @@ const derived = [
   { id: 'surface_m2', expr: { op: '*', args: [{ op: '/', args: [V('largeur'), 1000] }, { op: '/', args: [V('hauteur'), 1000] }] } },
   // NB : le poids du tablier / la puissance moteur sont gérés dans Optilog (hors SaaS).
 ];
+// Coulisse (par défaut) — dépend de la lame (CD942→×22, 56/55→×27) et de la pose
+// (Indépendant/Drapeau→40, Tunnel MN/inconnu & Tradi+Coffre→45). Valeur affichée
+// (configurateur + détail/devis/BC), sans impact prix.
+const COULISSE_TUNNEL = ANY([
+  eq('sous_famille', 'tradi-coffre'),
+  AND([eq('sous_famille', 'tradi-std'), inSet('type_volet', ['tunnel_mn', 'tunnel_inconnu'])]),
+]);
+derived.push({ id: 'coulisse_defaut', expr: { op: 'concat', args: [
+  'Coulisse alu ',
+  { op: 'if', cond: COULISSE_TUNNEL, then: '45', else: '40' },
+  '×',
+  { op: 'if', cond: eq('lame', 'cd942'), then: '22', else: '27' },
+] } });
 
 // Largeur MINIMALE réelle = borne basse « L de » de la 1re bande de la grille,
 // par pose/lame/moteur/couche (source : en-têtes des grilles du tarif).
@@ -436,6 +449,12 @@ fields.push({ id: 'coulisse_express', label: 'Coulisses', type: 'choice', defaul
 fields.push({ id: 'express_attaches_info', type: 'info', visibleWhen: eq('gamme_tradi', 'express'),
   help: 'Tradi Express : attaches rigides incluses de série.' });
 
+// Coulisse par défaut (affichée) — Tradi standard (hors Express) & Tradi + coffre.
+// `{{coulisse_defaut}}` = valeur dérivée interpolée par le wizard (cf. buildDetail).
+fields.push({ id: 'coulisse_defaut_info', type: 'info', label: 'Coulisse (par défaut)',
+  help: '{{coulisse_defaut}}',
+  visibleWhen: ANY([AND([eq('sous_famille', 'tradi-std'), eq('gamme_tradi', 'standard')]), eq('sous_famille', 'tradi-coffre')]) });
+
 // ===================================================================
 // 1.1.3 COFFRE SEUL — cascade GAMME › FACE › SECTION (arbre de décision PDG)
 // -------------------------------------------------------------------
@@ -628,7 +647,7 @@ const steps = [
   // config volet (« Étape 2 » du tradi + coffre). Masquée en tradi-std (étape vide).
   { id: 'coffre', title: 'Coffre', fields: ['coffre_gamme', 'coffre_face', 'coffre_section', 'coffre_sous_face'] },
   { id: 'type', title: 'Type & pose', fields: ['gamme_tradi', 'type_volet', ...specIds, 'percage'] },
-  { id: 'lame', title: 'Lame & coulisses', fields: ['lame', 'coulisse_express', 'express_attaches_info'] },
+  { id: 'lame', title: 'Lame & coulisses', fields: ['lame', 'coulisse_express', 'coulisse_defaut_info', 'express_attaches_info'] },
   { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'surface_info', 'pattes_maintien', 'coffre_hat_info'] },
   // Radio/Solaire : on choisit le type d'émetteur (portatif/mural) AVANT la marque
   // de motorisation (MN/Somfy) — d'où `emetteur_type` placé avant `moteur`. Toutes
