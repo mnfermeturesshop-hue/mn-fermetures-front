@@ -79,7 +79,7 @@ export const useCartStore = create<CartStore>()(
       closeCart: () => set({ isOpen: false }),
       toggleTTC: () => set((s) => ({ showTTC: !s.showTTC })),
 
-      totalHT: () => get().lines.reduce((s, l) => s + (l.unitPriceHT + (l.surchargeUnitHT ?? 0)) * l.quantity, 0),
+      totalHT: () => get().lines.reduce((s, l) => s + (l.unitPriceHT + (l.surchargeUnitHT ?? 0) + (l.ecoContribHT ?? 0)) * l.quantity, 0),
       tva: () => get().totalHT() * TVA,
       totalTTC: () => get().totalHT() * (1 + TVA),
       isFranco: () => get().totalHT() >= FRANCO_SEUIL,

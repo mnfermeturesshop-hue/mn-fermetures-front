@@ -10,6 +10,7 @@ import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from '@/components/ui/Toast';
 import type { CartLine } from '@/lib/catalog/types';
+import { ECO_MENTION } from '@/lib/pricing/ecoMention';
 
 const TVA = 0.2;
 
@@ -299,12 +300,14 @@ function DevisContent() {
               const sNet = l.surchargeUnitHT ?? 0;
               const sGross = l.surchargeGrossUnitHT ?? 0;
               const sHasRemise = sGross > sNet + 0.005;
+              const eco = l.ecoContribHT ?? 0;   // éco-contribution €/u, fusionnée au total de la ligne
               return (
               <Fragment key={l.key ?? i}>
               <tr>
                 <td>
                   <div className="devis-line-name">{l.name}</div>
                   {l.detail && <div className="devis-line-detail">{l.detail}</div>}
+                  {eco > 0 && <div className="devis-line-detail">dont éco-contribution : {euro(eco)}/u (non remisable)</div>}
                 </td>
                 <td className="ref">{l.reference ?? '—'}</td>
                 <td>{l.quantity}</td>
@@ -312,7 +315,7 @@ function DevisContent() {
                   {hasRemise && <div className="devis-pu-gross">{euro(gross)}</div>}
                   <div className={hasRemise ? 'devis-pu-net' : undefined}>{euro(l.unitPriceHT)}{hasRemise ? ' net' : ''}</div>
                 </td>
-                <td>{euro(l.unitPriceHT * l.quantity)}</td>
+                <td>{euro((l.unitPriceHT + eco) * l.quantity)}</td>
               </tr>
               {sNet > 0 && (
                 <tr className="devis-surcharge-row">
@@ -358,6 +361,11 @@ function DevisContent() {
             </tr>
           </tfoot>
         </table>
+
+        {/* Mention légale éco-contribution (loi AGEC / Valobat) */}
+        <p className="devis-eco-mention" style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.6, margin: '12px 0 0', padding: '10px 12px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 6 }}>
+          {ECO_MENTION}
+        </p>
 
         {/* Conditions */}
         <div className="devis-conditions">

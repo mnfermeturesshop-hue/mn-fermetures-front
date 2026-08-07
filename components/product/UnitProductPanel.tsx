@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { type UnitProduct, type ProductVariant } from '@/lib/catalog/types';
 import { useCartStore, euro } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
-import { resolveB2BDiscountSeed, resolveB2BSurchargeSeed, splitB2BPrice } from '@/lib/pricing/discount-resolver';
+import { resolveB2BDiscountSeed, resolveB2BSurchargeSeed, resolveEcoSeed, splitB2BPrice } from '@/lib/pricing/discount-resolver';
 import { useSurchargeStore } from '@/lib/store/surcharge';
 import { toast } from '@/components/ui/Toast';
 import { trackAddToCart } from '@/lib/analytics';
@@ -23,10 +23,12 @@ export function UnitProductPanel({ product }: { product: UnitProduct }) {
   const { user } = useAuthStore();
   const TVA = 0.20;
 
-  const discountPct = resolveB2BDiscountSeed(user?.proDiscounts, product.taxonomySlug ?? product.famille);
-  const surchargePct = resolveB2BSurchargeSeed(useSurchargeStore((s) => s.map), product.taxonomySlug ?? product.famille);
-  // Prix affiché = produit net + surcharge nette (tout compris) ; la ligne panier stocke le détail.
-  const net = (base: number) => { const s = splitB2BPrice(base, surchargePct, discountPct); return s.productNet + s.surchargeNet; };
+  const node = product.taxonomySlug ?? product.famille;
+  const discountPct = resolveB2BDiscountSeed(user?.proDiscounts, node);
+  const surchargePct = resolveB2BSurchargeSeed(useSurchargeStore((s) => s.map), node);
+  const ecoContribHT = resolveEcoSeed(useSurchargeStore((s) => s.eco), node);
+  // Prix affiché = produit net + surcharge nette + éco (tout compris) ; la ligne panier stocke le détail.
+  const net = (base: number) => { const s = splitB2BPrice(base, surchargePct, discountPct); return s.productNet + s.surchargeNet + ecoContribHT; };
 
   const variant: ProductVariant | undefined = product.variants.find((v) => v.reference === selectedRef);
 
@@ -41,6 +43,7 @@ export function UnitProductPanel({ product }: { product: UnitProduct }) {
       grossUnitPriceHT: variant.priceHT,
       unitPriceHT: s.productNet,
       ...(s.surchargeNet > 0 ? { surchargePct, surchargeGrossUnitHT: s.surchargeGross, surchargeUnitHT: s.surchargeNet } : {}),
+      ...(ecoContribHT > 0 ? { ecoContribHT } : {}),
       quantity: qty,
       uom: product.uom,
     });

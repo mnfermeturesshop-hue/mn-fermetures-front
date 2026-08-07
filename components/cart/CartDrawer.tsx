@@ -19,6 +19,9 @@ function CartLineRow({ line }: { line: CartLine }) {
         {!!line.surchargeUnitHT && (
           <div className="drawer-line-detail">+ Surcharge temporaire (+{line.surchargePct}%) : {euro(line.surchargeUnitHT * line.quantity)} HT</div>
         )}
+        {!!line.ecoContribHT && (
+          <div className="drawer-line-detail">+ Éco-contribution : {euro(line.ecoContribHT * line.quantity)} HT</div>
+        )}
       </div>
       <div className="drawer-line-right">
         <div className="qty-ctrl">

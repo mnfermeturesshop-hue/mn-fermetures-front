@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { type KitProduct } from '@/lib/catalog/types';
 import { useCartStore, euro } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
-import { resolveB2BDiscountSeed, resolveB2BSurchargeSeed, splitB2BPrice } from '@/lib/pricing/discount-resolver';
+import { resolveB2BDiscountSeed, resolveB2BSurchargeSeed, resolveEcoSeed, splitB2BPrice } from '@/lib/pricing/discount-resolver';
 import { useSurchargeStore } from '@/lib/store/surcharge';
 import { toast } from '@/components/ui/Toast';
 import { trackAddToCart } from '@/lib/analytics';
@@ -15,9 +15,11 @@ export function KitConfigurator({ product }: { product: KitProduct }) {
   const { user } = useAuthStore();
 
   const config = product.configs.find((c) => c.reference === selectedRef) ?? product.configs[0];
-  const discountPct = resolveB2BDiscountSeed(user?.proDiscounts, product.taxonomySlug ?? product.famille);
-  const surchargePct = resolveB2BSurchargeSeed(useSurchargeStore((s) => s.map), product.taxonomySlug ?? product.famille);
-  const net = (base: number) => { const s = splitB2BPrice(base, surchargePct, discountPct); return s.productNet + s.surchargeNet; };
+  const node = product.taxonomySlug ?? product.famille;
+  const discountPct = resolveB2BDiscountSeed(user?.proDiscounts, node);
+  const surchargePct = resolveB2BSurchargeSeed(useSurchargeStore((s) => s.map), node);
+  const ecoContribHT = resolveEcoSeed(useSurchargeStore((s) => s.eco), node);
+  const net = (base: number) => { const s = splitB2BPrice(base, surchargePct, discountPct); return s.productNet + s.surchargeNet + ecoContribHT; };
   const finalPriceHT = net(config.priceHT);
 
   const handleAdd = () => {
@@ -30,6 +32,7 @@ export function KitConfigurator({ product }: { product: KitProduct }) {
       grossUnitPriceHT: config.priceHT,
       unitPriceHT: s.productNet,
       ...(s.surchargeNet > 0 ? { surchargePct, surchargeGrossUnitHT: s.surchargeGross, surchargeUnitHT: s.surchargeNet } : {}),
+      ...(ecoContribHT > 0 ? { ecoContribHT } : {}),
       quantity: 1,
       uom: 'unite',
     });

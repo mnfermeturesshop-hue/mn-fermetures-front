@@ -40,6 +40,15 @@ function LineRow({ line }: { line: CartLine }) {
         <td className="cart-td-del"></td>
       </tr>
     )}
+    {!!line.ecoContribHT && (
+      <tr className="cart-tr cart-surcharge-tr">
+        <td className="cart-td-name"><div className="cart-detail">Éco-contribution</div></td>
+        <td className="cart-td-price">{euro(line.ecoContribHT)} HT</td>
+        <td className="cart-td-qty" style={{ textAlign: 'center' }}>{line.quantity}</td>
+        <td className="cart-td-total">{euro(line.ecoContribHT * line.quantity)} HT</td>
+        <td className="cart-td-del"></td>
+      </tr>
+    )}
     </Fragment>
   );
 }

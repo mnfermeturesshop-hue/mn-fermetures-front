@@ -117,4 +117,30 @@ export function resolveB2BSurchargeSeed(
   return resolveB2BSurcharge(surcharges, nodeOrFamille, TAXONOMY_SEED);
 }
 
+/* =====================================================================
+   Éco-contribution (AGEC / Valobat) — montant en € posé par nœud. Résolution
+   EXACTE (pas d'héritage), comme la surcharge : seul le montant du nœud du produit
+   s'applique. Ajoutée une fois par produit, JAMAIS remisée ni surchargée.
+   ===================================================================== */
+
+/** Carte d'éco-contributions (slug de nœud → €) à partir des nœuds de taxonomie. */
+export function ecoMapFromNodes(nodes: TaxonomyNode[]): NodeDiscountMap {
+  const out: NodeDiscountMap = {};
+  for (const n of nodes) if (typeof n.ecoContribution === 'number' && n.ecoContribution > 0) out[n.slug] = n.ecoContribution;
+  return out;
+}
+
+/** Éco-contribution (€) d'un produit — nœud EXACT uniquement (0 sinon). */
+export function resolveEco(
+  eco: NodeDiscountMap | undefined,
+  nodeOrFamille: string | undefined,
+): number {
+  const node = legacyFamilleToNode(nodeOrFamille);
+  const v = node ? eco?.[node] : undefined;
+  return typeof v === 'number' && v > 0 ? v : 0;
+}
+
+/** Alias d'affichage client (même résolution exacte). */
+export const resolveEcoSeed = resolveEco;
+
 export { applyDiscount };

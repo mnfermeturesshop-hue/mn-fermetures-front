@@ -17,7 +17,8 @@ export interface TaxonomyNode {
   sortOrder: number;
   active: boolean;
   generatorSlug?: string;       // configurateur rattaché (facultatif)
-  surcharge?: number;           // surcharge temporaire % (héritée), 0 par défaut
+  surcharge?: number;           // surcharge temporaire % (nœud exact), 0 par défaut
+  ecoContribution?: number;     // éco-contribution AGEC/Valobat en € (nœud exact), 0 par défaut
 }
 
 /* ---------- Seed (arbre lisible → aplati en liste) ---------- */

@@ -6,7 +6,7 @@ import { type MatrixProduct } from '@/lib/catalog/types';
 import { resolveMatrixPrice } from '@/lib/catalog/resolvePrice';
 import { useCartStore, euro } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
-import { resolveB2BDiscountSeed, resolveB2BSurchargeSeed, splitB2BPrice } from '@/lib/pricing/discount-resolver';
+import { resolveB2BDiscountSeed, resolveB2BSurchargeSeed, resolveEcoSeed, splitB2BPrice } from '@/lib/pricing/discount-resolver';
 import { useSurchargeStore } from '@/lib/store/surcharge';
 import { toast } from '@/components/ui/Toast';
 import { trackAddToCart } from '@/lib/analytics';
@@ -50,10 +50,12 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
     () => resolveMatrixPrice(product, height, width, opts),
     [product, height, width, opts]
   );
-  const discountPct = resolveB2BDiscountSeed(user?.proDiscounts, product.taxonomySlug ?? product.famille);
-  const surchargePct = resolveB2BSurchargeSeed(useSurchargeStore((s) => s.map), product.taxonomySlug ?? product.famille);
+  const node = product.taxonomySlug ?? product.famille;
+  const discountPct = resolveB2BDiscountSeed(user?.proDiscounts, node);
+  const surchargePct = resolveB2BSurchargeSeed(useSurchargeStore((s) => s.map), node);
+  const ecoContribHT = resolveEcoSeed(useSurchargeStore((s) => s.eco), node);
   const split = price === null ? null : splitB2BPrice(price, surchargePct, discountPct);
-  const finalPrice = split === null ? null : split.productNet + split.surchargeNet;
+  const finalPrice = split === null ? null : split.productNet + split.surchargeNet + ecoContribHT;
 
   const handleAdd = () => {
     if (finalPrice === null) return;
@@ -74,6 +76,7 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
       grossUnitPriceHT: price ?? undefined,
       unitPriceHT: split!.productNet,
       ...(split!.surchargeNet > 0 ? { surchargePct, surchargeGrossUnitHT: split!.surchargeGross, surchargeUnitHT: split!.surchargeNet } : {}),
+      ...(ecoContribHT > 0 ? { ecoContribHT } : {}),
       quantity: 1,
       uom: 'unite',
       // Descripteur pour le recalcul serveur (audit S2) — le prix ci-dessus

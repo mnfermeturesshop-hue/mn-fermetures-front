@@ -96,6 +96,12 @@ export default function AdminNomenclature() {
     if (num !== (n.surcharge ?? 0)) call({ action: 'update', slug: n.slug, surcharge: num }, 'Surcharge mise à jour.');
   };
 
+  // Éco-contribution (€) INDÉPENDANTE (nœud exact) — à poser sur la sous-famille.
+  const setEco = (n: TaxonomyNode, val: string) => {
+    const num = val === '' ? 0 : Math.max(0, Math.round((Number(val) || 0) * 100) / 100);
+    if (num !== (n.ecoContribution ?? 0)) call({ action: 'update', slug: n.slug, ecoContribution: num }, 'Éco-contribution mise à jour.');
+  };
+
   const Row = ({ n }: { n: TaxonomyNode }) => {
     const kids = childrenOf(n.slug);
     const canHaveChild = n.level !== 'sous_famille';
@@ -124,6 +130,15 @@ export default function AdminNomenclature() {
               onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
             />
             <span className="nom-surcharge-unit">% surch.</span>
+          </span>
+
+          <span className="nom-surcharge" title="Éco-contribution (€) sur CE nœud — sans héritage, ajoutée une fois par produit (non remisable)">
+            <input
+              type="number" min={0} step="any" defaultValue={n.ecoContribution ?? 0} disabled={busy || !dbReady}
+              onBlur={(e) => setEco(n, e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+            />
+            <span className="nom-surcharge-unit">€ éco</span>
           </span>
 
           <span className="nom-actions">

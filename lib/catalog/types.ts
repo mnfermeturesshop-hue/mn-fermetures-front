@@ -161,6 +161,9 @@ export interface CartLine {
   surchargePct?: number;              // ex. 5
   surchargeGrossUnitHT?: MoneyHT;     // base × pct% (avant remise)
   surchargeUnitHT?: MoneyHT;          // surcharge après remise (ajoutée au total)
+  /** Éco-contribution (€/unité) AGEC/Valobat — fusionnée au total de la ligne,
+   *  JAMAIS remisée ni surchargée, une fois par produit (× quantité). */
+  ecoContribHT?: MoneyHT;
   quantity: number;
   uom: Uom;
   /** Métadonnées de re-tarification serveur (obligatoire pour les tabliers). */

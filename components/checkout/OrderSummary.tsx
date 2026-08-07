@@ -26,8 +26,9 @@ export function OrderSummary() {
               <div className="os-line-info">
                 <span className="os-line-name">{l.name}</span>
                 {l.detail && <span className="os-line-detail">{l.detail}</span>}
+                {!!l.ecoContribHT && <span className="os-line-detail">dont éco-contribution : {euro(l.ecoContribHT)}/u</span>}
               </div>
-              <span className="os-line-price">{euro(l.unitPriceHT * l.quantity)}</span>
+              <span className="os-line-price">{euro((l.unitPriceHT + (l.ecoContribHT ?? 0)) * l.quantity)}</span>
             </li>
             {!!l.surchargeUnitHT && (
               <li className="os-line">

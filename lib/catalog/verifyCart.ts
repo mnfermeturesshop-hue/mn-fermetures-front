@@ -2,7 +2,7 @@ import { getAllProducts } from './db';
 import { resolveMatrixPrice } from './resolvePrice';
 import { isMatrix, isUnit, isKit, type Product, type CartLine, type Uom } from './types';
 import { type DiscountMap } from '@/lib/familles';
-import { resolveB2BDiscount, applyDiscount, resolveB2BSurcharge, surchargeMapFromNodes } from '@/lib/pricing/discount-resolver';
+import { resolveB2BDiscount, applyDiscount, resolveB2BSurcharge, surchargeMapFromNodes, resolveEco, ecoMapFromNodes } from '@/lib/pricing/discount-resolver';
 import { getTaxonomy } from '@/lib/catalog/taxonomy-loader';
 import { generatorNode } from '@/lib/catalog/taxonomy';
 import { laquageForfaitHT } from '@/lib/pricing/shipping';
@@ -35,6 +35,8 @@ export interface VerifiedLine {
   surchargePct?: number;
   surchargeGrossUnitHT?: number;
   surchargeUnitHT?: number;
+  /** Éco-contribution (€/unité) — fusionnée au total de la ligne, non remisée/surchargée. */
+  ecoContribHT?: number;
   /** Descripteur de re-tarification conservé — permet de re-commander un devis
    *  (le panier rechargé reste re-tarifable au taux courant). */
   pricing?: CartLine['pricing'];
@@ -90,7 +92,8 @@ export async function verifyCartLines(
   const products = await getAllProducts();
   const bySlug = new Map<string, Product>(products.map((p) => [p.slug, p]));
   const taxonomy = await getTaxonomy();   // remises B2B héritées (Gamme › Famille › Sous‑famille)
-  const surcharges = surchargeMapFromNodes(taxonomy);   // surcharge temporaire (globale, héritée)
+  const surcharges = surchargeMapFromNodes(taxonomy);   // surcharge temporaire (nœud exact)
+  const ecoMap = ecoMapFromNodes(taxonomy);             // éco-contribution € (nœud exact)
 
   // Index référence → prix de base (unit variants + kit configs)
   const byRef = new Map<string, { product: Product; base: number }>();
@@ -198,7 +201,10 @@ export async function verifyCartLines(
     const unitPriceHT = isNegotiated ? base : applyDiscount(base, discountPct);
     const surchargeGrossUnitHT = surchargePct > 0 ? Math.round(base * surchargePct) / 100 : 0;
     const surchargeUnitHT = surchargeGrossUnitHT > 0 ? applyDiscount(surchargeGrossUnitHT, discountPct) : 0;
-    productsHT += (unitPriceHT + surchargeUnitHT) * qty;
+    // Éco-contribution : montant fixe du nœud exact, ajouté une fois par produit
+    // (× quantité), JAMAIS remisé ni surchargé. Pas sur les lignes négociées.
+    const ecoContribHT = isNegotiated ? 0 : resolveEco(ecoMap, node);
+    productsHT += (unitPriceHT + surchargeUnitHT + ecoContribHT) * qty;
 
     verified.push({
       key: String(raw.key ?? name),
@@ -208,6 +214,7 @@ export async function verifyCartLines(
       grossUnitPriceHT: base,          // PU HT produit (avant remise, hors surcharge)
       unitPriceHT,                     // PU HT produit net
       ...(surchargeUnitHT > 0 ? { surchargePct, surchargeGrossUnitHT, surchargeUnitHT } : {}),
+      ...(ecoContribHT > 0 ? { ecoContribHT } : {}),
       ...(raw.pricing ? { pricing: raw.pricing } : {}),   // conservé pour re-commander
       quantity: qty,
       uom: raw.uom,

@@ -5,7 +5,7 @@ import { resolvePrice } from '@/lib/configurateur/v2/engine';
 import { repairValues, availableOptions, isVisible, withDerivedValues } from '@/lib/configurateur/v2/cascade';
 import type { DefV2, Field, Primitive, Values } from '@/lib/configurateur/v2/types';
 import { Stepper } from './Stepper';
-import { resolveB2BDiscountSeed, resolveB2BSurchargeSeed, splitB2BPrice } from '@/lib/pricing/discount-resolver';
+import { resolveB2BDiscountSeed, resolveB2BSurchargeSeed, resolveEcoSeed, splitB2BPrice } from '@/lib/pricing/discount-resolver';
 import { useSurchargeStore } from '@/lib/store/surcharge';
 import { generatorNode, TAXONOMY_SEED } from '@/lib/catalog/taxonomy';
 import { useCartStore } from '@/lib/store/cart';
@@ -103,6 +103,7 @@ export function ConfigurateurProduit({ slug }: Props) {
 
   const result = useMemo(() => (def ? resolvePrice(def, values) : null), [def, values]);
   const surchargeMap = useSurchargeStore((s) => s.map);
+  const ecoMap = useSurchargeStore((s) => s.eco);
   // Nœud de rattachement : la valeur du champ `nodeField` (sous-famille choisie)
   // prime — sinon le nœud portant le générateur, sinon def.famille.
   const selNode = def?.nodeField ? values[def.nodeField] : undefined;
@@ -111,8 +112,10 @@ export function ConfigurateurProduit({ slug }: Props) {
     : undefined;
   const discountPct = node ? resolveB2BDiscountSeed(user?.proDiscounts ?? {}, node) : 0;
   const surchargePct = node ? resolveB2BSurchargeSeed(surchargeMap, node) : 0;
+  // Éco-contribution (€/unité) — nœud exact, ajoutée au total, jamais remisée/surchargée.
+  const ecoContribHT = node ? resolveEcoSeed(ecoMap, node) : 0;
   const split = result?.ok ? splitB2BPrice(result.total, surchargePct, discountPct) : null;
-  const unitNet = split ? split.productNet + split.surchargeNet : 0;
+  const unitNet = split ? split.productNet + split.surchargeNet + ecoContribHT : 0;
 
   // ── États de garde ──
   if (status === 'gated') {
@@ -278,6 +281,7 @@ export function ConfigurateurProduit({ slug }: Props) {
       grossUnitPriceHT: result.total,
       unitPriceHT: split!.productNet,
       ...(split!.surchargeNet > 0 ? { surchargePct, surchargeGrossUnitHT: split!.surchargeGross, surchargeUnitHT: split!.surchargeNet } : {}),
+      ...(ecoContribHT > 0 ? { ecoContribHT } : {}),
       quantity: qty,
       uom: 'unite',
       pricing: { kind: 'configurateur', slug, values, laque },
@@ -364,7 +368,10 @@ export function ConfigurateurProduit({ slug }: Props) {
                   <div className="cfg-price-row"><span>Surcharge temporaire +{surchargePct}%</span><span>+{euro(split.surchargeGross)}</span></div>
                 )}
                 {discountPct > 0 && split && (
-                  <div className="cfg-price-row"><span>Remise pro −{discountPct}%</span><span>−{euro(result.total + split.surchargeGross - unitNet)}</span></div>
+                  <div className="cfg-price-row"><span>Remise pro −{discountPct}%</span><span>−{euro(result.total + split.surchargeGross - (unitNet - ecoContribHT))}</span></div>
+                )}
+                {ecoContribHT > 0 && (
+                  <div className="cfg-price-row"><span>Éco-contribution</span><span>+{euro(ecoContribHT)}</span></div>
                 )}
               </div>
               <div className="cfg-total"><span>Prix unitaire HT</span><strong>{euro(unitNet)}</strong></div>

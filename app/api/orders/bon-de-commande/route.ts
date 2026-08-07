@@ -7,6 +7,7 @@ import { getUserDiscounts } from '@/lib/pricing/discounts';
 import { computeOrderTotals, type ShippingMethod } from '@/lib/pricing/shipping';
 import { escapeHtml } from '@/lib/security/escapeHtml';
 import { rateLimit } from '@/lib/security/rateLimit';
+import { ECO_MENTION } from '@/lib/pricing/ecoMention';
 
 interface OrderLine {
   key: string;
@@ -20,6 +21,8 @@ interface OrderLine {
   surchargePct?: number;
   surchargeGrossUnitHT?: number;
   surchargeUnitHT?: number;
+  /** Éco-contribution (€/unité) — fusionnée au total de la ligne produit. */
+  ecoContribHT?: number;
 }
 
 interface Address {
@@ -59,16 +62,18 @@ function linesTable(lines: OrderLine[]): string {
   const rows = lines.map((l) => {
     const gross = l.grossUnitPriceHT ?? l.unitPriceHT;   // PU HT produit (avant remise)
     const net = l.unitPriceHT;                            // PU net produit (après remise)
+    const eco = l.ecoContribHT ?? 0;                      // éco-contribution €/unité (fusionnée à la ligne)
     const productRow = `
     <tr>
       <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;">
         <div style="font-weight:600;color:#1e3a5f;">${escapeHtml(l.name)}</div>
         ${l.reference ? `<div style="font-size:12px;color:#6b7280;font-family:monospace;">${escapeHtml(l.reference)}</div>` : ''}
         ${l.detail ? `<div style="font-size:12px;color:#6b7280;">${escapeHtml(l.detail)}</div>` : ''}
+        ${eco > 0 ? `<div style="font-size:12px;color:#6b7280;">dont éco-contribution : ${euro(eco)}/u (non remisable)</div>` : ''}
       </td>
       <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:center;">${l.quantity}</td>
       ${puCell(gross, net)}
-      <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:700;">${euro(net * l.quantity)} HT</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:700;">${euro((net + eco) * l.quantity)} HT</td>
     </tr>`;
     const sNet = l.surchargeUnitHT ?? 0;
     const surchargeRow = sNet > 0 ? `
@@ -138,6 +143,10 @@ function totalsBlock(p: BonDeCommandePayload): string {
   `;
 }
 
+function ecoMentionBlock(): string {
+  return `<p style="margin:12px 0 0;padding:10px 12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;font-size:11px;line-height:1.6;color:#6b7280;">${escapeHtml(ECO_MENTION)}</p>`;
+}
+
 function buildHqEmail(p: BonDeCommandePayload): string {
   const { orderNumber, customerName, company, email, shippingAddress, shippingMethod } = p;
   return `<!DOCTYPE html>
@@ -174,6 +183,7 @@ function buildHqEmail(p: BonDeCommandePayload): string {
         <h2 style="margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;">Articles commandés</h2>
         ${linesTable(p.lines)}
         ${totalsBlock(p)}
+        ${ecoMentionBlock()}
       </td>
     </tr>
     <tr>
@@ -232,6 +242,7 @@ function buildCustomerEmail(p: BonDeCommandePayload): string {
         <h2 style="margin:0 0 12px;font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;">Récapitulatif</h2>
         ${linesTable(p.lines)}
         ${totalsBlock(p)}
+        ${ecoMentionBlock()}
       </td>
     </tr>
     <tr>

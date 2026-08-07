@@ -10,13 +10,14 @@ export async function getTaxonomy(): Promise<TaxonomyNode[]> {
       const admin = createAdminClient();
       const { data } = await admin
         .from('taxonomy_nodes')
-        .select('slug, parent_slug, level, code, name, sort_order, active, generator_slug, surcharge');
+        .select('slug, parent_slug, level, code, name, sort_order, active, generator_slug, surcharge, eco_contribution');
       if (data && data.length) {
         return data.map((r) => ({
           slug: r.slug, parentSlug: r.parent_slug, level: r.level, code: r.code,
           name: r.name, sortOrder: r.sort_order, active: r.active,
           ...(r.generator_slug ? { generatorSlug: r.generator_slug } : {}),
           ...(r.surcharge ? { surcharge: Number(r.surcharge) } : {}),
+          ...(r.eco_contribution ? { ecoContribution: Number(r.eco_contribution) } : {}),
         })) as TaxonomyNode[];
       }
     } catch {
