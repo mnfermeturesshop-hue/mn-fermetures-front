@@ -117,12 +117,17 @@ function addrBlock(addr: Address): string {
 
 function totalsBlock(p: BonDeCommandePayload): string {
   const prodHT = p.totalHT - p.fraisHT;
+  const ecoHT = p.lines.reduce((s, l) => s + (l.ecoContribHT ?? 0) * l.quantity, 0);
   return `
     <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin-top:12px;">
       <tr>
         <td style="padding:6px 0;color:#6b7280;">Sous-total HT</td>
         <td style="padding:6px 0;text-align:right;font-weight:600;">${euro(prodHT)}</td>
       </tr>
+      ${ecoHT > 0 ? `<tr>
+        <td style="padding:2px 0 6px;color:#6b7280;font-style:italic;font-size:13px;">dont éco-contribution</td>
+        <td style="padding:2px 0 6px;text-align:right;color:#6b7280;font-style:italic;font-size:13px;">${euro(ecoHT)}</td>
+      </tr>` : ''}
       <tr>
         <td style="padding:6px 0;color:#6b7280;">Frais de livraison HT (${p.shippingMethod === 'express' ? 'Express 24h' : 'Standard'})</td>
         <td style="padding:6px 0;text-align:right;font-weight:600;">${p.fraisHT === 0 ? '<span style="color:#16a34a">Offerts</span>' : euro(p.fraisHT)}</td>

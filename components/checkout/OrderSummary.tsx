@@ -12,6 +12,7 @@ export function OrderSummary() {
   const franco = isFranco();
   const fraisHT = shippingCostHT(shippingMethod, franco);
   const laquageHT = laquageForfait();
+  const ecoHT = lines.reduce((s, l) => s + (l.ecoContribHT ?? 0) * l.quantity, 0);
   const grandTotalHT = ht + fraisHT + laquageHT;
   const grandTotalTTC = grandTotalHT * 1.2;
 
@@ -44,6 +45,7 @@ export function OrderSummary() {
 
       <div className="order-summary-totals">
         <div className="os-row"><span>Sous-total HT</span><span>{euro(ht)}</span></div>
+        {ecoHT > 0 && <div className="os-row muted"><span>dont éco-contribution</span><span>{euro(ecoHT)}</span></div>}
         <div className="os-row muted">
           <span>Livraison HT</span>
           <span>{franco && shippingMethod === 'standard' ? <span className="green">Offerte</span> : euro(fraisHT)}</span>

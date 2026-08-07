@@ -136,6 +136,8 @@ function DevisContent() {
   const devisFraisHT = isSavedMode ? Number(savedDevis!.frais_ht)
                      : isOrderMode ? orderData!.fraisHT
                      : fraisLivraison();
+  // Éco-contribution totale (déjà incluse dans le sous-total) — ligne « dont » informative.
+  const devisEcoHT = (devisLines as CartLine[]).reduce((s, l) => s + (l.ecoContribHT ?? 0) * l.quantity, 0);
 
   useEffect(() => {
     const label = isOrderMode ? 'Facture' : 'Devis';
@@ -307,7 +309,7 @@ function DevisContent() {
                 <td>
                   <div className="devis-line-name">{l.name}</div>
                   {l.detail && <div className="devis-line-detail">{l.detail}</div>}
-                  {eco > 0 && <div className="devis-line-detail">dont éco-contribution : {euro(eco)}/u (non remisable)</div>}
+                  {eco > 0 && <div className="devis-line-detail" style={{ color: '#166534' }}>dont éco-contribution : <strong>{euro(eco)}/u</strong> (non remisable)</div>}
                 </td>
                 <td className="ref">{l.reference ?? '—'}</td>
                 <td>{l.quantity}</td>
@@ -351,6 +353,12 @@ function DevisContent() {
               <td colSpan={4}>Sous-total HT</td>
               <td>{euro(devisTotalHT)}</td>
             </tr>
+            {devisEcoHT > 0 && (
+              <tr className="devis-eco-line">
+                <td colSpan={4} style={{ color: '#6b7280', fontStyle: 'italic' }}>dont éco-contribution</td>
+                <td style={{ color: '#6b7280', fontStyle: 'italic' }}>{euro(devisEcoHT)}</td>
+              </tr>
+            )}
             <tr>
               <td colSpan={4}>TVA 20 %</td>
               <td>{euro(devisTVA)}</td>
