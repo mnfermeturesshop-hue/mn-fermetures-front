@@ -15,6 +15,34 @@ import { toast } from '@/components/ui/Toast';
 const euro = (n: number) =>
   n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 
+// ── Brouillon en cours (par configurateur) ──
+// Persiste valeurs / étape / quantité dans sessionStorage : la configuration
+// survit à un rechargement de page ou à une mise en veille de l'onglet (le
+// navigateur peut « décharger » un onglet en arrière-plan et le recharger au
+// retour). Portée = onglet (effacé à sa fermeture).
+const WIP_PREFIX = 'cfg-wip:';
+interface WipState { values: Values; stepIdx: number; qty: number }
+function readWip(slug: string): WipState | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(WIP_PREFIX + slug);
+    if (!raw) return null;
+    const o = JSON.parse(raw) as Partial<WipState>;
+    if (o && typeof o === 'object' && o.values && typeof o.values === 'object') {
+      return { values: o.values as Values, stepIdx: Number(o.stepIdx) || 0, qty: Number(o.qty) || 1 };
+    }
+  } catch { /* stockage indisponible / JSON invalide → init par défaut */ }
+  return null;
+}
+function writeWip(slug: string, state: WipState) {
+  if (typeof window === 'undefined') return;
+  try { sessionStorage.setItem(WIP_PREFIX + slug, JSON.stringify(state)); } catch { /* quota / privé */ }
+}
+function clearWip(slug: string) {
+  if (typeof window === 'undefined') return;
+  try { sessionStorage.removeItem(WIP_PREFIX + slug); } catch { /* ignore */ }
+}
+
 interface Props { slug: string }
 
 /** Assistant de configuration pas-à-pas, entièrement piloté par la définition
@@ -31,8 +59,13 @@ export function ConfigurateurProduit({ slug }: Props) {
   const [stepIdx, setStepIdx] = useState(0);
 
   // Chargement de la définition (réservé aux connectés : prix = donnée pro).
+  // Dépend de l'ID utilisateur (et pas de l'objet `user`) : un simple re-sync de
+  // session (retour d'onglet, rafraîchissement de jeton) change la référence de
+  // `user` sans changer l'ID — on évite ainsi de relancer le chargement et de
+  // réinitialiser le formulaire en cours.
+  const userId = user?.id;
   useEffect(() => {
-    if (!user) { setStatus('gated'); return; }
+    if (!userId) { setStatus('gated'); return; }
     let alive = true;
     setStatus('loading');
     fetch(`/api/configurateurs/${slug}`)
@@ -44,15 +77,29 @@ export function ConfigurateurProduit({ slug }: Props) {
       .then((d) => {
         if (!alive || !d) return;
         setDef(d);
-        const init: Values = {};
-        for (const f of d.fields) if (f.default !== undefined) init[f.id] = f.default;
-        setValues(repairValues(d, init));
-        setStepIdx(0);
+        // Reprise du brouillon si présent (rechargement / mise en veille de
+        // l'onglet), sinon initialisation par défaut.
+        const saved = readWip(slug);
+        if (saved) {
+          setValues(repairValues(d, saved.values));
+          setStepIdx(saved.stepIdx);
+          setQty(saved.qty);
+        } else {
+          const init: Values = {};
+          for (const f of d.fields) if (f.default !== undefined) init[f.id] = f.default;
+          setValues(repairValues(d, init));
+          setStepIdx(0);
+        }
         setStatus('ok');
       })
       .catch(() => { if (alive) setStatus('error'); });
     return () => { alive = false; };
-  }, [slug, user]);
+  }, [slug, userId]);
+
+  // Sauvegarde continue du brouillon (valeurs, étape, quantité) par configurateur.
+  useEffect(() => {
+    if (status === 'ok' && def) writeWip(slug, { values, stepIdx, qty });
+  }, [slug, def, values, stepIdx, qty, status]);
 
   const result = useMemo(() => (def ? resolvePrice(def, values) : null), [def, values]);
   const surchargeMap = useSurchargeStore((s) => s.map);
@@ -219,6 +266,7 @@ export function ConfigurateurProduit({ slug }: Props) {
       uom: 'unite',
       pricing: { kind: 'configurateur', slug, values, laque },
     });
+    clearWip(slug);   // configuration validée : le brouillon repart propre à la prochaine ouverture
     openCart();
     toast.success('Produit ajouté au panier');
   };
