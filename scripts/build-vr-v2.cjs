@@ -340,10 +340,13 @@ priceRules.push({ code: 'color_lame_finale_pv', label: 'Coloris lame finale (opt
 
 // Motorisation Radio & Solaire (même logique d'émetteurs) : type d'émetteur
 // (portatif/mural) + rappel de l'émetteur inclus.
+// Exiger la MOTORISATION : sinon `commande` garde une valeur résiduelle (radio/
+// solaire) en manœuvre manuelle et ces champs resteraient visibles à tort.
+const RADIO_SOL_VIS = AND([eq('manoeuvre', 'motorisee'), inSet('commande', ['radio', 'solaire'])]);
 fields.push({ id: 'emetteur_type', label: 'Émetteur', type: 'choice', default: 'portatif',
-  visibleWhen: inSet('commande', ['radio', 'solaire']),
+  visibleWhen: RADIO_SOL_VIS,
   options: [{ value: 'portatif', label: 'Émetteur portatif' }, { value: 'mural', label: 'Émetteur mural' }] });
-fields.push({ id: 'radio_info', type: 'info', visibleWhen: inSet('commande', ['radio', 'solaire']),
+fields.push({ id: 'radio_info', type: 'info', visibleWhen: RADIO_SOL_VIS,
   help: 'Émetteur de base inclus : MN → portatif 1 canal · Somfy → Amy 1 Sun Protect (l’une des 4 possibilités, toutes incluses).' });
 // Intitulé du bloc « centralisation » — uniquement en Somfy radio/solaire.
 fields.push({ id: 'centralisation_info', type: 'info', visibleWhen: AND([eq('moteur', 'somfy'), eq('layer', 'radio')]),
@@ -373,10 +376,10 @@ for (const o of v1.options) {
     priceRules.push({ code: 'opt_inverseur', label: 'Inverseur', kind: 'add',
       when: AND([eq('inverseur', true), eq('manoeuvre', 'motorisee'), eq('commande', 'filaire')]), amount: o.priceHT });
     fields.push({ id: 'inverseur_pose', label: 'Inverseur — pose', type: 'choice', role: 'spec', default: 'encastre',
-      visibleWhen: eq('inverseur', true),
+      visibleWhen: AND([eq('inverseur', true), invVis]),
       options: [{ value: 'encastre', label: 'Encastré' }, { value: 'applique', label: 'En applique' }] });
     fields.push({ id: 'inverseur_maintien', label: 'Inverseur — maintien', type: 'choice', role: 'spec', default: 'maintenu',
-      visibleWhen: eq('inverseur', true),
+      visibleWhen: AND([eq('inverseur', true), invVis]),
       options: [{ value: 'maintenu', label: 'Maintenu' }, { value: 'fixe', label: 'Fixe' }] });
     continue;
   }
