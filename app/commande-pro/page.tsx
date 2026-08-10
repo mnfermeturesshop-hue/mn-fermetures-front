@@ -58,10 +58,13 @@ export default function CommandeProPage() {
   }, [user]);
 
   useEffect(() => {
-    if (user && lines.length === 0) router.replace('/panier');
-  }, [user, lines, router]);
+    // Ne pas rediriger vers /panier pendant l'envoi : `clearCart()` vide le panier
+    // juste avant de naviguer vers la confirmation (sinon on « perd » la course et
+    // l'utilisateur voit « panier vide » au lieu du bon de commande envoyé).
+    if (user && lines.length === 0 && !submitting) router.replace('/panier');
+  }, [user, lines, router, submitting]);
 
-  if (!user || !isPro() || lines.length === 0) return null;
+  if (!user || !isPro() || (lines.length === 0 && !submitting)) return null;
 
   const ht      = totalHT();
   const franco  = isFranco();
