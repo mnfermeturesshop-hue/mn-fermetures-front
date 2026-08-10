@@ -96,6 +96,8 @@ priceRules.push({
 });
 fields.push({
   id: 'percage', label: 'Perçage des coulisses', type: 'choice', role: 'spec', default: 'tableau',
+  help: 'Tableau : perçage Ø1 / Ø6. Façade et non percé : bouchons fournis.',
+  helpImage: '/reno-minibox-percage-coulisses.png',
   options: [
     { value: 'tableau', label: 'Perçage tableau' },
     { value: 'facade', label: 'Perçage façade' },
