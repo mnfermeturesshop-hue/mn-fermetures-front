@@ -2529,6 +2529,8 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 .adm-doc-uploaded { color: #16a34a; font-size: 12px; font-weight: 600; flex: 1; }
 .adm-doc-missing  { color: var(--muted); font-size: 12px; flex: 1; }
 .adm-doc-upload-btn { margin-left: auto; flex-shrink: 0; }
+.adm-doc-delete-btn { flex-shrink: 0; color: #dc2626; border-color: #fecaca; }
+.adm-doc-delete-btn:hover:not(:disabled) { background: #fef2f2; border-color: #dc2626; }
 
 /* ── Documents ERP — Compte client ── */
 .order-docs { display: flex; flex-wrap: wrap; gap: 6px; }

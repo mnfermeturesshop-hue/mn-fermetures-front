@@ -71,3 +71,55 @@ export async function POST(
 
   return NextResponse.json({ ok: true, documents });
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const guard = await requireStaff();
+  if (!guard.ok) return guard.response;
+
+  const type = req.nextUrl.searchParams.get('type');
+  if (!type || !(ALLOWED_TYPES as readonly string[]).includes(type)) {
+    return NextResponse.json({ error: 'type (arc|proforma|bl|facture|suivi) requis' }, { status: 400 });
+  }
+
+  const supabase = createAdminClient();
+
+  const { data: order, error: orderErr } = await supabase
+    .from('orders')
+    .select('id, order_number, user_id, documents')
+    .eq('id', params.id)
+    .single<OrderRecord>();
+
+  if (orderErr || !order) {
+    return NextResponse.json({ error: 'Commande introuvable' }, { status: 404 });
+  }
+
+  // Un commercial ne supprime des documents qu'aux commandes de SES clients
+  if (guard.role === 'commercial') {
+    const clientIds = await getCommercialClientIds(guard.userId);
+    if (!order.user_id || !clientIds.has(order.user_id)) {
+      return NextResponse.json({ error: 'Cette commande ne concerne pas vos clients.' }, { status: 403 });
+    }
+  }
+
+  const path = order.documents?.[type] ?? `${order.order_number}/${type as DocType}.pdf`;
+
+  // Suppression du fichier dans le storage (best-effort : on continue même si absent)
+  await supabase.storage.from('order-documents').remove([path]);
+
+  const documents = { ...(order.documents ?? {}) };
+  delete documents[type];
+
+  const { error: updateErr } = await supabase
+    .from('orders')
+    .update({ documents })
+    .eq('id', params.id);
+
+  if (updateErr) {
+    return NextResponse.json({ error: updateErr.message }, { status: 400 });
+  }
+
+  return NextResponse.json({ ok: true, documents });
+}

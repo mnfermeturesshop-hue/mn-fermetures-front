@@ -171,6 +171,20 @@ export default function AdminCommandes() {
     setUploadingDoc(null);
   };
 
+  const handleDeleteDoc = async (orderId: string, type: string, label: string) => {
+    if (!window.confirm(`Supprimer le document « ${label} » de cette commande ?`)) return;
+    setUploadingDoc(`${orderId}-${type}`);
+    const res = await fetch(`/api/admin/orders/${orderId}/documents?type=${type}`, { method: 'DELETE' });
+    if (!res.ok) {
+      toast.error('Erreur suppression document');
+    } else {
+      const { documents } = await res.json() as { documents: OrderDocuments };
+      setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, documents } : o));
+      toast.success(`Document ${label} supprimé`);
+    }
+    setUploadingDoc(null);
+  };
+
   const totalPending = orders.filter((o) => o.status === 'pending').length;
 
   return (
@@ -402,6 +416,16 @@ export default function AdminCommandes() {
                                             }}
                                           />
                                         </label>
+                                        {docPath && (
+                                          <button
+                                            type="button"
+                                            className="btn ghost sm adm-doc-delete-btn"
+                                            disabled={!!uploadingDoc}
+                                            onClick={() => handleDeleteDoc(o.id, type, LABELS[type])}
+                                          >
+                                            Supprimer
+                                          </button>
+                                        )}
                                       </div>
                                     );
                                   })}
