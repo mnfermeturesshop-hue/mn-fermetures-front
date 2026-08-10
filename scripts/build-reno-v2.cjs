@@ -215,6 +215,22 @@ fields.push({
   options: [{ value: 'gauche', label: 'Gauche' }, { value: 'droite', label: 'Droite' }],
 });
 
+// Numéros de SORTIE (fabrication) — position sur le coffre, d'après le schéma de pose.
+//  - Fil (manœuvre motorisée) : 1 à 11.
+//  - Tringle oscillante (manœuvre manuelle TO) : 1 à 5.
+fields.push({
+  id: 'sortie_fil', label: 'Numéro de sortie du fil', type: 'choice', role: 'spec', default: '1',
+  visibleWhen: eq('manoeuvre', 'motorisee'),
+  help: 'Position de sortie du fil sur le coffre (voir schéma de pose) — 1 à 11.',
+  options: Array.from({ length: 11 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) })),
+});
+fields.push({
+  id: 'sortie_tringle', label: 'Numéro de sortie de la tringle', type: 'choice', role: 'spec', default: '1',
+  visibleWhen: eq('manoeuvre', 'manuelle'),
+  help: 'Position de sortie de la tringle oscillante (voir schéma de pose) — 1 à 5.',
+  options: Array.from({ length: 5 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) })),
+});
+
 // Section de coffre AUTO selon la hauteur (grille MN) : 137 (≤1550) / 150 (≤2250)
 // / 165 (≤2550). Affichée sous le champ « Taille de coffre » (override possible).
 fields.push({
@@ -268,7 +284,7 @@ const steps = [
   { id: 'coloris', title: 'Coloris', fields: ['coloris'] },
   { id: 'coulisses', title: 'Coulisses', fields: ['coulisse_type', 'percage'] },
   { id: 'manoeuvre', title: 'Manœuvre', fields: [
-    'manoeuvre', 'tringle_cote', 'genouillere_manuelle', 'commande', 'moteur', 'position_moteur', 'emetteur_type',
+    'manoeuvre', 'tringle_cote', 'sortie_tringle', 'genouillere_manuelle', 'commande', 'moteur', 'position_moteur', 'sortie_fil', 'emetteur_type',
     'radio_info', 'centralisation_info', 'inverseur', 'inverseur_pose', 'inverseur_maintien',
     'emetteur_5c', 'situo_io_1c', 'situo_io_5c', 'amy_4c_io', 'alim_depannage',
   ] },
