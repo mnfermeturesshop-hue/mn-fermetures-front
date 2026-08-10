@@ -44,6 +44,8 @@ fields.push({ id: 'largeur', label: 'Largeur (dos de coulisse)', type: 'dimensio
 fields.push({ id: 'hauteur', label: 'Hauteur (sous coffre)', type: 'dimension', unit: 'mm', default: 1000 });
 fields.push({
   id: 'enroulement', label: 'Enroulement', type: 'choice', role: 'spec', default: 'interieur',
+  help: 'Pose en tableau (enroulement intérieur ou extérieur) ou en applique (extérieur). Cotes de FABRICATION en mm — pensez à déduire vos jeux de pose (largeur dos de coulisses, hauteur coffre compris).',
+  helpImage: '/reno-minibox-dimensions-enroulements.png',
   options: [{ value: 'interieur', label: 'Intérieur' }, { value: 'exterieur', label: 'Extérieur' }],
 });
 fields.push({ id: 'lame_info', type: 'info', help: 'Lame aluminium 37 — largeur max 2400 mm, surface max 5,5 m².' });
