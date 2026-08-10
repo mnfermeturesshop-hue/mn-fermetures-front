@@ -27,7 +27,9 @@ const inSet = (name, set) => ({ op: 'in', value: V(name), set });
 const lt = (name, n) => ({ op: 'lt', left: V(name), right: n });
 const lte = (name, n) => ({ op: 'lte', left: V(name), right: n });
 const AND = (cs) => (cs.length === 1 ? cs[0] : { all: cs });
-const RADIO_SOL = inSet('commande', ['radio', 'solaire']);
+// Radio/Solaire — exige la MOTORISATION (sinon `commande` garde une valeur résiduelle
+// en manœuvre manuelle et les champs émetteur/centralisation resteraient visibles).
+const RADIO_SOL = { all: [{ op: 'eq', left: V('manoeuvre'), right: 'motorisee' }, inSet('commande', ['radio', 'solaire'])] };
 
 const fields = [];
 const priceRules = [];
@@ -189,12 +191,12 @@ fields.push({ id: 'inverseur', label: 'Inverseur (+21 €)', type: 'boolean', vi
 priceRules.push({ code: 'opt_inverseur', label: 'Inverseur', kind: 'add', when: AND([eq('inverseur', true), filaireVis]), amount: 21 });
 fields.push({
   id: 'inverseur_pose', label: 'Inverseur — pose', type: 'choice', role: 'spec', default: 'encastre',
-  visibleWhen: eq('inverseur', true),
+  visibleWhen: AND([eq('inverseur', true), filaireVis]),
   options: [{ value: 'encastre', label: 'Encastré' }, { value: 'applique', label: 'En applique' }],
 });
 fields.push({
   id: 'inverseur_maintien', label: 'Inverseur — maintien', type: 'choice', role: 'spec', default: 'maintenu',
-  visibleWhen: eq('inverseur', true),
+  visibleWhen: AND([eq('inverseur', true), filaireVis]),
   options: [{ value: 'maintenu', label: 'Maintenu' }, { value: 'fixe', label: 'Fixe' }],
 });
 
@@ -231,11 +233,12 @@ priceRules.push({ code: 'opt_amy_4c_io', label: 'Émetteur Amy 4 IO', kind: 'add
 
 // ── Motorisation SOLAIRE (Somfy RS100 SOLAR IO) : kit solaire +232 € (moteur +
 //    batterie + panneau + émetteur) toujours inclus ; alim de dépannage +83 € en option.
+const SOLAIRE = AND([eq('manoeuvre', 'motorisee'), eq('commande', 'solaire')]);
 priceRules.push({ code: 'kit_solaire', label: 'Kit solaire (moteur + batterie + panneau + émetteur)', kind: 'add',
-  when: eq('commande', 'solaire'), amount: 232 });
-fields.push({ id: 'alim_depannage', label: 'Alimentation de dépannage (+83 €)', type: 'boolean', visibleWhen: eq('commande', 'solaire') });
+  when: SOLAIRE, amount: 232 });
+fields.push({ id: 'alim_depannage', label: 'Alimentation de dépannage (+83 €)', type: 'boolean', visibleWhen: SOLAIRE });
 priceRules.push({ code: 'opt_alim_depannage', label: 'Alimentation de dépannage', kind: 'add',
-  when: AND([eq('alim_depannage', true), eq('commande', 'solaire')]), amount: 83 });
+  when: AND([eq('alim_depannage', true), SOLAIRE]), amount: 83 });
 
 // Côté tringle (fabrication) — manœuvre manuelle.
 fields.push({
