@@ -221,6 +221,10 @@ export function ConfigurateurProduit({ slug }: Props) {
           })}
         </div>
         {f.help && <p className="cfg-dim-hint">{f.help}</p>}
+        {f.helpImage && (
+          <img className="cfg-help-img" src={f.helpImage} alt=""
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+        )}
       </div>
     );
   };
