@@ -202,9 +202,11 @@ fields.push({
 //    MN → portatif 1 canal inclus (option 5 canaux +80). Somfy → Amy 1 Sun Protect
 //    inclus + options de CENTRALISATION (Somfy uniquement).
 fields.push({
-  id: 'emetteur_type', label: 'Émetteur', type: 'choice', default: 'portatif',
+  id: 'emetteur_type', label: 'Émetteur', type: 'choice', default: 'mural',
   visibleWhen: RADIO_SOL,
-  options: [{ value: 'portatif', label: 'Émetteur portatif' }, { value: 'mural', label: 'Émetteur mural' }],
+  help: 'Mural par défaut (MN mural / Somfy Amy) ou portatif (MN portatif / Somfy Situo) — tous inclus.',
+  helpImage: '/reno-minibox-emetteur.png',
+  options: [{ value: 'mural', label: 'Émetteur mural' }, { value: 'portatif', label: 'Émetteur portatif' }],
 });
 fields.push({
   id: 'radio_info', type: 'info', visibleWhen: RADIO_SOL,
