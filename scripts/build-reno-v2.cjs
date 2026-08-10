@@ -91,6 +91,8 @@ fields.push({
 // ── Coulisse : 53/22 par défaut ; à aile +8,5 €/ml. Perçage T / F / sans. ──
 fields.push({
   id: 'coulisse_type', label: 'Coulisses', type: 'choice', default: 'c53x22',
+  help: 'Coulisse à aile : 53×22 uniquement (aile de 60 mm).',
+  helpImage: '/reno-minibox-coulisse-aile.png',
   options: [
     { value: 'c53x22', label: 'Coulisse 53/22 (par défaut)' },
     { value: 'a_aile', label: 'Coulisse à aile (+8,50 €/ml)' },
