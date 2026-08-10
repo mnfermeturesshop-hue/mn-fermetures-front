@@ -48,15 +48,8 @@ fields.push({
 });
 fields.push({ id: 'lame_info', type: 'info', help: 'Lame aluminium 37 — largeur max 2400 mm, surface max 5,5 m².' });
 
-// ── Coffre : taille + forme (pan) — le pan pilote la lame finale et les coloris ──
-fields.push({
-  id: 'coffre_taille', label: 'Taille de coffre', type: 'choice', default: '137',
-  help: 'Section mini par défaut (auto) ; section supérieure possible pour uniformiser.',
-  options: [
-    { value: '137', label: '137' }, { value: '150', label: '150' },
-    { value: '165', label: '165' }, { value: '180', label: '180' },
-  ],
-});
+// ── Coffre : section AUTO par la hauteur (137/150/165 — 180/205/250 indisponibles
+//    en Minibox alu), + forme (pan) qui pilote la lame finale et les coloris ──
 fields.push({
   id: 'coffre_pan', label: 'Forme de coffre', type: 'choice', default: 'pan_coupe',
   options: [{ value: 'pan_coupe', label: 'Pan coupé (PC)' }, { value: 'pan_rond', label: 'Pan rond (PR)' }],
@@ -242,6 +235,15 @@ const derived = [
   { id: 'grid', expr: { op: 'if', cond: eq('manoeuvre', 'manuelle'), then: 'g_mn_filaire',
       else: { op: 'if', cond: eq('commande', 'solaire'), then: 'g_somfy_radio',
         else: { op: 'concat', args: ['g_', V('moteur'), '_', V('commande')] } } } },
+  // Largeur MINI réelle (limites dimensionnelles) selon la manœuvre / le moteur :
+  //  manuelle tringle 400 · MN filaire 536 / radio 622 · Somfy filaire 490 / radio 531
+  //  · solaire (radio io Somfy) 490.
+  { id: 'largeur_mini', expr:
+    { op: 'if', cond: eq('manoeuvre', 'manuelle'), then: 400,
+      else: { op: 'if', cond: eq('commande', 'solaire'), then: 490,
+        else: { op: 'if', cond: eq('commande', 'filaire'),
+          then: { op: 'if', cond: eq('moteur', 'mn'), then: 536, else: 490 },
+          else: { op: 'if', cond: eq('moteur', 'mn'), then: 622, else: 531 } } } } },
 ];
 
 // ---- Prix de BASE = grille de coût de motorisation (Largeur × Hauteur) ----
@@ -250,10 +252,11 @@ priceRules.unshift({
   amount: { op: 'lookup2d', table: V('grid'), row: V('hauteur'), col: V('largeur') },
 });
 
-// ---- Contraintes (lame Alu 37 + bornes grilles) ----
+// ---- Contraintes (limites dimensionnelles Minibox alu 37) ----
 const constraints = [
+  { message: 'Largeur inférieure au minimum pour cette manœuvre / ce moteur', requires: { op: 'gte', left: V('largeur'), right: V('largeur_mini') } },
   { message: 'Largeur maximale 2400 mm (lame Alu 37)', requires: lte('largeur', 2400) },
-  { message: 'Hauteur maximale 2550 mm', requires: lte('hauteur', 2550) },
+  { message: 'Hauteur maximale 2550 mm (coffre 165)', requires: lte('hauteur', 2550) },
   { message: 'Surface maximale 5,5 m² (lame Alu 37)', requires: lte('surface_m2', 5.5) },
 ];
 
@@ -261,7 +264,7 @@ const constraints = [
 const steps = [
   { id: 'produit', title: 'Type de produit', fields: ['sous_famille'] },
   { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'enroulement', 'lame_info'] },
-  { id: 'coffre', title: 'Coffre', fields: ['coffre_taille', 'coffre_auto_info', 'coffre_pan', 'lame_finale'] },
+  { id: 'coffre', title: 'Coffre', fields: ['coffre_auto_info', 'coffre_pan', 'lame_finale'] },
   { id: 'coloris', title: 'Coloris', fields: ['coloris'] },
   { id: 'coulisses', title: 'Coulisses', fields: ['coulisse_type', 'percage'] },
   { id: 'manoeuvre', title: 'Manœuvre', fields: [
