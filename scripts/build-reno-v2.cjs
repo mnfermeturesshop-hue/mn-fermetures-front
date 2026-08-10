@@ -1,12 +1,17 @@
 /* =====================================================================
    Configurateur VOLET ROULANT RÉNOVATION (famille Reno 1.2) — moteur v2.
-   Un configurateur par famille : commence par la sous-famille MINIBOX (1.2.1) ;
-   Renobox (1.2.2) et Reno gros coffre (1.2.3) seront ajoutés via `sous_famille`.
+   Sous-famille MINIBOX (1.2.1). Renobox / Reno gros coffre via `sous_famille`.
 
-   ⚠️ PREMIER INCRÉMENT — arbre de décision PDG partiel (Dimensions › Enroulement ›
-   Taille de coffre) + coloris standards. Le PRIX est PROVISOIRE (formule) tant que
-   la grille Largeur × Hauteur (par taille de coffre) n'est pas fournie. Les sections
-   Lame / Manœuvre / Commande / Options seront montées ensuite (comme le Tradi).
+   ARBRE DE DÉCISION PDG (captures, dans l'ordre) monté ci-dessous :
+     Dimensions › Enroulement › Coffre (taille) › Coffre (pan) › Lame finale ›
+     Coloris (coffre/coulisses/tablier) › Coulisse (type + perçage) ›
+     Manœuvre (manuelle / motorisée : filaire · radio · solaire).
+
+   ⚠️ PRIX : la BASE (grille de coût de motorisation Largeur × Hauteur, par
+   commande × marque) N'EST PAS ENCORE FOURNIE → base PROVISOIRE (formule). Les
+   options à PRIX FIXE de l'arbre sont câblées (inverseur +21, 5 canaux +80,
+   Situo IO 1c +23 / 5c +135, Amy 4 IO +131, coulisse à aile +8,5 €/ml,
+   moins-value manuelle −72/−13). À remplacer par les vraies grilles.
    ===================================================================== */
 const fs = require('fs');
 const path = require('path');
@@ -14,43 +19,33 @@ const path = require('path');
 // ---- helpers conditions / expr ----
 const V = (name) => ({ var: name });
 const eq = (name, val) => ({ op: 'eq', left: V(name), right: val });
+const ne = (name, val) => ({ op: 'ne', left: V(name), right: val });
+const inSet = (name, set) => ({ op: 'in', value: V(name), set });
+const lt = (name, n) => ({ op: 'lt', left: V(name), right: n });
 const lte = (name, n) => ({ op: 'lte', left: V(name), right: n });
+const AND = (cs) => (cs.length === 1 ? cs[0] : { all: cs });
+const RADIO_SOL = inSet('commande', ['radio', 'solaire']);
 
 const fields = [];
+const priceRules = [];
 
-// Sous-famille (pilote le nœud de remise/surcharge/éco + futures sous-familles Reno).
+// ── Sous-famille (nœud remise/surcharge/éco + futures sous-familles Reno) ──
 fields.push({
   id: 'sous_famille', label: 'Type de produit', type: 'choice', default: 'minibox',
   help: 'Gamme rénovation. Renobox et Reno gros coffre seront ajoutés prochainement.',
   options: [{ value: 'minibox', label: 'Reno Minibox' }],
 });
 
-// Coloris monocouleur — standards, sans plus-value (BC Minibox). Le multi-couleurs
-// (tablier / coffre / coulisses / lame finale) sera ajouté ensuite.
-fields.push({
-  id: 'coloris', label: 'Coloris (monocouleur)', type: 'choice', default: 'blanc-9010',
-  options: [
-    { value: 'blanc-9010', label: 'Blanc 9010', hex: '#f4f4f2' },
-    { value: 'ivoire-1015', label: 'Ivoire 1015', hex: '#e6d2b5' },
-    { value: 'gris-7016', label: 'Gris 7016', hex: '#383e42' },
-    { value: 'gris-7035', label: 'Gris 7035', hex: '#d7d7d7' },
-    { value: 'marron-8019', label: 'Marron 8019 (proche)', hex: '#3d3635' },
-  ],
-});
-
-// Dimensions (cotes de FABRICATION en mm, vue intérieure — jeux de pose déjà déduits).
+// ── Dimensions (cotes de FABRICATION, vue intérieure, jeux de pose déduits) ──
 fields.push({ id: 'largeur', label: 'Largeur (dos de coulisse)', type: 'dimension', unit: 'mm', default: 1200 });
 fields.push({ id: 'hauteur', label: 'Hauteur (sous coffre)', type: 'dimension', unit: 'mm', default: 1000 });
-
-// Enroulement (pose) — intérieur / extérieur.
 fields.push({
   id: 'enroulement', label: 'Enroulement', type: 'choice', role: 'spec', default: 'interieur',
   options: [{ value: 'interieur', label: 'Intérieur' }, { value: 'exterieur', label: 'Extérieur' }],
 });
+fields.push({ id: 'lame_info', type: 'info', help: 'Lame aluminium 37 — largeur max 2400 mm, surface max 5,5 m².' });
 
-// Taille de coffre — 137 / 150 / 165 / 180. Par défaut la section mini (auto) ;
-// choix d'une section supérieure possible (uniformisation multi-repères).
-// ⚠️ La règle « auto = plus petite section admissible selon dimensions » est à fournir.
+// ── Coffre : taille + forme (pan) — le pan pilote la lame finale et les coloris ──
 fields.push({
   id: 'coffre_taille', label: 'Taille de coffre', type: 'choice', default: '137',
   help: 'Section mini par défaut (auto) ; section supérieure possible pour uniformiser.',
@@ -59,37 +54,158 @@ fields.push({
     { value: '165', label: '165' }, { value: '180', label: '180' },
   ],
 });
-
-// Forme de coffre — pan coupé (PC) / pan rond (PR) : pilote la lame finale (affleurante / standard).
 fields.push({
-  id: 'coffre_pan', label: 'Forme de coffre', type: 'choice', role: 'spec', default: 'pan_coupe',
+  id: 'coffre_pan', label: 'Forme de coffre', type: 'choice', default: 'pan_coupe',
   options: [{ value: 'pan_coupe', label: 'Pan coupé (PC)' }, { value: 'pan_rond', label: 'Pan rond (PR)' }],
 });
-
-// Perçage des coulisses — Tableau (T) / Façade (F) / Non percé (NP).
+// Lame finale : pan coupé → affleurante (défaut) ou classique ; pan rond → classique (forcé).
 fields.push({
-  id: 'percage', label: 'Perçage des coulisses', type: 'choice', role: 'spec', default: 'tableau',
+  id: 'lame_finale', label: 'Lame finale', type: 'choice', default: 'affleurante',
   options: [
-    { value: 'tableau', label: 'Perçage tableau (T)' },
-    { value: 'facade', label: 'Perçage façade (F)' },
-    { value: 'non_perce', label: 'Non percé (NP)' },
+    { value: 'affleurante', label: 'Lame finale affleurante', availableWhen: eq('coffre_pan', 'pan_coupe') },
+    { value: 'classique', label: 'Lame finale classique' },
   ],
 });
 
-// Lame (une seule référence Minibox) — info.
-fields.push({ id: 'lame_info', type: 'info', help: 'Lame aluminium 37 — largeur max 2400 mm, surface max 5,5 m².' });
+// ── Coloris (coffre, coulisses & tablier) — monocouleur. Pan coupé : 5 coloris ;
+//    Pan rond : Blanc 9010 & Gris 7016 seulement. Standards sans plus-value.
+fields.push({
+  id: 'coloris', label: 'Coloris (coffre, coulisses & tablier)', type: 'choice', default: 'blanc-9010',
+  options: [
+    { value: 'blanc-9010', label: 'Blanc 9010', hex: '#f4f4f2' },
+    { value: 'gris-7016', label: 'Gris 7016', hex: '#383e42' },
+    { value: 'ivoire-1015', label: 'Ivoire 1015', hex: '#e6d2b5', availableWhen: eq('coffre_pan', 'pan_coupe') },
+    { value: 'gris-7035', label: 'Gris 7035', hex: '#d7d7d7', availableWhen: eq('coffre_pan', 'pan_coupe') },
+    { value: 'marron-8019', label: 'Marron 8019 (proche)', hex: '#3d3635', availableWhen: eq('coffre_pan', 'pan_coupe') },
+  ],
+});
+
+// ── Coulisse : 53/22 par défaut ; à aile +8,5 €/ml. Perçage T / F / sans. ──
+fields.push({
+  id: 'coulisse_type', label: 'Coulisses', type: 'choice', default: 'c53x22',
+  options: [
+    { value: 'c53x22', label: 'Coulisse 53/22 (par défaut)' },
+    { value: 'a_aile', label: 'Coulisse à aile (+8,50 €/ml)' },
+  ],
+});
+// +value coulisse à aile : 8,5 €/ml de hauteur × 2 coulisses (à confirmer : base du ml).
+priceRules.push({
+  code: 'coulisse_aile', label: 'Coulisse à aile', kind: 'add',
+  when: eq('coulisse_type', 'a_aile'),
+  amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 8.5, 2] } },
+});
+fields.push({
+  id: 'percage', label: 'Perçage des coulisses', type: 'choice', role: 'spec', default: 'tableau',
+  options: [
+    { value: 'tableau', label: 'Perçage tableau' },
+    { value: 'facade', label: 'Perçage façade' },
+    { value: 'sans', label: 'Sans perçage' },
+  ],
+});
+
+// ── Manœuvre : manuelle / motorisée ──
+fields.push({
+  id: 'manoeuvre', label: 'Type de manœuvre', type: 'choice', default: 'motorisee',
+  options: [
+    { value: 'manuelle', label: 'Manuelle' },
+    { value: 'motorisee', label: 'Motorisation' },
+  ],
+});
+// Manuelle = grille de coût de motorisation FILAIRE − moins-value (−72 si L<451, sinon −13).
+priceRules.push({
+  code: 'manuelle_mv', label: 'Manœuvre manuelle (moins-value)', kind: 'add',
+  when: eq('manoeuvre', 'manuelle'),
+  amount: { op: 'if', cond: lt('largeur', 451), then: -72, else: -13 },
+});
+
+// Motorisation : type (filaire/radio/solaire) + marque (MN/Somfy).
+fields.push({
+  id: 'commande', label: 'Motorisation', type: 'choice', default: 'filaire',
+  visibleWhen: eq('manoeuvre', 'motorisee'),
+  options: [
+    { value: 'filaire', label: 'Filaire' },
+    { value: 'radio', label: 'Radio' },
+    { value: 'solaire', label: 'Solaire' },
+  ],
+});
+// ⚠️ Solaire : l'arbre montre MN + Somfy ; à confirmer (pour le Tradi, le PDG a
+//    indiqué que MN ne fait pas de moteur solaire). Ici MN+Somfy laissés dispo.
+fields.push({
+  id: 'moteur', label: 'Marque du moteur', type: 'choice', default: 'mn',
+  visibleWhen: eq('manoeuvre', 'motorisee'),
+  options: [{ value: 'mn', label: 'Moteur MN' }, { value: 'somfy', label: 'Moteur Somfy' }],
+});
+// Côté de manœuvre (fabrication) — gauche / droite.
+fields.push({
+  id: 'position_moteur', label: 'Position manœuvre', type: 'choice', role: 'spec', default: 'droite',
+  visibleWhen: eq('manoeuvre', 'motorisee'),
+  options: [{ value: 'gauche', label: 'Gauche (G)' }, { value: 'droite', label: 'Droite (D)' }],
+});
+
+// ── Motorisation FILAIRE : option inverseur +21 € (4 variantes même prix).
+//    Pas de commande de secours en filaire (différence avec le Tradi).
+const filaireVis = AND([eq('manoeuvre', 'motorisee'), eq('commande', 'filaire')]);
+fields.push({ id: 'inverseur', label: 'Inverseur (+21 €)', type: 'boolean', visibleWhen: filaireVis });
+priceRules.push({ code: 'opt_inverseur', label: 'Inverseur', kind: 'add', when: AND([eq('inverseur', true), filaireVis]), amount: 21 });
+fields.push({
+  id: 'inverseur_pose', label: 'Inverseur — pose', type: 'choice', role: 'spec', default: 'encastre',
+  visibleWhen: eq('inverseur', true),
+  options: [{ value: 'encastre', label: 'Encastré' }, { value: 'applique', label: 'En applique' }],
+});
+fields.push({
+  id: 'inverseur_maintien', label: 'Inverseur — maintien', type: 'choice', role: 'spec', default: 'maintenu',
+  visibleWhen: eq('inverseur', true),
+  options: [{ value: 'maintenu', label: 'Maintenu' }, { value: 'fixe', label: 'Fixe' }],
+});
+
+// ── Motorisation RADIO / SOLAIRE : émetteur (portatif/mural) + marque incluse.
+//    MN → portatif 1 canal inclus (option 5 canaux +80). Somfy → Amy 1 Sun Protect
+//    inclus + options de CENTRALISATION (Somfy uniquement).
+fields.push({
+  id: 'emetteur_type', label: 'Émetteur', type: 'choice', default: 'portatif',
+  visibleWhen: RADIO_SOL,
+  options: [{ value: 'portatif', label: 'Émetteur portatif' }, { value: 'mural', label: 'Émetteur mural' }],
+});
+fields.push({
+  id: 'radio_info', type: 'info', visibleWhen: RADIO_SOL,
+  help: 'Émetteur de base inclus : MN → portatif 1 canal · Somfy → Amy 1 Sun Protect (l’une des 4 possibilités, toutes incluses).',
+});
+// MN : émetteur 5 canaux (+80 €).
+const mnRadioVis = AND([RADIO_SOL, eq('moteur', 'mn')]);
+fields.push({ id: 'emetteur_5c', label: 'Émetteur portatif 5 canaux (+80 €)', type: 'boolean', visibleWhen: mnRadioVis });
+priceRules.push({ code: 'opt_emetteur_5c', label: 'Émetteur portatif 5 canaux', kind: 'add', when: AND([eq('emetteur_5c', true), mnRadioVis]), amount: 80 });
+// Somfy : centralisation.
+const somfyRadioVis = AND([RADIO_SOL, eq('moteur', 'somfy')]);
+fields.push({
+  id: 'centralisation_info', type: 'info', visibleWhen: somfyRadioVis,
+  help: 'Options de centralisation (Somfy uniquement) : la Situo IO 1 canal remplace l’Amy 1 (+23 €) ; vous pouvez ajouter la Situo IO 5 Pure 2 ou l’Amy 4 IO.',
+});
+fields.push({ id: 'situo_io_1c', label: 'Situo IO 1 canal — remplace l’Amy 1 (+23 €)', type: 'boolean', visibleWhen: somfyRadioVis });
+priceRules.push({ code: 'opt_situo_io_1c', label: 'Situo IO 1 canal (remplace l’Amy 1)', kind: 'add', when: AND([eq('situo_io_1c', true), somfyRadioVis]), amount: 23 });
+fields.push({ id: 'situo_io_5c', label: 'Situo IO 5 Pure 2, 5 canaux (+135 €)', type: 'boolean', visibleWhen: somfyRadioVis });
+priceRules.push({ code: 'opt_situo_io_5c', label: 'Situo IO 5 Pure 2 (5 canaux)', kind: 'add', when: AND([eq('situo_io_5c', true), somfyRadioVis]), amount: 135 });
+fields.push({ id: 'amy_4c_io', label: 'Amy 4 IO (+131 €)', type: 'boolean', visibleWhen: somfyRadioVis });
+priceRules.push({ code: 'opt_amy_4c_io', label: 'Émetteur Amy 4 IO', kind: 'add', when: AND([eq('amy_4c_io', true), somfyRadioVis]), amount: 131 });
+
+// Côté tringle (fabrication) — manœuvre manuelle.
+fields.push({
+  id: 'tringle_cote', label: 'Côté tringle', type: 'choice', role: 'spec', default: 'droite',
+  visibleWhen: eq('manoeuvre', 'manuelle'),
+  options: [{ value: 'gauche', label: 'Gauche' }, { value: 'droite', label: 'Droite' }],
+});
 
 // ---- Dérivées ----
 const derived = [
   { id: 'surface_m2', expr: { op: '*', args: [{ op: '/', args: [V('largeur'), 1000] }, { op: '/', args: [V('hauteur'), 1000] }] } },
 ];
 
-// ---- Prix (PROVISOIRE) ----
-// ⚠️ À REMPLACER par la grille réelle Largeur × Hauteur (par taille de coffre) dès fourniture.
-const priceRules = [
-  { code: 'base', label: 'Prix de base (tarif provisoire)', kind: 'base',
-    amount: { op: 'round', arg: { op: '+', args: [{ op: '*', args: [V('surface_m2'), 300] }, 100] } } },
-];
+// ---- Prix de BASE (PROVISOIRE) ----
+// ⚠️ À REMPLACER par la grille de coût de motorisation Largeur × Hauteur
+//    (par commande × marque). Formule provisoire pour rendre le wizard fonctionnel.
+priceRules.unshift({
+  code: 'base', label: 'Prix de base (tarif provisoire)', kind: 'base',
+  amount: { op: 'round', arg: { op: '+', args: [{ op: '*', args: [V('surface_m2'), 300] }, 100] } },
+});
 
 // ---- Contraintes (lame Alu 37) ----
 const constraints = [
@@ -97,20 +213,25 @@ const constraints = [
   { message: 'Surface maximale 5,5 m² (lame Alu 37)', requires: lte('surface_m2', 5.5) },
 ];
 
-// ---- Étapes ----
+// ---- Étapes (ordre de l'arbre) ----
 const steps = [
   { id: 'produit', title: 'Type de produit', fields: ['sous_famille'] },
-  { id: 'coloris', title: 'Coloris', fields: ['coloris'] },
   { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'enroulement', 'lame_info'] },
-  { id: 'coffre', title: 'Coffre', fields: ['coffre_taille', 'coffre_pan', 'percage'] },
+  { id: 'coffre', title: 'Coffre', fields: ['coffre_taille', 'coffre_pan', 'lame_finale'] },
+  { id: 'coloris', title: 'Coloris', fields: ['coloris'] },
+  { id: 'coulisses', title: 'Coulisses', fields: ['coulisse_type', 'percage'] },
+  { id: 'manoeuvre', title: 'Manœuvre', fields: [
+    'manoeuvre', 'tringle_cote', 'commande', 'moteur', 'position_moteur', 'emetteur_type',
+    'radio_info', 'centralisation_info', 'inverseur', 'inverseur_pose', 'inverseur_maintien',
+    'emetteur_5c', 'situo_io_1c', 'situo_io_5c', 'amy_4c_io',
+  ] },
   { id: 'recap', title: 'Récapitulatif', fields: [] },
 ];
 
 const def = {
   slug: 'volet-roulant-renovation',
   name: 'Volet roulant rénovation (Minibox)',
-  famille: 'reno',            // repli ; nœud dynamique via sous_famille (minibox 1.2.1)
-  nodeField: 'sous_famille',
+  famille: 'reno', nodeField: 'sous_famille',
   fields, derived, steps, priceRules,
   tables: { d1: {}, d2: {} }, tableLabels: {}, constraints,
 };
@@ -118,4 +239,4 @@ const def = {
 const out = path.join(__dirname, '..', 'lib', 'configurateur', 'data', 'volet-roulant-renovation.v2.json');
 fs.writeFileSync(out, JSON.stringify(def), 'utf8');
 const kb = Math.round(fs.statSync(out).size / 1024);
-console.log(`Écrit ${path.relative(process.cwd(), out)} (${kb} Ko) — ${fields.length} champs, ${priceRules.length} règles, ${steps.length} étapes (PRIX PROVISOIRE).`);
+console.log(`Écrit ${path.relative(process.cwd(), out)} (${kb} Ko) — ${fields.length} champs, ${priceRules.length} règles, ${steps.length} étapes (BASE PROVISOIRE).`);
