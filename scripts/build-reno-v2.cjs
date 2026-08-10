@@ -253,7 +253,8 @@ fields.push({
 // Schémas de position à déposer dans public/ (2 fichiers séparés).
 fields.push({
   id: 'sortie_fil', label: 'Numéro de sortie du fil', type: 'choice', role: 'spec', default: '1',
-  visibleWhen: eq('manoeuvre', 'motorisee'),
+  // Le moteur solaire est autonome (batterie/panneau) : pas de fil → pas de sortie de fil.
+  visibleWhen: AND([eq('manoeuvre', 'motorisee'), inSet('commande', ['filaire', 'radio'])]),
   help: 'Position de sortie du fil sur le coffre (voir schéma) — 1 à 11.',
   helpImage: '/reno-minibox-sortie-fil.png',
   options: Array.from({ length: 11 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) })),
