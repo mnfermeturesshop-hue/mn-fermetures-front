@@ -218,17 +218,19 @@ fields.push({
 // Numéros de SORTIE (fabrication) — position sur le coffre, d'après le schéma de pose.
 //  - Fil (manœuvre motorisée) : 1 à 11.
 //  - Tringle oscillante (manœuvre manuelle TO) : 1 à 5.
-const SORTIE_IMG = '/reno-minibox-sorties.png';   // schéma des positions (fil 1-11 / tringle 1-5) → à déposer dans public/
+// Schémas de position à déposer dans public/ (2 fichiers séparés).
 fields.push({
   id: 'sortie_fil', label: 'Numéro de sortie du fil', type: 'choice', role: 'spec', default: '1',
   visibleWhen: eq('manoeuvre', 'motorisee'),
-  help: 'Position de sortie du fil sur le coffre (voir schéma) — 1 à 11.', helpImage: SORTIE_IMG,
+  help: 'Position de sortie du fil sur le coffre (voir schéma) — 1 à 11.',
+  helpImage: '/reno-minibox-sortie-fil.png',
   options: Array.from({ length: 11 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) })),
 });
 fields.push({
   id: 'sortie_tringle', label: 'Numéro de sortie de la tringle', type: 'choice', role: 'spec', default: '1',
   visibleWhen: eq('manoeuvre', 'manuelle'),
-  help: 'Position de sortie de la tringle oscillante (voir schéma) — 1 à 5.', helpImage: SORTIE_IMG,
+  help: 'Position de sortie de la tringle oscillante (voir schéma) — 1 à 5.',
+  helpImage: '/reno-minibox-sortie-tringle.png',
   options: Array.from({ length: 5 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) })),
 });
 
