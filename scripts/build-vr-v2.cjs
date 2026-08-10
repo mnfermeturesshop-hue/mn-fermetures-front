@@ -673,8 +673,8 @@ const steps = [
   // Étape 1 (tradi-coffre & coffre-seul) : configuration du COFFRE. Placée avant la
   // config volet (« Étape 2 » du tradi + coffre). Masquée en tradi-std (étape vide).
   { id: 'coffre', title: 'Coffre', fields: ['coffre_gamme', 'coffre_face', 'coffre_section', 'coffre_sous_face'] },
-  { id: 'type', title: 'Type & pose', fields: ['gamme_tradi', 'type_volet', ...specIds, 'percage'] },
-  { id: 'lame', title: 'Lame & coulisses', fields: ['lame', 'coulisse_express', 'coulisse_defaut_info', 'express_attaches_info'] },
+  { id: 'type', title: 'Type & pose', fields: ['gamme_tradi', 'type_volet', ...specIds] },
+  { id: 'lame', title: 'Lame & coulisses', fields: ['lame', 'coulisse_express', 'coulisse_defaut_info', 'percage', 'express_attaches_info'] },
   { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'surface_info', 'pattes_maintien', 'coffre_hat_info'] },
   // Radio/Solaire : on choisit le type d'émetteur (portatif/mural) AVANT la marque
   // de motorisation (MN/Somfy) — d'où `emetteur_type` placé avant `moteur`. Toutes
