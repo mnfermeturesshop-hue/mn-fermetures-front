@@ -43,7 +43,7 @@ fields.push({
 
 // ── Dimensions (cotes de FABRICATION, vue intérieure, jeux de pose déduits) ──
 fields.push({ id: 'largeur', label: 'Largeur (dos de coulisse)', type: 'dimension', unit: 'mm', default: 1200 });
-fields.push({ id: 'hauteur', label: 'Hauteur (sous coffre)', type: 'dimension', unit: 'mm', default: 1000 });
+fields.push({ id: 'hauteur', label: 'Hauteur (coffre compris)', type: 'dimension', unit: 'mm', default: 1000 });
 // Pose : en tableau (enroulement intérieur OU extérieur) ou en applique (extérieur only).
 fields.push({
   id: 'pose', label: 'Pose', type: 'choice', role: 'spec', default: 'tableau',
