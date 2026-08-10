@@ -111,12 +111,29 @@ fields.push({
     { value: 'motorisee', label: 'Motorisation' },
   ],
 });
-// Manuelle = grille de coût de motorisation FILAIRE − moins-value (−72 si L<451, sinon −13).
+// Manuelle = grille de coût de motorisation FILAIRE − moins-value.
+// ⚠️ Valeurs de la GRILLE TARIF MN (prioritaire) : L<567 → −77 € ; L≥567 → −17 €.
+//    (L'arbre de décision indiquait <451 → −72 / −13 — à confirmer.)
 priceRules.push({
   code: 'manuelle_mv', label: 'Manœuvre manuelle (moins-value)', kind: 'add',
   when: eq('manoeuvre', 'manuelle'),
-  amount: { op: 'if', cond: lt('largeur', 451), then: -72, else: -13 },
+  amount: { op: 'if', cond: lt('largeur', 567), then: -77, else: -17 },
 });
+// Genouillère (manœuvre manuelle) : 60° incluse / 60° aimantée +41 / 90° +18 / 90° aimantée +59.
+fields.push({
+  id: 'genouillere_manuelle', label: 'Genouillère', type: 'choice', default: 'g60',
+  visibleWhen: eq('manoeuvre', 'manuelle'),
+  options: [
+    { value: 'g60', label: 'Genouillère 60° (incluse)' },
+    { value: 'g60a', label: 'Genouillère 60° aimantée (+41 €)' },
+    { value: 'g90', label: 'Genouillère 90° (+18 €)' },
+    { value: 'g90a', label: 'Genouillère 90° aimantée (+59 €)' },
+  ],
+});
+for (const [val, price] of Object.entries({ g60a: 41, g90: 18, g90a: 59 })) {
+  priceRules.push({ code: `opt_genou_${val}`, label: `Genouillère ${val}`, kind: 'add',
+    when: AND([eq('manoeuvre', 'manuelle'), eq('genouillere_manuelle', val)]), amount: price });
+}
 
 // Motorisation : type (filaire/radio/solaire) + marque (MN/Somfy).
 fields.push({
@@ -194,9 +211,18 @@ fields.push({
   options: [{ value: 'gauche', label: 'Gauche' }, { value: 'droite', label: 'Droite' }],
 });
 
+// Section de coffre AUTO selon la hauteur (grille MN) : 137 (≤1550) / 150 (≤2250)
+// / 165 (≤2550). Affichée sous le champ « Taille de coffre » (override possible).
+fields.push({
+  id: 'coffre_auto_info', type: 'info',
+  help: 'Section mini automatique selon la hauteur : {{coffre_auto}}.',
+});
+
 // ---- Dérivées ----
 const derived = [
   { id: 'surface_m2', expr: { op: '*', args: [{ op: '/', args: [V('largeur'), 1000] }, { op: '/', args: [V('hauteur'), 1000] }] } },
+  { id: 'coffre_auto', expr: { op: 'if', cond: lte('hauteur', 1550), then: '137',
+      else: { op: 'if', cond: lte('hauteur', 2250), then: '150', else: '165' } } },
 ];
 
 // ---- Prix de BASE (PROVISOIRE) ----
@@ -217,11 +243,11 @@ const constraints = [
 const steps = [
   { id: 'produit', title: 'Type de produit', fields: ['sous_famille'] },
   { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'enroulement', 'lame_info'] },
-  { id: 'coffre', title: 'Coffre', fields: ['coffre_taille', 'coffre_pan', 'lame_finale'] },
+  { id: 'coffre', title: 'Coffre', fields: ['coffre_taille', 'coffre_auto_info', 'coffre_pan', 'lame_finale'] },
   { id: 'coloris', title: 'Coloris', fields: ['coloris'] },
   { id: 'coulisses', title: 'Coulisses', fields: ['coulisse_type', 'percage'] },
   { id: 'manoeuvre', title: 'Manœuvre', fields: [
-    'manoeuvre', 'tringle_cote', 'commande', 'moteur', 'position_moteur', 'emetteur_type',
+    'manoeuvre', 'tringle_cote', 'genouillere_manuelle', 'commande', 'moteur', 'position_moteur', 'emetteur_type',
     'radio_info', 'centralisation_info', 'inverseur', 'inverseur_pose', 'inverseur_maintien',
     'emetteur_5c', 'situo_io_1c', 'situo_io_5c', 'amy_4c_io',
   ] },
