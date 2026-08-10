@@ -177,10 +177,14 @@ export function ConfigurateurProduit({ slug }: Props) {
 
     if (f.type === 'boolean') {
       return (
-        <label className="cfg-check" key={f.id}>
-          <input type="checkbox" checked={values[f.id] === true} onChange={(e) => setField(f.id, e.target.checked)} />
-          <span>{f.label}</span>
-        </label>
+        <div key={f.id}>
+          <label className="cfg-check">
+            <input type="checkbox" checked={values[f.id] === true} onChange={(e) => setField(f.id, e.target.checked)} />
+            <span>{f.label}</span>
+          </label>
+          {f.help && <p className="cfg-dim-hint">{f.help}</p>}
+          {helpImageBlock(f)}
+        </div>
       );
     }
 

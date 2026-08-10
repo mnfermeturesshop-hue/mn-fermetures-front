@@ -42,11 +42,19 @@ fields.push({
 // ── Dimensions (cotes de FABRICATION, vue intérieure, jeux de pose déduits) ──
 fields.push({ id: 'largeur', label: 'Largeur (dos de coulisse)', type: 'dimension', unit: 'mm', default: 1200 });
 fields.push({ id: 'hauteur', label: 'Hauteur (sous coffre)', type: 'dimension', unit: 'mm', default: 1000 });
+// Pose : en tableau (enroulement intérieur OU extérieur) ou en applique (extérieur only).
+fields.push({
+  id: 'pose', label: 'Pose', type: 'choice', role: 'spec', default: 'tableau',
+  help: 'Pose en tableau ou en applique. Cotes de FABRICATION en mm — pensez à déduire vos jeux de pose (largeur dos de coulisses, hauteur coffre compris).',
+  helpImage: '/reno-minibox-dimensions-enroulements.png',
+  options: [{ value: 'tableau', label: 'En tableau' }, { value: 'applique', label: 'En applique' }],
+});
 fields.push({
   id: 'enroulement', label: 'Enroulement', type: 'choice', role: 'spec', default: 'interieur',
-  help: 'Pose en tableau (enroulement intérieur ou extérieur) ou en applique (extérieur). Cotes de FABRICATION en mm — pensez à déduire vos jeux de pose (largeur dos de coulisses, hauteur coffre compris).',
-  helpImage: '/reno-minibox-dimensions-enroulements.png',
-  options: [{ value: 'interieur', label: 'Intérieur' }, { value: 'exterieur', label: 'Extérieur' }],
+  options: [
+    { value: 'interieur', label: 'Intérieur', availableWhen: eq('pose', 'tableau') }, // applique → extérieur uniquement
+    { value: 'exterieur', label: 'Extérieur' },
+  ],
 });
 fields.push({ id: 'lame_info', type: 'info', help: 'Lame aluminium 37 — largeur max 2400 mm, surface max 5,5 m².' });
 
@@ -104,6 +112,17 @@ fields.push({
     { value: 'sans', label: 'Sans perçage' },
   ],
 });
+// Option arrêts bas de coulisse (+6 €/paire) — UNIQUEMENT en pose applique et
+// coulisse 53×22 (les deux coulisses Minibox sont des 53×22). Bouche les coulisses
+// en applique sans appui de fenêtre.
+fields.push({
+  id: 'arrets_bas', label: 'Arrêts bas de coulisse (+6 €/paire)', type: 'boolean',
+  visibleWhen: AND([eq('pose', 'applique'), inSet('coulisse_type', ['c53x22', 'a_aile'])]),
+  help: 'Bouche les coulisses en pose applique sans appui de fenêtre (coulisse 53×22).',
+  helpImage: '/reno-minibox-arrets-bas.png',
+});
+priceRules.push({ code: 'opt_arrets_bas', label: 'Arrêts bas de coulisse', kind: 'add',
+  when: AND([eq('arrets_bas', true), eq('pose', 'applique')]), amount: 6 });
 
 // ── Manœuvre : manuelle / motorisée ──
 fields.push({
@@ -288,10 +307,10 @@ const constraints = [
 // ---- Étapes (ordre de l'arbre) ----
 const steps = [
   { id: 'produit', title: 'Type de produit', fields: ['sous_famille'] },
-  { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'enroulement', 'lame_info'] },
+  { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'pose', 'enroulement', 'lame_info'] },
   { id: 'coffre', title: 'Coffre', fields: ['coffre_auto_info', 'coffre_pan', 'lame_finale'] },
   { id: 'coloris', title: 'Coloris', fields: ['coloris'] },
-  { id: 'coulisses', title: 'Coulisses', fields: ['coulisse_type', 'percage'] },
+  { id: 'coulisses', title: 'Coulisses', fields: ['coulisse_type', 'percage', 'arrets_bas'] },
   { id: 'manoeuvre', title: 'Manœuvre', fields: [
     'manoeuvre', 'tringle_cote', 'sortie_tringle', 'genouillere_manuelle', 'commande', 'moteur', 'position_moteur', 'sortie_fil', 'emetteur_type',
     'radio_info', 'centralisation_info', 'inverseur', 'inverseur_pose', 'inverseur_maintien',
