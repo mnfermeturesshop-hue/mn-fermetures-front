@@ -35,7 +35,9 @@ const TREE: SeedGamme[] = [
     { name: 'Tradi', slug: 'tradi', generatorSlug: 'volet-roulant-traditionnel', children: [
       { name: 'Tradi', slug: 'tradi-std' }, { name: 'Tradi + coffre', slug: 'tradi-coffre' }, { name: 'Coffre seul', slug: 'coffre-seul' },
     ] },
-    { name: 'Reno', slug: 'reno', children: [
+    // Configurateur Rénovation (démarré par Minibox 1.2.1) rattaché à la FAMILLE
+    // (nœud de remise/surcharge/éco choisi dynamiquement via `sous_famille`).
+    { name: 'Reno', slug: 'reno', generatorSlug: 'volet-roulant-renovation', children: [
       { name: 'Minibox', slug: 'minibox' }, { name: 'Renobox', slug: 'renobox' }, { name: 'Reno gros coffre', slug: 'reno-gros-coffre' },
     ] },
     { name: 'Bloc baie', slug: 'bloc-baie', children: [
