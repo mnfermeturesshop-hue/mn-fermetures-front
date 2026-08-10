@@ -47,13 +47,29 @@ export function parseWorkbook(data: ArrayBuffer | Uint8Array): ParseResult {
     return { def: null, errors: ['Structure invalide (slug/fields manquants).'] };
   }
 
-  // 2. Tables de prix : feuilles Gn (2D) et Bn (1D).
+  // 2. Tables de prix : détectées par CONTENU (A1 = ['id', <id>]) — robuste aux
+  //    feuilles renommées (nom lisible « Grille — … »). 1D si A2 = ['key','value'],
+  //    sinon 2D (A2 = en-tête des colonnes).
   const d2: Record<string, Table2D> = {};
   const d1: Record<string, Table1D> = {};
   for (const name of wb.SheetNames) {
-    if (/^G\d+$/.test(name)) {
-      const aoa = sheetAoa(wb, name);
-      const id = str(aoa[0]?.[1]);
+    if (name === '_structure') continue;
+    const aoa = sheetAoa(wb, name);
+    if (str(aoa[0]?.[0]) !== 'id') continue;   // pas une feuille de table de prix
+    const id = str(aoa[0]?.[1]);
+    if (!id) continue;
+    if (str(aoa[1]?.[0]) === 'key') {
+      // Barème 1D
+      const keys: number[] = [];
+      const values: (number | null)[] = [];
+      for (const r of aoa.slice(2)) {
+        const k = num(r[0]); if (k == null) continue;
+        keys.push(k);
+        values.push(num(r[1]));
+      }
+      d1[id] = { keys, values };
+    } else {
+      // Grille 2D
       const cols = (aoa[1] ?? []).slice(1).map(num).filter((v): v is number => v != null);
       const rows: number[] = [];
       const cells: (number | null)[][] = [];
@@ -62,18 +78,7 @@ export function parseWorkbook(data: ArrayBuffer | Uint8Array): ParseResult {
         rows.push(rk);
         cells.push(cols.map((_, i) => num(r[1 + i])));
       }
-      if (id) d2[id] = { rows, cols, cells };
-    } else if (/^B\d+$/.test(name)) {
-      const aoa = sheetAoa(wb, name);
-      const id = str(aoa[0]?.[1]);
-      const keys: number[] = [];
-      const values: (number | null)[] = [];
-      for (const r of aoa.slice(2)) {
-        const k = num(r[0]); if (k == null) continue;
-        keys.push(k);
-        values.push(num(r[1]));
-      }
-      if (id) d1[id] = { keys, values };
+      d2[id] = { rows, cols, cells };
     }
   }
 

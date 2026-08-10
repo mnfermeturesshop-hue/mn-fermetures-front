@@ -124,6 +124,9 @@ export interface DefV2 {
   steps: Step[];
   priceRules: PriceRule[];
   tables?: { d1?: Record<string, Table1D>; d2?: Record<string, Table2D> };
+  /** Libellé humain par id de table (grille/barème) — utilisé pour nommer les
+   *  feuilles à l'export Excel (édition annuelle des prix). Facultatif. */
+  tableLabels?: Record<string, string>;
   constraints?: Constraint[];
   /** Personnalisation graphique du configurateur (couleur d'accent, logo). */
   theme?: { primary?: string; logo?: string };

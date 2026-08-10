@@ -198,15 +198,27 @@ fields.push({ id: 'surface_info', type: 'info',
   help: 'Surface maximale admissible : CD942 8 m², Alu 56 10 m², Alu 55 12 m².' });
 
 // ---- TABLES 2D (grilles) ----
+// `tableLabels` : libellé humain par id de table, pour nommer les feuilles Excel
+// (édition annuelle des prix). Le round-trip garde l'id (cellule A1) comme ancre.
+// Libellés COMPACTS (≤ 31 car. = limite des noms de feuille Excel) pour que les
+// 4 axes de la grille restent lisibles sans troncature.
+const tableLabels = {};
+const POSE_LBL = { independant: 'Indép', coffre: 'Coffre', express: 'Express' };
+const LAME_LBL = { cd942: 'CD942', 56: 'A56', 55: 'A55' };
+const MOTEUR_LBL = { mn: 'MN', somfy: 'Somfy' };
+const LAYER_LBL = { filaire: 'Fil', radio: 'Radio' };
 const d2 = {};
 const gridTableId = (k, layer) => `g_${k.pose}_${k.lame}_${k.moteur}_${layer}`;
 for (const g of v1.grids) {
   for (const [layer, lg] of Object.entries(g.layers)) {
-    d2[gridTableId(g.key, layer)] = {
+    const id = gridTableId(g.key, layer);
+    d2[id] = {
       rows: g.heights,
       cols: lg.widths,
       cells: g.heights.map((h) => lg.rows[String(h)]),
     };
+    // ex. « Indép · CD942 · MN · Fil » (≤ 31) — moteur/couche toujours visibles.
+    tableLabels[id] = `${POSE_LBL[g.key.pose] ?? g.key.pose} · ${LAME_LBL[g.key.lame] ?? g.key.lame} · ${MOTEUR_LBL[g.key.moteur] ?? g.key.moteur} · ${LAYER_LBL[layer] ?? layer}`;
   }
 }
 
@@ -265,6 +277,15 @@ adjustments.forEach((adj, i) => {
   const tid = `adj_${i}`;
   d1[tid] = { keys: Object.keys(adj.baremeParLargeur).map(Number).sort((a, b) => a - b), values: [] };
   d1[tid].values = d1[tid].keys.map((k) => adj.baremeParLargeur[String(k)]);
+  // Libellé compact = code humanisé + portée (pose/moteur/couche) pour distinguer
+  // les barèmes d'un même ajustement selon leur scope.
+  const scopeBits = [];
+  for (const [k, val] of Object.entries(adj.scope ?? {})) {
+    scopeBits.push(k === 'pose' ? (POSE_LBL[val] ?? val) : k === 'moteur' ? (MOTEUR_LBL[val] ?? val) : String(val));
+  }
+  if (adj.layer) scopeBits.push(LAYER_LBL[adj.layer] ?? adj.layer);
+  const adjBase = adj.code.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
+  tableLabels[tid] = (adjBase + (scopeBits.length ? ' ' + scopeBits.join('·') : '')).slice(0, 31);
   const cs = scopeConds(adj.scope, adj.layer);
   // Kit solaire Somfy (+232 €) : déclenché par la motorisation Solaire (Somfy only),
   // plus par la variante radio_somfy (l'option a été retirée du champ radio Somfy).
@@ -520,6 +541,7 @@ fields.push({ id: 'coffre_sous_face', label: 'Sous-face', type: 'choice', defaul
 // Grilles 1D par section (id `cs_<code>`).
 for (const s of COFFRE_SEUL_SECTIONS) {
   d1[`cs_${s.code}`] = { keys: s.grid.map((r) => r[0]), values: s.grid.map((r) => r[1]) };
+  tableLabels[`cs_${s.code}`] = `Coffre ${s.label}`;
 }
 // Le coffre (cascade + pattes + sous-face) est tarifé pour les DEUX sous-familles
 // qui portent un coffre : 1.1.2 (tradi-coffre, en plus du volet) et 1.1.3 (coffre seul).
@@ -539,8 +561,10 @@ priceRules.push({ code: 'coffre_seul_pattes', label: 'Pattes de maintien supplé
 // (négative). Blanche = 0 (aucune règle).
 d1['cs_pv_couleur'] = { keys: CS_WIDTHS, values: [
   6, 8, 12, 13, 14, 16, 17, 18, 20, 21, 22, 24, 25, 27, 31, 33, 35, 36, 37, 39, 40, 42, 43, 46, 48, 50, 51, 54, 55, 57, 58, 60, 61, 64, 65, 68, 69, 71, 72, 75, 77] };
+tableLabels['cs_pv_couleur'] = 'Coffre sous-face couleur (+val)';
 d1['cs_mv_cacherail'] = { keys: CS_WIDTHS, values: [
   -5, -6, -7, -8, -12, -13, -14, -15, -16, -16, -17, -18, -19, -21, -22, -23, -24, -24, -42, -45, -46, -49, -50, -52, -54, -55, -57, -58, -61, -63, -64, -67, -68, -69, -71, -72, -73, -75, -77, -78, -80] };
+tableLabels['cs_mv_cacherail'] = 'Coffre cache-rail (−val)';
 priceRules.push({ code: 'coffre_sf_couleur', label: 'Sous-face couleur (plus-value)', kind: 'add',
   when: AND([CS_ON, inSet('coffre_sous_face', ['7016', '7039', '2100'])]),
   amount: { op: 'lookup1d', table: 'cs_pv_couleur', key: V('largeur') } });
@@ -665,7 +689,7 @@ const def = {
   // 1.1.1 / tradi-coffre 1.1.2 / coffre-seul 1.1.3), cf. def.nodeField. `famille`
   // = repli (nœud famille 1.1) si aucune sous-famille n'est sélectionnée.
   slug: v1.slug, name: v1.name, famille: 'tradi', nodeField: 'sous_famille',
-  fields, derived, steps, priceRules, tables: { d1, d2 }, constraints,
+  fields, derived, steps, priceRules, tables: { d1, d2 }, tableLabels, constraints,
 };
 
 const out = path.join(__dirname, '..', 'lib', 'configurateur', 'data', 'volet-roulant-traditionnel.v2.json');
