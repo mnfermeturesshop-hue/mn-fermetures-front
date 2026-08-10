@@ -15,6 +15,9 @@
    ===================================================================== */
 const fs = require('fs');
 const path = require('path');
+// Grilles 2D (Largeur × Hauteur) parsées depuis le tarif Excel du PDG
+// (scripts/parse-reno-minibox.cjs) : g_mn_filaire, g_mn_radio, g_somfy_filaire, g_somfy_radio.
+const grids = require('../lib/configurateur/data/reno-minibox-grids.json');
 
 // ---- helpers conditions / expr ----
 const V = (name) => ({ var: name });
@@ -223,19 +226,25 @@ const derived = [
   { id: 'surface_m2', expr: { op: '*', args: [{ op: '/', args: [V('largeur'), 1000] }, { op: '/', args: [V('hauteur'), 1000] }] } },
   { id: 'coffre_auto', expr: { op: 'if', cond: lte('hauteur', 1550), then: '137',
       else: { op: 'if', cond: lte('hauteur', 2250), then: '150', else: '165' } } },
+  // Grille de prix retenue = coût de motorisation par marque × commande.
+  //  - manuelle → grille MN filaire (− moins-value) ;
+  //  - motorisée filaire/radio → g_<moteur>_<commande> ;
+  //  - motorisée solaire → PROVISOIRE : grille radio du moteur (grille solaire à venir).
+  { id: 'grid', expr: { op: 'if', cond: eq('manoeuvre', 'manuelle'), then: 'g_mn_filaire',
+      else: { op: 'concat', args: ['g_', V('moteur'), '_',
+        { op: 'if', cond: eq('commande', 'solaire'), then: 'radio', else: V('commande') }] } } },
 ];
 
-// ---- Prix de BASE (PROVISOIRE) ----
-// ⚠️ À REMPLACER par la grille de coût de motorisation Largeur × Hauteur
-//    (par commande × marque). Formule provisoire pour rendre le wizard fonctionnel.
+// ---- Prix de BASE = grille de coût de motorisation (Largeur × Hauteur) ----
 priceRules.unshift({
-  code: 'base', label: 'Prix de base (tarif provisoire)', kind: 'base',
-  amount: { op: 'round', arg: { op: '+', args: [{ op: '*', args: [V('surface_m2'), 300] }, 100] } },
+  code: 'base', label: 'Prix de base', kind: 'base',
+  amount: { op: 'lookup2d', table: V('grid'), row: V('hauteur'), col: V('largeur') },
 });
 
-// ---- Contraintes (lame Alu 37) ----
+// ---- Contraintes (lame Alu 37 + bornes grilles) ----
 const constraints = [
   { message: 'Largeur maximale 2400 mm (lame Alu 37)', requires: lte('largeur', 2400) },
+  { message: 'Hauteur maximale 2550 mm', requires: lte('hauteur', 2550) },
   { message: 'Surface maximale 5,5 m² (lame Alu 37)', requires: lte('surface_m2', 5.5) },
 ];
 
@@ -259,10 +268,15 @@ const def = {
   name: 'Volet roulant rénovation (Minibox)',
   famille: 'reno', nodeField: 'sous_famille',
   fields, derived, steps, priceRules,
-  tables: { d1: {}, d2: {} }, tableLabels: {}, constraints,
+  tables: { d1: {}, d2: grids },
+  tableLabels: {
+    g_mn_filaire: 'MN Filaire', g_mn_radio: 'MN Radio',
+    g_somfy_filaire: 'Somfy Ilmo (filaire)', g_somfy_radio: 'Somfy RS100 io (radio)',
+  },
+  constraints,
 };
 
 const out = path.join(__dirname, '..', 'lib', 'configurateur', 'data', 'volet-roulant-renovation.v2.json');
 fs.writeFileSync(out, JSON.stringify(def), 'utf8');
 const kb = Math.round(fs.statSync(out).size / 1024);
-console.log(`Écrit ${path.relative(process.cwd(), out)} (${kb} Ko) — ${fields.length} champs, ${priceRules.length} règles, ${steps.length} étapes (BASE PROVISOIRE).`);
+console.log(`Écrit ${path.relative(process.cwd(), out)} (${kb} Ko) — ${fields.length} champs, ${priceRules.length} règles, ${steps.length} étapes, ${Object.keys(grids).length} grilles MN/Somfy.`);
