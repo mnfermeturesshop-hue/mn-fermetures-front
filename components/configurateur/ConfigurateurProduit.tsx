@@ -57,6 +57,8 @@ export function ConfigurateurProduit({ slug }: Props) {
   const [values, setValues] = useState<Values>({});
   const [qty, setQty] = useState(1);
   const [stepIdx, setStepIdx] = useState(0);
+  // Schémas d'aide (helpImage) affichés à la demande, par champ (repliés par défaut).
+  const [shownImages, setShownImages] = useState<Record<string, boolean>>({});
 
   // Chargement de la définition (réservé aux connectés : prix = donnée pro).
   // Dépend de l'ID utilisateur (et pas de l'objet `user`) : un simple re-sync de
@@ -147,6 +149,25 @@ export function ConfigurateurProduit({ slug }: Props) {
   const interpolate = (text: string) =>
     text.replace(/\{\{(\w+)\}\}/g, (_, k) => { const v = result?.context?.[k]; return v == null ? '' : String(v); });
 
+  // Schéma d'aide (helpImage) à la demande : bouton « Voir le schéma » (souris ET
+  // tactile), replié par défaut pour garder l'écran propre.
+  const helpImageBlock = (f: Field): ReactNode => {
+    if (!f.helpImage) return null;
+    const open = !!shownImages[f.id];
+    return (
+      <div className="cfg-help-schema">
+        <button type="button" className="cfg-help-toggle"
+          onClick={() => setShownImages((s) => ({ ...s, [f.id]: !open }))}>
+          {open ? '▾ Masquer le schéma' : '▸ Voir le schéma'}
+        </button>
+        {open && (
+          <img className="cfg-help-img" src={f.helpImage} alt=""
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+        )}
+      </div>
+    );
+  };
+
   // ── Rendu générique d'un champ ──
   const renderField = (f: Field): ReactNode => {
     if (f.type === 'info') {
@@ -200,7 +221,7 @@ export function ConfigurateurProduit({ slug }: Props) {
             ))}
             <span className="cfg-coloris-label">{shown.find((o) => o.value === values[f.id])?.label ?? ''}</span>
           </div>
-          {f.helpImage && <img className="cfg-help-img" src={f.helpImage} alt="" />}
+          {helpImageBlock(f)}
         </div>
       );
     }
@@ -221,10 +242,7 @@ export function ConfigurateurProduit({ slug }: Props) {
           })}
         </div>
         {f.help && <p className="cfg-dim-hint">{f.help}</p>}
-        {f.helpImage && (
-          <img className="cfg-help-img" src={f.helpImage} alt=""
-            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-        )}
+        {helpImageBlock(f)}
       </div>
     );
   };

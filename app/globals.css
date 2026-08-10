@@ -1992,6 +1992,9 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 .cfg-recap-list li strong { text-align: right; }
 .cfg-step-help { margin: 0 0 16px; padding: 10px 14px; background: #eef2f7; border-radius: 8px; font-size: 13px; color: var(--ink); line-height: 1.5; }
 .cfg-help-img { max-width: 100%; margin-top: 10px; border: 1px solid var(--line); border-radius: 8px; }
+.cfg-help-schema { margin-top: 8px; }
+.cfg-help-toggle { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: #eef2f7; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--steel-600, #1e3a5f); cursor: pointer; }
+.cfg-help-toggle:hover { background: #e2e8f0; }
 .cfg-mobar { display: none; }
 
 /* Responsive */
