@@ -54,6 +54,8 @@ fields.push({ id: 'lame_info', type: 'info', help: 'Lame aluminium 37 — largeu
 //    en Minibox alu), + forme (pan) qui pilote la lame finale et les coloris ──
 fields.push({
   id: 'coffre_pan', label: 'Forme de coffre', type: 'choice', default: 'pan_coupe',
+  help: 'Pan coupé → lame finale affleurante · Pan rond → lame finale standard.',
+  helpImage: '/reno-minibox-coffre.png',
   options: [{ value: 'pan_coupe', label: 'Pan coupé (PC)' }, { value: 'pan_rond', label: 'Pan rond (PR)' }],
 });
 // Lame finale : pan coupé → affleurante (défaut) ou classique ; pan rond → classique (forcé).
@@ -240,7 +242,7 @@ fields.push({
 // / 165 (≤2550). Affichée sous le champ « Taille de coffre » (override possible).
 fields.push({
   id: 'coffre_auto_info', type: 'info',
-  help: 'Section mini automatique selon la hauteur : {{coffre_auto}}.',
+  help: 'Section mini automatique selon la hauteur : {{coffre_auto}}. Pour uniformiser la section sur plusieurs repères, précisez-le dans la note (dernière étape).',
 });
 
 // ---- Dérivées ----
