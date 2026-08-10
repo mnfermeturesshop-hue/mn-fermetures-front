@@ -207,6 +207,14 @@ priceRules.push({ code: 'opt_situo_io_5c', label: 'Situo IO 5 Pure 2 (5 canaux)'
 fields.push({ id: 'amy_4c_io', label: 'Amy 4 IO (+131 €)', type: 'boolean', visibleWhen: somfyRadioVis });
 priceRules.push({ code: 'opt_amy_4c_io', label: 'Émetteur Amy 4 IO', kind: 'add', when: AND([eq('amy_4c_io', true), somfyRadioVis]), amount: 131 });
 
+// ── Motorisation SOLAIRE (Somfy RS100 SOLAR IO) : kit solaire +232 € (moteur +
+//    batterie + panneau + émetteur) toujours inclus ; alim de dépannage +83 € en option.
+priceRules.push({ code: 'kit_solaire', label: 'Kit solaire (moteur + batterie + panneau + émetteur)', kind: 'add',
+  when: eq('commande', 'solaire'), amount: 232 });
+fields.push({ id: 'alim_depannage', label: 'Alimentation de dépannage (+83 €)', type: 'boolean', visibleWhen: eq('commande', 'solaire') });
+priceRules.push({ code: 'opt_alim_depannage', label: 'Alimentation de dépannage', kind: 'add',
+  when: AND([eq('alim_depannage', true), eq('commande', 'solaire')]), amount: 83 });
+
 // Côté tringle (fabrication) — manœuvre manuelle.
 fields.push({
   id: 'tringle_cote', label: 'Côté tringle', type: 'choice', role: 'spec', default: 'droite',
@@ -229,10 +237,11 @@ const derived = [
   // Grille de prix retenue = coût de motorisation par marque × commande.
   //  - manuelle → grille MN filaire (− moins-value) ;
   //  - motorisée filaire/radio → g_<moteur>_<commande> ;
-  //  - motorisée solaire → PROVISOIRE : grille radio du moteur (grille solaire à venir).
+  //  - motorisée solaire → Somfy RS100 SOLAR IO = grille Radio RS100 io (g_somfy_radio)
+  //    + kit solaire +232 € (quel que soit le choix marque : l'offre solaire est Somfy).
   { id: 'grid', expr: { op: 'if', cond: eq('manoeuvre', 'manuelle'), then: 'g_mn_filaire',
-      else: { op: 'concat', args: ['g_', V('moteur'), '_',
-        { op: 'if', cond: eq('commande', 'solaire'), then: 'radio', else: V('commande') }] } } },
+      else: { op: 'if', cond: eq('commande', 'solaire'), then: 'g_somfy_radio',
+        else: { op: 'concat', args: ['g_', V('moteur'), '_', V('commande')] } } } },
 ];
 
 // ---- Prix de BASE = grille de coût de motorisation (Largeur × Hauteur) ----
@@ -258,7 +267,7 @@ const steps = [
   { id: 'manoeuvre', title: 'Manœuvre', fields: [
     'manoeuvre', 'tringle_cote', 'genouillere_manuelle', 'commande', 'moteur', 'position_moteur', 'emetteur_type',
     'radio_info', 'centralisation_info', 'inverseur', 'inverseur_pose', 'inverseur_maintien',
-    'emetteur_5c', 'situo_io_1c', 'situo_io_5c', 'amy_4c_io',
+    'emetteur_5c', 'situo_io_1c', 'situo_io_5c', 'amy_4c_io', 'alim_depannage',
   ] },
   { id: 'recap', title: 'Récapitulatif', fields: [] },
 ];
