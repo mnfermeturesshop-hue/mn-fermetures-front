@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useCheckoutStore, type PlacedOrder } from '@/lib/store/checkout';
@@ -66,6 +66,8 @@ export default function ConfirmationPage({ params }: Props) {
   if (!order) return null;
 
   const addr = order.shippingAddress;
+  // Éco-contribution totale (déjà incluse dans le total) — ligne « dont » informative.
+  const ecoTotal = order.lines.reduce((s, l) => s + (l.ecoContribHT ?? 0) * l.quantity, 0);
   const isVirement      = order.paymentMethod === 'virement';
   const isBonDeCommande = order.paymentMethod === 'bon_de_commande';
   const isPaid          = order.status === 'paid';
@@ -108,19 +110,44 @@ export default function ConfirmationPage({ params }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {order.lines.map((l) => (
-                  <tr key={l.key}>
-                    <td>
-                      <div className="confirm-line-name">{l.name}</div>
-                      {l.detail && <div className="confirm-line-detail">{l.detail}</div>}
-                      {l.reference && <div className="ref">{l.reference}</div>}
-                    </td>
-                    <td>{l.quantity}</td>
-                    <td>{euro(l.unitPriceHT * l.quantity)}</td>
-                  </tr>
-                ))}
+                {order.lines.map((l) => {
+                  const gross = l.grossUnitPriceHT ?? l.unitPriceHT;      // produit avant remise
+                  const hasRemise = gross > l.unitPriceHT + 0.005;
+                  const eco = l.ecoContribHT ?? 0;                        // éco-contribution €/u (non remisable)
+                  const sNet = l.surchargeUnitHT ?? 0;                    // surcharge temporaire nette €/u
+                  return (
+                    <Fragment key={l.key}>
+                      <tr>
+                        <td>
+                          <div className="confirm-line-name">{l.name}</div>
+                          {l.detail && <div className="confirm-line-detail">{l.detail}</div>}
+                          {l.reference && <div className="ref">{l.reference}</div>}
+                          {eco > 0 && <div className="confirm-line-detail" style={{ color: '#166534' }}>dont éco-contribution : <strong>{euro(eco)}/u</strong> (non remisable)</div>}
+                        </td>
+                        <td>{l.quantity}</td>
+                        <td>
+                          {hasRemise && <div style={{ textDecoration: 'line-through', color: '#9ca3af', fontSize: 12 }}>{euro(gross * l.quantity)}</div>}
+                          {euro((l.unitPriceHT + eco) * l.quantity)}{hasRemise ? ' net' : ''}
+                        </td>
+                      </tr>
+                      {sNet > 0 && (
+                        <tr className="confirm-surcharge-row">
+                          <td><div className="confirm-line-detail">Surcharge temporaire (+{l.surchargePct}%)</div></td>
+                          <td>{l.quantity}</td>
+                          <td>+{euro(sNet * l.quantity)}</td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
               </tbody>
               <tfoot>
+                {ecoTotal > 0 && (
+                  <tr>
+                    <td colSpan={2} style={{ color: '#166534' }}>dont éco-contribution</td>
+                    <td style={{ color: '#166534' }}>{euro(ecoTotal)}</td>
+                  </tr>
+                )}
                 <tr>
                   <td colSpan={2}>Livraison ({SHIPPING_LABELS[order.shippingMethod]})</td>
                   <td>{order.fraisHT === 0 ? <span className="green">Offerte</span> : euro(order.fraisHT)}</td>

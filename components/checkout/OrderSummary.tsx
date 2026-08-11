@@ -27,9 +27,17 @@ export function OrderSummary() {
               <div className="os-line-info">
                 <span className="os-line-name">{l.name}</span>
                 {l.detail && <span className="os-line-detail">{l.detail}</span>}
+                {(l.grossUnitPriceHT ?? l.unitPriceHT) > l.unitPriceHT + 0.005 && (
+                  <span className="os-line-detail" style={{ color: '#166534' }}>Remise pro appliquée</span>
+                )}
                 {!!l.ecoContribHT && <span className="os-line-detail">dont éco-contribution : {euro(l.ecoContribHT)}/u</span>}
               </div>
-              <span className="os-line-price">{euro((l.unitPriceHT + (l.ecoContribHT ?? 0)) * l.quantity)}</span>
+              <span className="os-line-price">
+                {(l.grossUnitPriceHT ?? l.unitPriceHT) > l.unitPriceHT + 0.005 && (
+                  <span style={{ textDecoration: 'line-through', color: '#9ca3af', fontSize: 11, marginRight: 6 }}>{euro((l.grossUnitPriceHT ?? l.unitPriceHT) * l.quantity)}</span>
+                )}
+                {euro((l.unitPriceHT + (l.ecoContribHT ?? 0)) * l.quantity)}
+              </span>
             </li>
             {!!l.surchargeUnitHT && (
               <li className="os-line">

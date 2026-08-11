@@ -16,6 +16,9 @@ function CartLineRow({ line }: { line: CartLine }) {
         <div className="drawer-line-name">{line.name}</div>
         {line.detail && <div className="drawer-line-detail">{line.detail}</div>}
         {line.reference && <div className="ref">{line.reference}</div>}
+        {(line.grossUnitPriceHT ?? line.unitPriceHT) > line.unitPriceHT + 0.005 && (
+          <div className="drawer-line-detail" style={{ color: '#166534' }}>Remise pro appliquée (<span style={{ textDecoration: 'line-through' }}>{euro((line.grossUnitPriceHT ?? line.unitPriceHT) * line.quantity)}</span>)</div>
+        )}
         {!!line.surchargeUnitHT && (
           <div className="drawer-line-detail">+ Surcharge temporaire (+{line.surchargePct}%) : {euro(line.surchargeUnitHT * line.quantity)} HT</div>
         )}

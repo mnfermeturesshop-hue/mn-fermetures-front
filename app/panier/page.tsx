@@ -10,6 +10,8 @@ import { B2C_ENABLED } from '@/lib/config';
 
 function LineRow({ line }: { line: CartLine }) {
   const { updateQty, removeLine } = useCartStore();
+  const gross = line.grossUnitPriceHT ?? line.unitPriceHT;   // PU HT avant remise pro
+  const hasRemise = gross > line.unitPriceHT + 0.005;
   return (
     <Fragment>
     <tr className="cart-tr">
@@ -17,8 +19,12 @@ function LineRow({ line }: { line: CartLine }) {
         <div className="cart-name">{line.name}</div>
         {line.detail && <div className="cart-detail">{line.detail}</div>}
         {line.reference && <div className="ref">{line.reference}</div>}
+        {hasRemise && <div className="cart-detail" style={{ color: '#166534' }}>Remise pro appliquée</div>}
       </td>
-      <td className="cart-td-price">{euro(line.unitPriceHT)} HT</td>
+      <td className="cart-td-price">
+        {hasRemise && <span style={{ textDecoration: 'line-through', color: '#9ca3af', fontSize: 11, marginRight: 6 }}>{euro(gross)}</span>}
+        {euro(line.unitPriceHT)} HT
+      </td>
       <td className="cart-td-qty">
         <div className="qty-ctrl">
           <button type="button" onClick={() => updateQty(line.key, line.quantity - 1)}>−</button>
