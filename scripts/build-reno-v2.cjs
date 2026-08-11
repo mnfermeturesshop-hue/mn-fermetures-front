@@ -18,6 +18,8 @@ const path = require('path');
 // Grilles 2D (Largeur × Hauteur) parsées depuis le tarif Excel du PDG
 // (scripts/parse-reno-minibox.cjs) : g_mn_filaire, g_mn_radio, g_somfy_filaire, g_somfy_radio.
 const grids = require('../lib/configurateur/data/reno-minibox-grids.json');
+// Grilles Renobox (parse-reno-renobox.cjs) : r42 / r56_205 / r56_250 × MN/Somfy × filaire/radio.
+const renoGrids = require('../lib/configurateur/data/reno-renobox-grids.json');
 
 // ---- helpers conditions / expr ----
 const V = (name) => ({ var: name });
@@ -105,18 +107,17 @@ fields.push({
 //    la lame par défaut. Contrainte guide : Alu 42 (CD942) → 150-205 · Alu 56 → 205/250.
 fields.push({
   id: 'coffre_reno_info', type: 'info', visibleWhen: IS_RENOBOX,
-  help: 'Section mini automatique (la plus petite compatible avec la lame), confirmée par MN. Choisissez une section supérieure si besoin. Toutes les sections ne sont pas disponibles en pan rond — nous vous renseignerons.',
+  help: 'Lame 42 : section de coffre déterminée automatiquement par la hauteur (150 ≤ 1350 · 165 ≤ 1750 · 180 ≤ 2250 · 205 au-delà). Lame 56 : coffre 205 ou 250. Toutes les sections ne sont pas disponibles en pan rond — nous vous renseignerons.',
 });
+// Lame 42 → coffre AUTO par la hauteur (une seule grille). Lame 56 → choix 205 / 250
+// (grilles distinctes). Le prix de base dépend du couple lame + coffre + moteur + commande.
 fields.push({
   id: 'coffre_reno', label: 'Section de coffre', type: 'choice', role: 'spec', default: 'auto',
-  visibleWhen: IS_RENOBOX,
+  visibleWhen: AND([IS_RENOBOX, eq('lame_reno', 'alu56')]),
   options: [
-    { value: 'auto', label: 'Automatique (section mini)' },
-    { value: '150', label: '150', availableWhen: eq('lame_reno', 'alu42') },
-    { value: '165', label: '165', availableWhen: eq('lame_reno', 'alu42') },
-    { value: '180', label: '180', availableWhen: eq('lame_reno', 'alu42') },
-    { value: '205', label: '205' },
-    { value: '250', label: '250', availableWhen: eq('lame_reno', 'alu56') },
+    { value: 'auto', label: 'Automatique (par hauteur)', availableWhen: eq('lame_reno', 'alu42') },
+    { value: '205', label: 'Coffre 205', availableWhen: eq('lame_reno', 'alu56') },
+    { value: '250', label: 'Coffre 250', availableWhen: eq('lame_reno', 'alu56') },
   ],
 });
 // Forme de coffre Renobox : pan coupé (PC) / pan rond (PR).
@@ -527,13 +528,29 @@ const derived = [
   { id: 'surface_m2', expr: { op: '*', args: [{ op: '/', args: [V('largeur'), 1000] }, { op: '/', args: [V('hauteur'), 1000] }] } },
   { id: 'coffre_auto', expr: { op: 'if', cond: lte('hauteur', 1550), then: '137',
       else: { op: 'if', cond: lte('hauteur', 2250), then: '150', else: '165' } } },
-  // (RENOBOX) Section de coffre effective (auto → plus petite compatible avec la lame :
-  // Alu 56 → 205, Alu 42 → 150) puis taux de plus-value coloris coffre (44 ≤165 / 54 sinon).
-  { id: 'coffre_reno_eff', expr: { op: 'if', cond: eq('coffre_reno', 'auto'),
-      then: { op: 'if', cond: eq('lame_reno', 'alu56'), then: 205, else: 150 },
+  // (RENOBOX) Section de coffre effective : lame 42 → AUTO par la hauteur
+  // (150 ≤1350 · 165 ≤1750 · 180 ≤2250 · 205 sinon) ; lame 56 → 205 / 250 choisi.
+  { id: 'coffre_reno_eff', expr: { op: 'if', cond: eq('lame_reno', 'alu42'),
+      then: { op: 'if', cond: lte('hauteur', 1350), then: 150,
+        else: { op: 'if', cond: lte('hauteur', 1750), then: 165,
+          else: { op: 'if', cond: lte('hauteur', 2250), then: 180, else: 205 } } },
       else: V('coffre_reno') } },
   { id: 'coffre_color_rate', expr: { op: 'if', cond: eq('lame_reno', 'alu56'), then: 66,
       else: { op: 'if', cond: lte('coffre_reno_eff', 165), then: 44, else: 54 } } },
+  // (RENOBOX) Sélection de la grille de base = groupe (lame/coffre) × moteur × commande.
+  //  - manœuvre manuelle / tirage direct → grille FILAIRE (± moins/plus-value) ;
+  //  - solaire → grille SOMFY RADIO (RS100 io) + kit solaire ;
+  //  - sinon grille du moteur × commande choisis.
+  { id: 'base_cmd_reno', expr: { op: 'if', cond: inSet('manoeuvre', ['manuelle', 'tirage_direct']), then: 'filaire',
+      else: { op: 'if', cond: eq('commande', 'solaire'), then: 'radio', else: V('commande') } } },
+  { id: 'base_moteur_reno', expr: { op: 'if', cond: eq('commande', 'solaire'), then: 'somfy', else: V('moteur') } },
+  { id: 'grid_group_reno', expr: { op: 'if', cond: eq('lame_reno', 'alu42'), then: 'r42',
+      else: { op: 'if', cond: lte('coffre_reno_eff', 205), then: 'r56_205', else: 'r56_250' } } },
+  { id: 'grid_reno', expr: { op: 'concat', args: [V('grid_group_reno'), '_', V('base_moteur_reno'), '_', V('base_cmd_reno')] } },
+  // Largeur mini réelle selon la grille : filaire 422 (MN) / 427 (Somfy) ; radio 622 (lame 42) / 628 (lame 56).
+  { id: 'largeur_mini_reno', expr: { op: 'if', cond: eq('base_cmd_reno', 'filaire'),
+      then: { op: 'if', cond: eq('base_moteur_reno', 'somfy'), then: 427, else: 422 },
+      else: { op: 'if', cond: eq('lame_reno', 'alu56'), then: 628, else: 622 } } },
   // Grille de prix retenue = coût de motorisation par marque × commande.
   //  - manuelle → grille MN filaire (− moins-value) ;
   //  - motorisée filaire/radio → g_<moteur>_<commande> ;
@@ -554,15 +571,15 @@ const derived = [
 ];
 
 // ---- Prix de BASE = grille de coût de motorisation (Largeur × Hauteur) ----
-//  - Minibox : lookup2d sur la grille MN/Somfy parsée.
-//  - Renobox : ⚠️ PROVISOIRE — grille tarifaire pas encore fournie. Formule placeholder
-//    (surface × coef) le temps de recevoir la grille, à remplacer par un lookup2d sur
-//    reno-renobox-grids.json. NE PAS considérer les prix Renobox comme définitifs.
+//  - Minibox : lookup2d sur la grille MN/Somfy (reno-minibox-grids.json).
+//  - Renobox : lookup2d sur la grille sélectionnée (reno-renobox-grids.json) =
+//    groupe (lame/coffre) × moteur × commande. Manœuvre manuelle = filaire − moins-value ;
+//    tirage direct = filaire + 135 ; solaire = Somfy radio + kit (règles dédiées).
 priceRules.unshift({
   code: 'base', label: 'Prix de base', kind: 'base',
   amount: {
     op: 'if', cond: IS_RENOBOX,
-    then: { op: 'round', arg: { op: '+', args: [200, { op: '*', args: [V('surface_m2'), 150] }] } },
+    then: { op: 'lookup2d', table: V('grid_reno'), row: V('hauteur'), col: V('largeur') },
     else: { op: 'lookup2d', table: V('grid'), row: V('hauteur'), col: V('largeur') },
   },
 });
@@ -580,6 +597,8 @@ const constraints = [
   { message: 'Largeur maximale 4000 mm (lame Alu 56)', requires: { any: [ne('sous_famille', 'renobox'), ne('lame_reno', 'alu56'), lte('largeur', 4000)] } },
   { message: 'Surface maximale 8 m² (lame Alu 42)', requires: { any: [ne('sous_famille', 'renobox'), ne('lame_reno', 'alu42'), lte('surface_m2', 8)] } },
   { message: 'Surface maximale 10 m² (lame Alu 56)', requires: { any: [ne('sous_famille', 'renobox'), ne('lame_reno', 'alu56'), lte('surface_m2', 10)] } },
+  // Renobox : largeur ≥ largeur mini de la grille (filaire 422/427 · radio 622/628).
+  { message: 'Largeur inférieure au minimum pour ce moteur / cette commande', requires: onlyFor('renobox', { op: 'gte', left: V('largeur'), right: V('largeur_mini_reno') }) },
   // Renobox tirage direct : largeur 630-2000 mm.
   { message: 'Tirage direct : largeur minimale 630 mm', requires: { any: [ne('sous_famille', 'renobox'), ne('manoeuvre', 'tirage_direct'), { op: 'gte', left: V('largeur'), right: 630 }] } },
   { message: 'Tirage direct : largeur maximale 2000 mm', requires: { any: [ne('sous_famille', 'renobox'), ne('manoeuvre', 'tirage_direct'), lte('largeur', 2000)] } },
@@ -607,10 +626,20 @@ const def = {
   name: 'Volet roulant rénovation (Minibox · Renobox)',
   famille: 'reno', nodeField: 'sous_famille',
   fields, derived, steps, priceRules,
-  tables: { d1: {}, d2: grids },
+  tables: { d1: {}, d2: { ...grids, ...renoGrids } },
   tableLabels: {
-    g_mn_filaire: 'MN Filaire', g_mn_radio: 'MN Radio',
-    g_somfy_filaire: 'Somfy Ilmo (filaire)', g_somfy_radio: 'Somfy RS100 io (radio)',
+    // Minibox
+    g_mn_filaire: 'Minibox · MN Filaire', g_mn_radio: 'Minibox · MN Radio',
+    g_somfy_filaire: 'Minibox · Somfy Ilmo (filaire)', g_somfy_radio: 'Minibox · Somfy RS100 io (radio)',
+    // Renobox — lame 42 (coffre auto par hauteur)
+    r42_mn_filaire: 'Renobox L42 · MN Filaire', r42_mn_radio: 'Renobox L42 · MN Radio',
+    r42_somfy_filaire: 'Renobox L42 · Somfy Filaire', r42_somfy_radio: 'Renobox L42 · Somfy Radio',
+    // Renobox — lame 56 coffre 205
+    r56_205_mn_filaire: 'Renobox L56 C205 · MN Filaire', r56_205_mn_radio: 'Renobox L56 C205 · MN Radio',
+    r56_205_somfy_filaire: 'Renobox L56 C205 · Somfy Filaire', r56_205_somfy_radio: 'Renobox L56 C205 · Somfy Radio',
+    // Renobox — lame 56 coffre 250
+    r56_250_mn_filaire: 'Renobox L56 C250 · MN Filaire', r56_250_mn_radio: 'Renobox L56 C250 · MN Radio',
+    r56_250_somfy_filaire: 'Renobox L56 C250 · Somfy Filaire', r56_250_somfy_radio: 'Renobox L56 C250 · Somfy Radio',
   },
   constraints,
 };
