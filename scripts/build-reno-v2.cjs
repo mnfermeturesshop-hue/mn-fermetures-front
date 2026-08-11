@@ -140,22 +140,74 @@ fields.push({
   ],
 });
 
-// ── (RENOBOX) Coloris monocouleur (liste du bon de commande). ⚠️ PROVISOIRE : la
-//    matrice complète (disponibilité + plus-value par lame) et le mode MULTICOULEUR
-//    (tablier / coffre / coulisses / lame finale séparés) seront montés avec le slide Coloris.
+// ── (RENOBOX) Coloris — Monocouleur (7 standards + Autres/RAL, sans plus-value) OU
+//    Multicouleur (tablier / coffre séparés, plus-value sur les coloris « option »).
+//    ⚠️ Coulisses & Lame finale : slides pas encore reçus (à ajouter ensuite).
+// Palette RAL partagée (label + hex approx).
+const RCOL = {
+  'blanc-9010': ['Blanc 9010', '#f4f4f2'], 'ivoire-1015': ['Ivoire 1015', '#e6d2b5'],
+  'gris-7035': ['Gris 7035', '#d7d7d7'], 'gris-7038': ['Gris 7038', '#b5b0a1'],
+  'gris-7016': ['Gris 7016', '#383e42'], 'alu-as-9006': ['Alu AS 9006', '#a5a8a6'],
+  'marron-8019': ['Marron 8019 (proche)', '#3d3635'], 'gris-7039': ['Gris 7039', '#6c6960'],
+  'noir-9005': ['Noir 9005', '#0a0a0a'], 'noir-2100-sable': ['Noir 2100 sablé', '#1a1a1a'],
+  'gris-2900-sable': ['Gris 2900 sablé', '#4a4a48'], 'rouge-3004': ['Rouge 3004', '#6b1f24'],
+  'bleu-5011': ['Bleu 5011', '#1a2a35'], 'vert-6005': ['Vert 6005', '#114232'],
+  'vert-6009': ['Vert 6009', '#26392f'], 'vert-6021': ['Vert 6021', '#89ac76'],
+  'gris-7011': ['Gris 7011', '#3e4650'], 'gris-7012': ['Gris 7012', '#4e545a'],
+  'gris-7021': ['Gris 7021', '#2f3234'], 'gris-7022': ['Gris 7022', '#4b4a44'],
+  'marron-8014': ['Marron 8014', '#4a3526'], 'ral-9007': ['Ral 9007', '#8b8c8b'],
+  'chene-dore': ['Chêne doré', '#8a5a2b'],
+};
+const rOpt = (keys, extra) => keys.map((k) => ({ value: k, label: RCOL[k][0], hex: RCOL[k][1], ...(extra || {}) }));
+
+// Mode coloris.
 fields.push({
-  id: 'coloris_reno', label: 'Coloris (coffre, coulisses & tablier)', type: 'choice', default: 'blanc-9010',
-  visibleWhen: IS_RENOBOX,
-  help: 'Coloris monocouleur standard. Autres RAL et multicouleurs : nous consulter.',
+  id: 'coloris_mode_reno', label: 'Coloris', type: 'choice', default: 'mono', visibleWhen: IS_RENOBOX,
+  options: [{ value: 'mono', label: 'Monocouleur' }, { value: 'multi', label: 'Multicouleur' }],
+});
+// Monocouleur : 7 standards + Autres (RAL sur consultation) — sans plus-value.
+const MONO_STD = ['blanc-9010', 'alu-as-9006', 'ivoire-1015', 'gris-7016', 'gris-7035', 'gris-7038', 'marron-8019'];
+fields.push({
+  id: 'coloris_mono_reno', label: 'Coloris (volet entier)', type: 'choice', default: 'blanc-9010',
+  visibleWhen: AND([IS_RENOBOX, eq('coloris_mode_reno', 'mono')]),
+  help: 'Coloris standard appliqué à tout le volet. « Autres » = RAL sur consultation.',
+  options: [...rOpt(MONO_STD), { value: 'autres', label: 'Autre RAL (nous consulter)' }],
+});
+
+const MULTI_VIS = AND([IS_RENOBOX, eq('coloris_mode_reno', 'multi')]);
+// Coloris COFFRE (identique pan coupé / pan rond). Options = plus-value selon la section.
+const COFFRE_STD = ['blanc-9010', 'ivoire-1015', 'gris-7035', 'gris-7038', 'gris-7016', 'alu-as-9006', 'marron-8019'];
+const COFFRE_OPT = ['rouge-3004', 'bleu-5011', 'vert-6005', 'vert-6009', 'vert-6021', 'gris-7011', 'gris-7012', 'gris-7021', 'gris-7022', 'gris-7039', 'marron-8014', 'noir-9005', 'ral-9007', 'noir-2100-sable', 'gris-2900-sable', 'chene-dore'];
+fields.push({
+  id: 'coloris_coffre_reno', label: 'Coloris coffre', type: 'choice', default: 'blanc-9010', visibleWhen: MULTI_VIS,
+  help: 'Coloris option : plus-value 77 € + 44 €/ml (coffre 150-165) ou 54 €/ml (coffre 180-250) × largeur.',
+  options: [...rOpt(COFFRE_STD), ...rOpt(COFFRE_OPT)],
+});
+priceRules.push({
+  code: 'coloris_coffre_opt', label: 'Coloris coffre (option)', kind: 'add',
+  when: AND([MULTI_VIS, inSet('coloris_coffre_reno', COFFRE_OPT)]),
+  amount: { op: 'round', arg: { op: '+', args: [77, { op: '*', args: [V('coffre_color_rate'), { op: '/', args: [V('largeur'), 1000] }] }] } },
+});
+// Coloris TABLIER (dépend de la lame). Options = +14 €/m².
+const TABLIER_STD = ['blanc-9010', 'ivoire-1015', 'gris-7035', 'gris-7038', 'gris-7016', 'alu-as-9006', 'marron-8019', 'gris-7039', 'noir-9005', 'noir-2100-sable', 'gris-2900-sable'];
+const TABLIER_OPT_BOTH = ['rouge-3004', 'bleu-5011', 'vert-6005', 'vert-6021', 'marron-8014', 'ral-9007', 'chene-dore'];
+const TABLIER_OPT_56 = ['gris-7011', 'gris-7012'];
+const TABLIER_OPT_42 = ['vert-6009', 'gris-7021', 'gris-7022'];
+const TABLIER_OPT_ALL = [...TABLIER_OPT_BOTH, ...TABLIER_OPT_56, ...TABLIER_OPT_42];
+fields.push({
+  id: 'coloris_tablier_reno', label: 'Coloris tablier', type: 'choice', default: 'blanc-9010', visibleWhen: MULTI_VIS,
+  help: 'Coloris option : plus-value 14 €/m².',
   options: [
-    { value: 'blanc-9010', label: 'Blanc 9010', hex: '#f4f4f2' },
-    { value: 'gris-alu-9006', label: 'Gris alu AS 9006', hex: '#a1a1a0' },
-    { value: 'ivoire-1015', label: 'Ivoire 1015', hex: '#e6d2b5' },
-    { value: 'gris-7016', label: 'Gris 7016', hex: '#383e42' },
-    { value: 'gris-7035', label: 'Gris 7035', hex: '#d7d7d7' },
-    { value: 'gris-7038', label: 'Gris 7038', hex: '#b5b0a1' },
-    { value: 'marron-8019', label: 'Marron 8019 (proche)', hex: '#3d3635' },
+    ...rOpt(TABLIER_STD),
+    ...rOpt(TABLIER_OPT_BOTH),
+    ...rOpt(TABLIER_OPT_56, { availableWhen: eq('lame_reno', 'alu56') }),
+    ...rOpt(TABLIER_OPT_42, { availableWhen: eq('lame_reno', 'alu42') }),
   ],
+});
+priceRules.push({
+  code: 'coloris_tablier_opt', label: 'Coloris tablier (option)', kind: 'add',
+  when: AND([MULTI_VIS, inSet('coloris_tablier_reno', TABLIER_OPT_ALL)]),
+  amount: { op: 'round', arg: { op: '*', args: [14, V('surface_m2')] } },
 });
 
 // ── Coulisse : 53/22 par défaut ; à aile +8,5 €/ml. Perçage T / F / sans. ──
@@ -347,6 +399,12 @@ const derived = [
   { id: 'surface_m2', expr: { op: '*', args: [{ op: '/', args: [V('largeur'), 1000] }, { op: '/', args: [V('hauteur'), 1000] }] } },
   { id: 'coffre_auto', expr: { op: 'if', cond: lte('hauteur', 1550), then: '137',
       else: { op: 'if', cond: lte('hauteur', 2250), then: '150', else: '165' } } },
+  // (RENOBOX) Section de coffre effective (auto → plus petite compatible avec la lame :
+  // Alu 56 → 205, Alu 42 → 150) puis taux de plus-value coloris coffre (44 ≤165 / 54 sinon).
+  { id: 'coffre_reno_eff', expr: { op: 'if', cond: eq('coffre_reno', 'auto'),
+      then: { op: 'if', cond: eq('lame_reno', 'alu56'), then: 205, else: 150 },
+      else: V('coffre_reno') } },
+  { id: 'coffre_color_rate', expr: { op: 'if', cond: lte('coffre_reno_eff', 165), then: 44, else: 54 } },
   // Grille de prix retenue = coût de motorisation par marque × commande.
   //  - manuelle → grille MN filaire (− moins-value) ;
   //  - motorisée filaire/radio → g_<moteur>_<commande> ;
@@ -400,7 +458,7 @@ const steps = [
   { id: 'produit', title: 'Type de produit', fields: ['sous_famille'] },
   { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'pose', 'enroulement', 'lame_info', 'lame_reno'] },
   { id: 'coffre', title: 'Coffre', fields: ['coffre_auto_info', 'coffre_pan', 'lame_finale', 'coffre_reno_info', 'coffre_reno', 'coffre_pan_reno'] },
-  { id: 'coloris', title: 'Coloris', fields: ['coloris', 'coloris_reno'] },
+  { id: 'coloris', title: 'Coloris', fields: ['coloris', 'coloris_mode_reno', 'coloris_mono_reno', 'coloris_coffre_reno', 'coloris_tablier_reno'] },
   { id: 'coulisses', title: 'Coulisses', fields: ['coulisse_type', 'percage', 'arrets_bas'] },
   { id: 'manoeuvre', title: 'Manœuvre', fields: [
     'manoeuvre', 'tringle_cote', 'sortie_tringle', 'genouillere_manuelle', 'commande', 'moteur', 'position_moteur', 'sortie_fil', 'emetteur_type',
