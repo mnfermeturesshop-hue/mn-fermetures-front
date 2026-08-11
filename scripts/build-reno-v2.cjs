@@ -20,6 +20,8 @@ const path = require('path');
 const grids = require('../lib/configurateur/data/reno-minibox-grids.json');
 // Grilles Renobox (parse-reno-renobox.cjs) : r42 / r56_205 / r56_250 × MN/Somfy × filaire/radio.
 const renoGrids = require('../lib/configurateur/data/reno-renobox-grids.json');
+// Barèmes 1D verrouillage : DVA (plus-value ≤205) / AR (moins-value coffre 250), par largeur.
+const renoAdjust = require('../lib/configurateur/data/reno-renobox-adjust.json');
 
 // ---- helpers conditions / expr ----
 const V = (name) => ({ var: name });
@@ -276,11 +278,12 @@ priceRules.push({
 fields.push({
   id: 'coulisse_reno', label: 'Coulisses', type: 'choice', role: 'spec', default: 'c53x22',
   visibleWhen: IS_RENOBOX,
-  help: 'Coulisse par défaut : 53/22 (lame 42) ou 66/27 (lame 56). Coulisse à aile : 53/22 uniquement.',
+  help: 'Coulisse par défaut : 53/22 (lame 42), 66/27 (lame 56 coffre 205), 75/27 (lame 56 coffre 250). Coulisse à aile : 53/22 uniquement (lame 42).',
   helpImage: '/reno-minibox-coulisse-aile.png',
   options: [
     { value: 'c53x22', label: 'Coulisse 53/22 (par défaut)', availableWhen: eq('lame_reno', 'alu42') },
-    { value: 'c66x27', label: 'Coulisse 66/27 (par défaut)', availableWhen: eq('lame_reno', 'alu56') },
+    { value: 'c66x27', label: 'Coulisse 66/27 (par défaut)', availableWhen: AND([eq('lame_reno', 'alu56'), eq('coffre_reno', '205')]) },
+    { value: 'c75x27', label: 'Coulisse 75/27 (par défaut)', availableWhen: AND([eq('lame_reno', 'alu56'), eq('coffre_reno', '250')]) },
     { value: 'a_aile', label: 'Coulisse à aile (+8,50 €/ml)', availableWhen: eq('lame_reno', 'alu42') },
   ],
 });
@@ -288,6 +291,32 @@ priceRules.push({
   code: 'coulisse_aile_reno', label: 'Coulisse à aile', kind: 'add',
   when: AND([IS_RENOBOX, eq('coulisse_reno', 'a_aile')]),
   amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 8.5, 2] } },
+});
+
+// ── (RENOBOX) Verrouillage : attaches rigides (AR) / verrous automatiques (DVA).
+//    Standard coffres ≤205 = AR → DVA en plus-value (barème dva_<groupe> par largeur).
+//    Standard coffre 250 = DVA → AR en moins-value (barème ar_r56_250 par largeur).
+const COFFRE_LE_205 = { any: [eq('lame_reno', 'alu42'), AND([eq('lame_reno', 'alu56'), eq('coffre_reno', '205')])] };
+const COFFRE_250 = AND([eq('lame_reno', 'alu56'), eq('coffre_reno', '250')]);
+fields.push({
+  id: 'dva_option', label: 'Verrous automatiques (DVA)', type: 'boolean',
+  visibleWhen: AND([IS_RENOBOX, COFFRE_LE_205]),
+  help: 'Standard = attaches rigides. Verrous automatiques (DVA) : plus-value selon la largeur.',
+});
+priceRules.push({
+  code: 'opt_dva', label: 'Verrous automatiques (DVA)', kind: 'add',
+  when: AND([IS_RENOBOX, COFFRE_LE_205, eq('dva_option', true)]),
+  amount: { op: 'lookup1d', table: { op: 'concat', args: ['dva_', V('grid_group_reno')] }, key: V('largeur') },
+});
+fields.push({
+  id: 'ar_option', label: 'Attaches rigides (au lieu des verrous automatiques)', type: 'boolean',
+  visibleWhen: AND([IS_RENOBOX, COFFRE_250]),
+  help: 'Coffre 250 : verrous automatiques (DVA) par défaut. Attaches rigides = moins-value (hauteur maxi supérieure : 3950 vs 3650).',
+});
+priceRules.push({
+  code: 'opt_ar', label: 'Attaches rigides (moins-value)', kind: 'add',
+  when: AND([IS_RENOBOX, COFFRE_250, eq('ar_option', true)]),
+  amount: { op: 'lookup1d', table: 'ar_r56_250', key: V('largeur') },
 });
 fields.push({
   id: 'percage', label: 'Perçage des coulisses', type: 'choice', role: 'spec', default: 'tableau',
@@ -597,6 +626,8 @@ const constraints = [
   { message: 'Largeur maximale 4000 mm (lame Alu 56)', requires: { any: [ne('sous_famille', 'renobox'), ne('lame_reno', 'alu56'), lte('largeur', 4000)] } },
   { message: 'Surface maximale 8 m² (lame Alu 42)', requires: { any: [ne('sous_famille', 'renobox'), ne('lame_reno', 'alu42'), lte('surface_m2', 8)] } },
   { message: 'Surface maximale 10 m² (lame Alu 56)', requires: { any: [ne('sous_famille', 'renobox'), ne('lame_reno', 'alu56'), lte('surface_m2', 10)] } },
+  // Renobox lame 56 coffre 205 : largeur maximale 3500 mm (le coffre 250 va à 4000).
+  { message: 'Coffre 205 (lame 56) : largeur maximale 3500 mm', requires: { any: [ne('sous_famille', 'renobox'), ne('lame_reno', 'alu56'), ne('coffre_reno', '205'), lte('largeur', 3500)] } },
   // Renobox : largeur ≥ largeur mini de la grille (filaire 422/427 · radio 622/628).
   { message: 'Largeur inférieure au minimum pour ce moteur / cette commande', requires: onlyFor('renobox', { op: 'gte', left: V('largeur'), right: V('largeur_mini_reno') }) },
   // Renobox tirage direct : largeur 630-2000 mm.
@@ -610,7 +641,7 @@ const steps = [
   { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'pose', 'enroulement', 'lame_info', 'lame_reno'] },
   { id: 'coffre', title: 'Coffre', fields: ['coffre_auto_info', 'coffre_pan', 'lame_finale', 'coffre_reno_info', 'coffre_reno', 'coffre_pan_reno', 'lame_finale_reno'] },
   { id: 'coloris', title: 'Coloris', fields: ['coloris', 'coloris_mode_reno', 'coloris_mono_reno', 'coloris_coffre_reno', 'coloris_tablier_reno', 'coloris_coulisse_reno', 'coloris_lamefinale_reno'] },
-  { id: 'coulisses', title: 'Coulisses', fields: ['coulisse_type', 'coulisse_reno', 'percage', 'arrets_bas'] },
+  { id: 'coulisses', title: 'Coulisses', fields: ['coulisse_type', 'coulisse_reno', 'dva_option', 'ar_option', 'percage', 'arrets_bas'] },
   { id: 'manoeuvre', title: 'Manœuvre', fields: [
     'manoeuvre', 'tringle_cote', 'sortie_tringle', 'genouillere_manuelle', 'commande', 'moteur', 'position_moteur', 'sortie_fil', 'emetteur_type',
     'radio_info', 'centralisation_info', 'inverseur', 'inverseur_pose', 'inverseur_maintien',
@@ -626,7 +657,7 @@ const def = {
   name: 'Volet roulant rénovation (Minibox · Renobox)',
   famille: 'reno', nodeField: 'sous_famille',
   fields, derived, steps, priceRules,
-  tables: { d1: {}, d2: { ...grids, ...renoGrids } },
+  tables: { d1: renoAdjust, d2: { ...grids, ...renoGrids } },
   tableLabels: {
     // Minibox
     g_mn_filaire: 'Minibox · MN Filaire', g_mn_radio: 'Minibox · MN Radio',

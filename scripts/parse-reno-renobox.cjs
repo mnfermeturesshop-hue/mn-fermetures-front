@@ -121,3 +121,33 @@ console.log('r56_205 MN rad  H850 : L628=', at('r56_205_mn_radio', 850, 628), '(
 const out = path.join(__dirname, '..', 'lib', 'configurateur', 'data', 'reno-renobox-grids.json');
 fs.writeFileSync(out, JSON.stringify(grids), 'utf8');
 console.log('\nÉcrit', path.relative(process.cwd(), out));
+
+// ── Barèmes 1D par LARGEUR : DVA (plus-value verrous automatiques, coffres ≤205) et
+//    AR (moins-value attaches rigides, coffre 250). Par groupe × moteur, merge ≤2200 + continuation.
+function extractAdj(sheetName) {
+  const a = A(sheetName); const wc = widthCols(a); if (!wc) return {};
+  const row = a.find((r) => /(plus|moins)\s*value/i.test(String(r[0]) + ' ' + String(r[1])));
+  if (!row) return {};
+  const out2 = {};
+  for (const mc of wc.mainCols) { const v = fix(row[mc.idx]); if (v != null) out2[mc.w] = v; }
+  return out2;
+}
+function adjTable(sheetA, sheetB) {
+  const m = { ...extractAdj(sheetA), ...extractAdj(sheetB) };
+  const keys = Object.keys(m).map(Number).sort((x, y) => x - y);
+  return { keys, values: keys.map((k) => m[k]) };
+}
+// Le verrouillage est MÉCANIQUE (indépendant du moteur) : un seul barème par groupe,
+// lu sur les feuilles MN (gamme de largeurs la plus complète), fallback Somfy.
+const adjust = {};
+for (const grp of GROUPS) {
+  const type = grp.key === 'r56_250' ? 'ar' : 'dva';
+  let t = adjTable(grp.mn[0], grp.mn[1]);
+  if (!t.keys.length) t = adjTable(grp.somfy[0], grp.somfy[1]);
+  adjust[`${type}_${grp.key}`] = t;
+}
+console.log('\n=== Barèmes DVA / AR (1D largeur) ===');
+for (const [id, t] of Object.entries(adjust)) console.log(`${id.padEnd(20)} keys=[${t.keys[0]}…${t.keys[t.keys.length - 1]}] values=[${[...new Set(t.values)].join(',')}]`);
+const outAdj = path.join(__dirname, '..', 'lib', 'configurateur', 'data', 'reno-renobox-adjust.json');
+fs.writeFileSync(outAdj, JSON.stringify(adjust), 'utf8');
+console.log('Écrit', path.relative(process.cwd(), outAdj));
