@@ -178,8 +178,9 @@ export async function verifyCartLines(
       const selNode = def.nodeField ? values[def.nodeField] : undefined;
       node = (typeof selNode === 'string' && selNode) ? selNode : (generatorNode(taxonomy, def.slug) ?? def.famille);
       // Coloris laqué (RAL) → forfait laquage par commande (recalcul autoritaire) :
-      // détecté par la présence du supplément coloris dans le résultat.
-      if (res.lineItems.some((li) => li.code.startsWith('color_') && li.code.endsWith('_pv'))) hasLaque = true;
+      // Tradi = tout supplément coloris (color_*_pv) ; Renobox = UNIQUEMENT le coloris
+      // coffre en plus-value (coloris_coffre_opt).
+      if (res.lineItems.some((li) => (li.code.startsWith('color_') && li.code.endsWith('_pv')) || li.code === 'coloris_coffre_opt')) hasLaque = true;
     } else if (raw?.reference) {
       const hit = byRef.get(raw.reference);
       if (!hit) return { ok: false, error: `Référence introuvable : ${raw.reference}` };

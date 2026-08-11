@@ -1961,6 +1961,8 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 
 .cfg-cta { margin: 0 20px 16px; padding: 13px; font-size: 15px; font-weight: 700; }
 .cfg-ht-note { padding: 0 20px 14px; font-size: 11px; color: var(--muted); text-align: center; }
+.cfg-laquage-note { margin: 10px 20px 0; padding: 8px 10px; font-size: 12px; line-height: 1.4; color: var(--ink); background: #fff7ed; border: 1px solid #fed7aa; border-radius: 6px; }
+.cfg-laquage-note .green { color: #16a34a; font-weight: 600; }
 
 .cfg-summary-empty { padding: 32px 20px; text-align: center; font-size: 13px; color: var(--muted); }
 

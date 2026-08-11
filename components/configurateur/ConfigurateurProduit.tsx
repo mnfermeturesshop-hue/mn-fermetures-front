@@ -299,7 +299,9 @@ export function ConfigurateurProduit({ slug }: Props) {
 
   const addToCart = () => {
     if (!result?.ok) return;
-    const laque = result.lineItems.some((li) => li.code.startsWith('color_') && li.code.endsWith('_pv'));
+    // Forfait laquage (par commande, offert ≥ 2000 €) : Tradi = tout coloris RAL (color_*_pv) ;
+    // Renobox = UNIQUEMENT le coloris coffre en plus-value (coloris_coffre_opt).
+    const laque = result.lineItems.some((li) => (li.code.startsWith('color_') && li.code.endsWith('_pv')) || li.code === 'coloris_coffre_opt');
     addLine({
       key: `cfg-${slug}-${JSON.stringify(values)}`,
       name: def.name,
@@ -402,6 +404,11 @@ export function ConfigurateurProduit({ slug }: Props) {
               </div>
               <div className="cfg-total"><span>Prix unitaire HT</span><strong>{euro(unitNet)}</strong></div>
               <div className="cfg-total-ttc">{euro(unitNet * 1.2)} TTC{qty > 1 ? ` · × ${qty}` : ''}</div>
+              {result.lineItems.some((li) => li.code === 'coloris_coffre_opt') && (
+                <div className="cfg-laquage-note">
+                  + Forfait laquage&nbsp;: <strong>77&nbsp;€</strong> par commande <span className="green">(offert dès 2000&nbsp;€ HT de commande)</span>
+                </div>
+              )}
             </>
           ) : (
             <div className="cfg-summary-empty">
