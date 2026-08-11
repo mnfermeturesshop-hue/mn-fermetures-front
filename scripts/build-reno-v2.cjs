@@ -227,10 +227,10 @@ priceRules.push({
   when: AND([MULTI_VIS, inSet('coloris_tablier_reno', TABLIER_OPT_ALL)]),
   amount: { op: 'round', arg: { op: '*', args: [14, V('surface_m2')] } },
 });
-// Coloris COULISSE (indépendant de la lame) : 7 standards + 15 options (sans Chêne doré).
+// Coloris COULISSE (indépendant de la lame) : 7 standards + 16 options (Chêne doré inclus).
 // Plus-value option = 40 €/ml de hauteur × 2 coulisses.
 const COULISSE_STD = COFFRE_STD;
-const COULISSE_OPT = COFFRE_OPT.filter((k) => k !== 'chene-dore');
+const COULISSE_OPT = COFFRE_OPT;
 fields.push({
   id: 'coloris_coulisse_reno', label: 'Coloris coulisses', type: 'choice', default: 'blanc-9010', visibleWhen: MULTI_VIS,
   help: 'Coloris option : plus-value 40 €/ml de hauteur (× 2 coulisses).',
