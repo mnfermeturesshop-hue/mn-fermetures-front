@@ -39,8 +39,15 @@ const RADIO_SOL = { all: [{ op: 'eq', left: V('manoeuvre'), right: 'motorisee' }
 // réellement spécifiques (coffre, lame, coloris) sont conditionnés à leur sous-famille.
 const IS_MINIBOX = eq('sous_famille', 'minibox');
 const IS_RENOBOX = eq('sous_famille', 'renobox');
+const IS_GROS = eq('sous_famille', 'reno-gros-coffre');
+// Sous-familles à LAME ALU (Renobox 1.2.2 + Gros coffre 1.2.3) — partagent dimensions,
+// coloris, coulisses, manœuvre, grilles ; le Gros coffre = lame 56 + coffre 250 + pan coupé.
+const IS_ALU = inSet('sous_famille', ['renobox', 'reno-gros-coffre']);
+const ninSet = (name, set) => ({ op: 'nin', value: V(name), set });
 // « N'enforce QUE pour la sous-famille X » (implication) pour les contraintes globales.
 const onlyFor = (sf, cond) => ({ any: [ne('sous_famille', sf), cond] });
+// Idem pour l'ensemble des sous-familles à lame alu (Renobox + Gros coffre).
+const onlyForAlu = (cond) => ({ any: [ninSet('sous_famille', ['renobox', 'reno-gros-coffre']), cond] });
 
 const fields = [];
 const priceRules = [];
@@ -48,10 +55,11 @@ const priceRules = [];
 // ── Sous-famille (nœud remise/surcharge/éco + sous-familles Reno) ──
 fields.push({
   id: 'sous_famille', label: 'Type de produit', type: 'choice', default: 'minibox',
-  help: 'Gamme rénovation. Reno gros coffre sera ajouté prochainement.',
+  help: 'Gamme rénovation.',
   options: [
     { value: 'minibox', label: 'Reno Minibox' },
     { value: 'renobox', label: 'Renobox' },
+    { value: 'reno-gros-coffre', label: 'Reno gros coffre' },
   ],
 });
 
@@ -78,10 +86,10 @@ fields.push({ id: 'lame_info', type: 'info', visibleWhen: IS_MINIBOX, help: 'Lam
 //    disponibles et les limites dimensionnelles. (PVC / Alu 55 non conservés.)
 fields.push({
   id: 'lame_reno', label: 'Lame', type: 'choice', role: 'spec', default: 'alu42',
-  visibleWhen: IS_RENOBOX,
+  visibleWhen: IS_ALU,   // Gros coffre : seule Alu 56 dispo (verrouillée + schéma)
   help: 'Choix de la lame selon les dimensions et l’exposition au vent.',
   options: [
-    { value: 'alu42', label: 'Alu 42 (CD942) — L max 3000 mm · surf. max 8 m²', imageUrl: '/schema-lame-alu-42.png' },
+    { value: 'alu42', label: 'Alu 42 (CD942) — L max 3000 mm · surf. max 8 m²', imageUrl: '/schema-lame-alu-42.png', availableWhen: IS_RENOBOX },
     { value: 'alu56', label: 'Alu 56 — L max 4000 mm · surf. max 10 m²', imageUrl: '/schema-lame-alu-56.png' },
   ],
 });
@@ -111,34 +119,34 @@ fields.push({
 // ── (RENOBOX) Coffre : section (150/165/180/205/250), la plus petite compatible avec
 //    la lame par défaut. Contrainte guide : Alu 42 (CD942) → 150-205 · Alu 56 → 205/250.
 fields.push({
-  id: 'coffre_reno_info', type: 'info', visibleWhen: IS_RENOBOX,
-  help: 'Lame 42 : section de coffre déterminée automatiquement par la hauteur (150 ≤ 1350 · 165 ≤ 1750 · 180 ≤ 2250 · 205 au-delà). Lame 56 : coffre 205 ou 250. Toutes les sections ne sont pas disponibles en pan rond — nous vous renseignerons.',
+  id: 'coffre_reno_info', type: 'info', visibleWhen: IS_ALU,
+  help: 'Lame 42 : section de coffre déterminée automatiquement par la hauteur (150 ≤ 1350 · 165 ≤ 1750 · 180 ≤ 2250 · 205 au-delà). Lame 56 : coffre 205 (Renobox) ou coffre 250 (Reno gros coffre, pan coupé). Toutes les sections ne sont pas disponibles en pan rond — nous vous renseignerons.',
 });
-// Lame 42 → coffre AUTO par la hauteur (une seule grille). Lame 56 → choix 205 / 250
-// (grilles distinctes). Le prix de base dépend du couple lame + coffre + moteur + commande.
+// Lame 42 (Renobox) → coffre AUTO par la hauteur. Lame 56 : coffre 205 (Renobox) ou 250
+// (Gros coffre). Le prix de base dépend du couple lame + coffre + moteur + commande.
 fields.push({
   id: 'coffre_reno', label: 'Section de coffre', type: 'choice', role: 'spec', default: 'auto',
-  visibleWhen: AND([IS_RENOBOX, eq('lame_reno', 'alu56')]),
+  visibleWhen: AND([IS_ALU, eq('lame_reno', 'alu56')]),
   options: [
     { value: 'auto', label: 'Automatique (par hauteur)', availableWhen: eq('lame_reno', 'alu42') },
-    { value: '205', label: 'Coffre 205', availableWhen: eq('lame_reno', 'alu56') },
-    { value: '250', label: 'Coffre 250', availableWhen: eq('lame_reno', 'alu56') },
+    { value: '205', label: 'Coffre 205', availableWhen: AND([eq('lame_reno', 'alu56'), IS_RENOBOX]) },
+    { value: '250', label: 'Coffre 250', availableWhen: IS_GROS },
   ],
 });
-// Forme de coffre Renobox : pan coupé (PC) / pan rond (PR).
+// Forme de coffre : pan coupé (PC) / pan rond (PR). Gros coffre → pan coupé imposé.
 fields.push({
   id: 'coffre_pan_reno', label: 'Forme de coffre', type: 'choice', role: 'spec', default: 'pan_coupe',
-  visibleWhen: IS_RENOBOX,
+  visibleWhen: IS_ALU,
   options: [
     { value: 'pan_coupe', label: 'Pan coupé (PC)', imageUrl: '/schema-coffre-pan-coupe.png' },
-    { value: 'pan_rond', label: 'Pan rond (PR)', imageUrl: '/schema-coffre-pan-rond.png' },
+    { value: 'pan_rond', label: 'Pan rond (PR)', imageUrl: '/schema-coffre-pan-rond.png', availableWhen: IS_RENOBOX },
   ],
 });
-// Lame finale Renobox : classique par défaut ; affleurante (+8,5 €/ml largeur) UNIQUEMENT
-// en pan coupé ET lame 42 ; pan rond → classique imposée.
+// Lame finale : classique par défaut ; affleurante (+8,5 €/ml largeur) UNIQUEMENT
+// en pan coupé ET lame 42 (donc Renobox) ; pan rond / lame 56 → classique imposée.
 fields.push({
   id: 'lame_finale_reno', label: 'Lame finale', type: 'choice', role: 'spec', default: 'classique',
-  visibleWhen: IS_RENOBOX,
+  visibleWhen: IS_ALU,
   options: [
     { value: 'classique', label: 'Lame finale classique' },
     { value: 'affleurante', label: 'Lame finale affleurante (+8,50 €/ml)',
@@ -147,7 +155,7 @@ fields.push({
 });
 priceRules.push({
   code: 'lame_finale_affleurante', label: 'Lame finale affleurante', kind: 'add',
-  when: AND([IS_RENOBOX, eq('lame_finale_reno', 'affleurante')]),
+  when: AND([IS_ALU, eq('lame_finale_reno', 'affleurante')]),
   amount: { op: 'round', arg: { op: '*', args: [8.5, { op: '/', args: [V('largeur'), 1000] }] } },
 });
 
@@ -194,12 +202,12 @@ fields.push({
 const MONO_STD = ['blanc-9010', 'alu-as-9006', 'ivoire-1015', 'gris-7016', 'gris-7035', 'gris-7038', 'marron-8019'];
 fields.push({
   id: 'coloris_mono_reno', label: 'Coloris (volet entier)', type: 'choice', default: 'blanc-9010',
-  visibleWhen: AND([IS_RENOBOX, eq('coloris_mode_reno', 'mono')]),
+  visibleWhen: AND([IS_ALU, eq('coloris_mode_reno', 'mono')]),
   help: 'Coloris standard appliqué à tout le volet. « Autres » = RAL sur consultation.',
   options: [...rOpt(MONO_STD), { value: 'autres', label: 'Autre RAL (nous consulter)' }],
 });
 
-const MULTI_VIS = AND([IS_RENOBOX, eq('coloris_mode_reno', 'multi')]);
+const MULTI_VIS = AND([IS_ALU, eq('coloris_mode_reno', 'multi')]);
 // Coloris COFFRE (identique pan coupé / pan rond). Options = plus-value selon la section.
 const COFFRE_STD = ['blanc-9010', 'ivoire-1015', 'gris-7035', 'gris-7038', 'gris-7016', 'alu-as-9006', 'marron-8019'];
 const COFFRE_OPT = ['rouge-3004', 'bleu-5011', 'vert-6005', 'vert-6009', 'vert-6021', 'gris-7011', 'gris-7012', 'gris-7021', 'gris-7022', 'gris-7039', 'marron-8014', 'noir-9005', 'ral-9007', 'noir-2100-sable', 'gris-2900-sable', 'chene-dore'];
@@ -283,7 +291,7 @@ priceRules.push({
 // ── (RENOBOX) Coulisse selon la lame : 42 → 53/22 (+ à aile) · 56 → 66/27 (pas de à aile).
 fields.push({
   id: 'coulisse_reno', label: 'Coulisses', type: 'choice', role: 'spec', default: 'c53x22',
-  visibleWhen: IS_RENOBOX,
+  visibleWhen: IS_ALU,
   help: 'Coulisse par défaut : 53/22 (lame 42), 66/27 (lame 56 coffre 205), 75/27 (lame 56 coffre 250). Coulisse à aile : 53/22 uniquement (lame 42).',
   helpImage: '/reno-minibox-coulisse-aile.png',
   options: [
@@ -295,7 +303,7 @@ fields.push({
 });
 priceRules.push({
   code: 'coulisse_aile_reno', label: 'Coulisse à aile', kind: 'add',
-  when: AND([IS_RENOBOX, eq('coulisse_reno', 'a_aile')]),
+  when: AND([IS_ALU, eq('coulisse_reno', 'a_aile')]),
   amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 8.5, 2] } },
 });
 
@@ -306,22 +314,22 @@ const COFFRE_LE_205 = { any: [eq('lame_reno', 'alu42'), AND([eq('lame_reno', 'al
 const COFFRE_250 = AND([eq('lame_reno', 'alu56'), eq('coffre_reno', '250')]);
 fields.push({
   id: 'dva_option', label: 'Verrous automatiques (DVA)', type: 'boolean',
-  visibleWhen: AND([IS_RENOBOX, COFFRE_LE_205]),
+  visibleWhen: AND([IS_ALU, COFFRE_LE_205]),
   help: 'Standard = attaches rigides. Verrous automatiques (DVA) : plus-value selon la largeur.',
 });
 priceRules.push({
   code: 'opt_dva', label: 'Verrous automatiques (DVA)', kind: 'add',
-  when: AND([IS_RENOBOX, COFFRE_LE_205, eq('dva_option', true)]),
+  when: AND([IS_ALU, COFFRE_LE_205, eq('dva_option', true)]),
   amount: { op: 'lookup1d', table: { op: 'concat', args: ['dva_', V('grid_group_reno')] }, key: V('largeur') },
 });
 fields.push({
   id: 'ar_option', label: 'Attaches rigides (au lieu des verrous automatiques)', type: 'boolean',
-  visibleWhen: AND([IS_RENOBOX, COFFRE_250]),
+  visibleWhen: AND([IS_ALU, COFFRE_250]),
   help: 'Coffre 250 : verrous automatiques (DVA) par défaut. Attaches rigides = moins-value (hauteur maxi supérieure : 3950 vs 3650).',
 });
 priceRules.push({
   code: 'opt_ar', label: 'Attaches rigides (moins-value)', kind: 'add',
-  when: AND([IS_RENOBOX, COFFRE_250, eq('ar_option', true)]),
+  when: AND([IS_ALU, COFFRE_250, eq('ar_option', true)]),
   amount: { op: 'lookup1d', table: 'ar_r56_250', key: V('largeur') },
 });
 fields.push({
@@ -341,7 +349,7 @@ fields.push({
   id: 'arrets_bas', label: 'Arrêts bas de coulisse (+6 €/paire)', type: 'boolean',
   visibleWhen: AND([eq('pose', 'applique'), { any: [
     AND([IS_MINIBOX, inSet('coulisse_type', ['c53x22', 'a_aile'])]),
-    AND([IS_RENOBOX, inSet('coulisse_reno', ['c53x22', 'a_aile'])]),
+    AND([IS_ALU, inSet('coulisse_reno', ['c53x22', 'a_aile'])]),
   ] }]),
   help: 'Bouche les coulisses en pose applique sans appui de fenêtre (coulisse 53×22).',
   helpImage: '/reno-minibox-arrets-bas.png',
@@ -355,7 +363,7 @@ fields.push({
   helpImage: '/schema-manoeuvres.png',
   options: [
     { value: 'manuelle', label: 'Manuelle' },
-    { value: 'tirage_direct', label: 'Tirage direct', availableWhen: IS_RENOBOX },
+    { value: 'tirage_direct', label: 'Tirage direct', availableWhen: IS_ALU },
     { value: 'motorisee', label: 'Motorisation' },
   ],
 });
@@ -371,13 +379,13 @@ priceRules.push({
 // largeur < 573 → −77 € ; ≥ 573 → −17 € (barème tarif, prioritaire sur l'arbre 451/72/13).
 priceRules.push({
   code: 'manuelle_mv_reno', label: 'Manœuvre manuelle (moins-value)', kind: 'add',
-  when: AND([IS_RENOBOX, eq('manoeuvre', 'manuelle')]),
+  when: AND([IS_ALU, eq('manoeuvre', 'manuelle')]),
   amount: { op: 'if', cond: lt('largeur', 573), then: -77, else: -17 },
 });
 // (RENOBOX) Tirage direct = plus-value +135 € sur grille filaire (largeur 630-2000 mm).
 priceRules.push({
   code: 'tirage_direct_pv_reno', label: 'Tirage direct (plus-value)', kind: 'add',
-  when: AND([IS_RENOBOX, eq('manoeuvre', 'tirage_direct')]),
+  when: AND([IS_ALU, eq('manoeuvre', 'tirage_direct')]),
   amount: 135,
 });
 // Genouillère (manœuvre manuelle) : 60° incluse / 60° aimantée +41 / 90° +18 / 90° aimantée +59.
@@ -507,17 +515,17 @@ fields.push({
 // Côté (manœuvre / fil) et Sortie (sous-coffre / façade) — pour toutes les manœuvres.
 fields.push({
   id: 'cote_reno', label: 'Côté de manœuvre', type: 'choice', role: 'spec', default: 'droite',
-  visibleWhen: IS_RENOBOX,
+  visibleWhen: IS_ALU,
   options: [{ value: 'gauche', label: 'Gauche (G)' }, { value: 'droite', label: 'Droite (D)' }],
 });
 fields.push({
   id: 'sortie_reno', label: 'Sortie', type: 'choice', role: 'spec', default: 'sous_coffre',
-  visibleWhen: IS_RENOBOX,
+  visibleWhen: IS_ALU,
   options: [{ value: 'sous_coffre', label: 'Sous-coffre' }, { value: 'facade', label: 'Façade' }],
 });
 // Tirage direct : position de la serrure (lame finale / intermédiaire + hauteur).
 // Prix = grille filaire + 135 € (règle tirage_direct_pv_reno) ; largeur 630-2000 mm.
-const TIRAGE_VIS = AND([IS_RENOBOX, eq('manoeuvre', 'tirage_direct')]);
+const TIRAGE_VIS = AND([IS_ALU, eq('manoeuvre', 'tirage_direct')]);
 fields.push({
   id: 'serrure_position', label: 'Position de la serrure', type: 'choice', role: 'spec', default: 'lame_finale',
   visibleWhen: TIRAGE_VIS,
@@ -529,12 +537,12 @@ fields.push({
   help: 'Hauteur de la serrure sur lame intermédiaire (tirage direct — L mini 630 mm).',
 });
 // Motorisation filaire : commande de secours intégrée (+136 €) — Renobox uniquement.
-const secoursVis = AND([IS_RENOBOX, filaireVis]);
+const secoursVis = AND([IS_ALU, filaireVis]);
 fields.push({ id: 'commande_secours', label: 'Commande de secours intégrée (+136 €)', type: 'boolean', visibleWhen: secoursVis });
 priceRules.push({ code: 'opt_commande_secours', label: 'Commande de secours intégrée', kind: 'add',
   when: AND([secoursVis, eq('commande_secours', true)]), amount: 136 });
 // Genouillère (6 variantes) : manœuvre manuelle OU commande de secours filaire.
-const GEN_VIS_RENO = AND([IS_RENOBOX, { any: [eq('manoeuvre', 'manuelle'), AND([filaireVis, eq('commande_secours', true)])] }]);
+const GEN_VIS_RENO = AND([IS_ALU, { any: [eq('manoeuvre', 'manuelle'), AND([filaireVis, eq('commande_secours', true)])] }]);
 fields.push({
   id: 'genouillere_reno', label: 'Genouillère', type: 'choice', default: 'app60',
   visibleWhen: GEN_VIS_RENO,
@@ -614,7 +622,7 @@ const derived = [
 priceRules.unshift({
   code: 'base', label: 'Prix de base', kind: 'base',
   amount: {
-    op: 'if', cond: IS_RENOBOX,
+    op: 'if', cond: IS_ALU,
     then: { op: 'lookup2d', table: V('grid_reno'), row: V('hauteur'), col: V('largeur') },
     else: { op: 'lookup2d', table: V('grid'), row: V('hauteur'), col: V('largeur') },
   },
@@ -630,16 +638,17 @@ const constraints = [
   // Renobox — limites par lame (Alu 42 : L≤3000 / 8 m² · Alu 56 : L≤4000 / 10 m²).
   // ⚠️ Largeur MINI non contrainte tant que la grille tarifaire Renobox n'est pas fournie.
   { message: 'Largeur maximale 3000 mm (lame Alu 42)', requires: { any: [ne('sous_famille', 'renobox'), ne('lame_reno', 'alu42'), lte('largeur', 3000)] } },
-  { message: 'Largeur maximale 4000 mm (lame Alu 56)', requires: { any: [ne('sous_famille', 'renobox'), ne('lame_reno', 'alu56'), lte('largeur', 4000)] } },
+  // Lame 56 (Renobox coffre 205 + Gros coffre coffre 250) : L ≤ 4000 / surface ≤ 10 m².
+  { message: 'Largeur maximale 4000 mm (lame Alu 56)', requires: onlyForAlu({ any: [ne('lame_reno', 'alu56'), lte('largeur', 4000)] }) },
   { message: 'Surface maximale 8 m² (lame Alu 42)', requires: { any: [ne('sous_famille', 'renobox'), ne('lame_reno', 'alu42'), lte('surface_m2', 8)] } },
-  { message: 'Surface maximale 10 m² (lame Alu 56)', requires: { any: [ne('sous_famille', 'renobox'), ne('lame_reno', 'alu56'), lte('surface_m2', 10)] } },
+  { message: 'Surface maximale 10 m² (lame Alu 56)', requires: onlyForAlu({ any: [ne('lame_reno', 'alu56'), lte('surface_m2', 10)] }) },
   // Renobox lame 56 coffre 205 : largeur maximale 3500 mm (le coffre 250 va à 4000).
   { message: 'Coffre 205 (lame 56) : largeur maximale 3500 mm', requires: { any: [ne('sous_famille', 'renobox'), ne('lame_reno', 'alu56'), ne('coffre_reno', '205'), lte('largeur', 3500)] } },
-  // Renobox : largeur ≥ largeur mini de la grille (filaire 422/427 · radio 622/628).
-  { message: 'Largeur inférieure au minimum pour ce moteur / cette commande', requires: onlyFor('renobox', { op: 'gte', left: V('largeur'), right: V('largeur_mini_reno') }) },
-  // Renobox tirage direct : largeur 630-2000 mm.
-  { message: 'Tirage direct : largeur minimale 630 mm', requires: { any: [ne('sous_famille', 'renobox'), ne('manoeuvre', 'tirage_direct'), { op: 'gte', left: V('largeur'), right: 630 }] } },
-  { message: 'Tirage direct : largeur maximale 2000 mm', requires: { any: [ne('sous_famille', 'renobox'), ne('manoeuvre', 'tirage_direct'), lte('largeur', 2000)] } },
+  // Largeur ≥ largeur mini de la grille (filaire 422/427 · radio 622/628) — Renobox + Gros coffre.
+  { message: 'Largeur inférieure au minimum pour ce moteur / cette commande', requires: onlyForAlu({ op: 'gte', left: V('largeur'), right: V('largeur_mini_reno') }) },
+  // Tirage direct : largeur 630-2000 mm (Renobox + Gros coffre).
+  { message: 'Tirage direct : largeur minimale 630 mm', requires: { any: [ninSet('sous_famille', ['renobox', 'reno-gros-coffre']), ne('manoeuvre', 'tirage_direct'), { op: 'gte', left: V('largeur'), right: 630 }] } },
+  { message: 'Tirage direct : largeur maximale 2000 mm', requires: { any: [ninSet('sous_famille', ['renobox', 'reno-gros-coffre']), ne('manoeuvre', 'tirage_direct'), lte('largeur', 2000)] } },
 ];
 
 // ---- Étapes (ordre de l'arbre) ----
