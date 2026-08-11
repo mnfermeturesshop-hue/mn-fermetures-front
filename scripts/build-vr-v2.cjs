@@ -67,6 +67,8 @@ for (const sel of v1.selectors) {
     // Solaire = Somfy uniquement (le PDG ne fait pas de moteur solaire MN).
     if (sel.id === 'moteur' && o.value === 'mn') opt.availableWhen = ne('commande', 'solaire');
     if (sel.id === 'lame') {
+      // Schéma de profil de lame (affiché pour l'option sélectionnée).
+      opt.imageUrl = { cd942: '/schema-lame-alu-42.png', 56: '/schema-lame-alu-56.png', 55: '/schema-lame-alu-55.png' }[o.value];
       const ps = [...posesForLame[o.value]];
       if (ps.length < poses.length) opt.availableWhen = inSet('pose', ps); // express -> cd942 seul
       // 1.1.2 (tradi-coffre) : uniquement lames CD942 (42) et 56 (pas la 55).

@@ -81,8 +81,8 @@ fields.push({
   visibleWhen: IS_RENOBOX,
   help: 'Choix de la lame selon les dimensions et l’exposition au vent.',
   options: [
-    { value: 'alu42', label: 'Alu 42 (CD942) — L max 3000 mm · surf. max 8 m²' },
-    { value: 'alu56', label: 'Alu 56 — L max 4000 mm · surf. max 10 m²' },
+    { value: 'alu42', label: 'Alu 42 (CD942) — L max 3000 mm · surf. max 8 m²', imageUrl: '/schema-lame-alu-42.png' },
+    { value: 'alu56', label: 'Alu 56 — L max 4000 mm · surf. max 10 m²', imageUrl: '/schema-lame-alu-56.png' },
   ],
 });
 
@@ -93,7 +93,10 @@ fields.push({
   visibleWhen: IS_MINIBOX,
   help: 'Pan coupé → lame finale affleurante · Pan rond → lame finale standard.',
   helpImage: '/reno-minibox-coffre.png',
-  options: [{ value: 'pan_coupe', label: 'Pan coupé (PC)' }, { value: 'pan_rond', label: 'Pan rond (PR)' }],
+  options: [
+    { value: 'pan_coupe', label: 'Pan coupé (PC)', imageUrl: '/schema-coffre-pan-coupe.png' },
+    { value: 'pan_rond', label: 'Pan rond (PR)', imageUrl: '/schema-coffre-pan-rond.png' },
+  ],
 });
 // Lame finale : pan coupé → affleurante (défaut) ou classique ; pan rond → classique (forcé).
 fields.push({
@@ -126,7 +129,10 @@ fields.push({
 fields.push({
   id: 'coffre_pan_reno', label: 'Forme de coffre', type: 'choice', role: 'spec', default: 'pan_coupe',
   visibleWhen: IS_RENOBOX,
-  options: [{ value: 'pan_coupe', label: 'Pan coupé (PC)' }, { value: 'pan_rond', label: 'Pan rond (PR)' }],
+  options: [
+    { value: 'pan_coupe', label: 'Pan coupé (PC)', imageUrl: '/schema-coffre-pan-coupe.png' },
+    { value: 'pan_rond', label: 'Pan rond (PR)', imageUrl: '/schema-coffre-pan-rond.png' },
+  ],
 });
 // Lame finale Renobox : classique par défaut ; affleurante (+8,5 €/ml largeur) UNIQUEMENT
 // en pan coupé ET lame 42 ; pan rond → classique imposée.
@@ -346,6 +352,7 @@ priceRules.push({ code: 'opt_arrets_bas', label: 'Arrêts bas de coulisse', kind
 // ── Manœuvre : manuelle / motorisée ──
 fields.push({
   id: 'manoeuvre', label: 'Type de manœuvre', type: 'choice', default: 'motorisee',
+  helpImage: '/schema-manoeuvres.png',
   options: [
     { value: 'manuelle', label: 'Manuelle' },
     { value: 'tirage_direct', label: 'Tirage direct', availableWhen: IS_RENOBOX },

@@ -152,7 +152,11 @@ export function ConfigurateurProduit({ slug }: Props) {
   // Schéma d'aide (helpImage) à la demande : bouton « Voir le schéma » (souris ET
   // tactile), replié par défaut pour garder l'écran propre.
   const helpImageBlock = (f: Field): ReactNode => {
-    if (!f.helpImage) return null;
+    // Schéma de l'OPTION sélectionnée (imageUrl) en priorité — ex. lame 42 vs 56,
+    // pan coupé vs rond — sinon schéma de CHAMP (helpImage), ex. grille des manœuvres.
+    const selImg = f.options?.find((o) => o.value === values[f.id])?.imageUrl;
+    const img = selImg || f.helpImage;
+    if (!img) return null;
     const open = !!shownImages[f.id];
     return (
       <div className="cfg-help-schema">
@@ -161,7 +165,7 @@ export function ConfigurateurProduit({ slug }: Props) {
           {open ? '▾ Masquer le schéma' : '▸ Voir le schéma'}
         </button>
         {open && (
-          <img className="cfg-help-img" src={f.helpImage} alt=""
+          <img className="cfg-help-img" src={img} alt=""
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
         )}
       </div>
