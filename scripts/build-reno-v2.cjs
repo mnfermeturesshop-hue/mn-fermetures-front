@@ -30,15 +30,25 @@ const AND = (cs) => (cs.length === 1 ? cs[0] : { all: cs });
 // Radio/Solaire — exige la MOTORISATION (sinon `commande` garde une valeur résiduelle
 // en manœuvre manuelle et les champs émetteur/centralisation resteraient visibles).
 const RADIO_SOL = { all: [{ op: 'eq', left: V('manoeuvre'), right: 'motorisee' }, inSet('commande', ['radio', 'solaire'])] };
+// Gating par sous-famille : les champs COMMUNS (dimensions, pose, enroulement, coulisses,
+// perçage, manœuvre + motorisation) restent SANS gate et sont partagés ; seuls les champs
+// réellement spécifiques (coffre, lame, coloris) sont conditionnés à leur sous-famille.
+const IS_MINIBOX = eq('sous_famille', 'minibox');
+const IS_RENOBOX = eq('sous_famille', 'renobox');
+// « N'enforce QUE pour la sous-famille X » (implication) pour les contraintes globales.
+const onlyFor = (sf, cond) => ({ any: [ne('sous_famille', sf), cond] });
 
 const fields = [];
 const priceRules = [];
 
-// ── Sous-famille (nœud remise/surcharge/éco + futures sous-familles Reno) ──
+// ── Sous-famille (nœud remise/surcharge/éco + sous-familles Reno) ──
 fields.push({
   id: 'sous_famille', label: 'Type de produit', type: 'choice', default: 'minibox',
-  help: 'Gamme rénovation. Renobox et Reno gros coffre seront ajoutés prochainement.',
-  options: [{ value: 'minibox', label: 'Reno Minibox' }],
+  help: 'Gamme rénovation. Reno gros coffre sera ajouté prochainement.',
+  options: [
+    { value: 'minibox', label: 'Reno Minibox' },
+    { value: 'renobox', label: 'Renobox' },
+  ],
 });
 
 // ── Dimensions (cotes de FABRICATION, vue intérieure, jeux de pose déduits) ──
@@ -58,12 +68,25 @@ fields.push({
     { value: 'exterieur', label: 'Extérieur' },
   ],
 });
-fields.push({ id: 'lame_info', type: 'info', help: 'Lame aluminium 37 — largeur max 2400 mm, surface max 5,5 m².' });
+fields.push({ id: 'lame_info', type: 'info', visibleWhen: IS_MINIBOX, help: 'Lame aluminium 37 — largeur max 2400 mm, surface max 5,5 m².' });
+
+// ── (RENOBOX) Lame : Alu 42 (CD942) ou Alu 56. Détermine les sections de coffre
+//    disponibles et les limites dimensionnelles. (PVC / Alu 55 non conservés.)
+fields.push({
+  id: 'lame_reno', label: 'Lame', type: 'choice', role: 'spec', default: 'alu42',
+  visibleWhen: IS_RENOBOX,
+  help: 'Choix de la lame selon les dimensions et l’exposition au vent.',
+  options: [
+    { value: 'alu42', label: 'Alu 42 (CD942) — L max 3000 mm · surf. max 8 m²' },
+    { value: 'alu56', label: 'Alu 56 — L max 4000 mm · surf. max 10 m²' },
+  ],
+});
 
 // ── Coffre : section AUTO par la hauteur (137/150/165 — 180/205/250 indisponibles
 //    en Minibox alu), + forme (pan) qui pilote la lame finale et les coloris ──
 fields.push({
   id: 'coffre_pan', label: 'Forme de coffre', type: 'choice', default: 'pan_coupe',
+  visibleWhen: IS_MINIBOX,
   help: 'Pan coupé → lame finale affleurante · Pan rond → lame finale standard.',
   helpImage: '/reno-minibox-coffre.png',
   options: [{ value: 'pan_coupe', label: 'Pan coupé (PC)' }, { value: 'pan_rond', label: 'Pan rond (PR)' }],
@@ -71,22 +94,67 @@ fields.push({
 // Lame finale : pan coupé → affleurante (défaut) ou classique ; pan rond → classique (forcé).
 fields.push({
   id: 'lame_finale', label: 'Lame finale', type: 'choice', default: 'affleurante',
+  visibleWhen: IS_MINIBOX,
   options: [
     { value: 'affleurante', label: 'Lame finale affleurante', availableWhen: eq('coffre_pan', 'pan_coupe') },
     { value: 'classique', label: 'Lame finale classique' },
   ],
 });
 
+// ── (RENOBOX) Coffre : section (150/165/180/205/250), la plus petite compatible avec
+//    la lame par défaut. Contrainte guide : Alu 42 (CD942) → 150-205 · Alu 56 → 205/250.
+fields.push({
+  id: 'coffre_reno_info', type: 'info', visibleWhen: IS_RENOBOX,
+  help: 'Section mini automatique (la plus petite compatible avec la lame), confirmée par MN. Choisissez une section supérieure si besoin. Toutes les sections ne sont pas disponibles en pan rond — nous vous renseignerons.',
+});
+fields.push({
+  id: 'coffre_reno', label: 'Section de coffre', type: 'choice', role: 'spec', default: 'auto',
+  visibleWhen: IS_RENOBOX,
+  options: [
+    { value: 'auto', label: 'Automatique (section mini)' },
+    { value: '150', label: '150', availableWhen: eq('lame_reno', 'alu42') },
+    { value: '165', label: '165', availableWhen: eq('lame_reno', 'alu42') },
+    { value: '180', label: '180', availableWhen: eq('lame_reno', 'alu42') },
+    { value: '205', label: '205' },
+    { value: '250', label: '250', availableWhen: eq('lame_reno', 'alu56') },
+  ],
+});
+// Forme de coffre Renobox : pan coupé (PC) / pan rond (PR).
+fields.push({
+  id: 'coffre_pan_reno', label: 'Forme de coffre', type: 'choice', role: 'spec', default: 'pan_coupe',
+  visibleWhen: IS_RENOBOX,
+  options: [{ value: 'pan_coupe', label: 'Pan coupé (PC)' }, { value: 'pan_rond', label: 'Pan rond (PR)' }],
+});
+
 // ── Coloris (coffre, coulisses & tablier) — monocouleur. Pan coupé : 5 coloris ;
 //    Pan rond : Blanc 9010 & Gris 7016 seulement. Standards sans plus-value.
 fields.push({
   id: 'coloris', label: 'Coloris (coffre, coulisses & tablier)', type: 'choice', default: 'blanc-9010',
+  visibleWhen: IS_MINIBOX,
   options: [
     { value: 'blanc-9010', label: 'Blanc 9010', hex: '#f4f4f2' },
     { value: 'gris-7016', label: 'Gris 7016', hex: '#383e42' },
     { value: 'ivoire-1015', label: 'Ivoire 1015', hex: '#e6d2b5', availableWhen: eq('coffre_pan', 'pan_coupe') },
     { value: 'gris-7035', label: 'Gris 7035', hex: '#d7d7d7', availableWhen: eq('coffre_pan', 'pan_coupe') },
     { value: 'marron-8019', label: 'Marron 8019 (proche)', hex: '#3d3635', availableWhen: eq('coffre_pan', 'pan_coupe') },
+  ],
+});
+
+// ── (RENOBOX) Coloris monocouleur (liste du bon de commande). ⚠️ PROVISOIRE : la
+//    matrice complète (disponibilité + plus-value par lame) et le mode MULTICOULEUR
+//    (tablier / coffre / coulisses / lame finale séparés) seront montés avec le slide Coloris.
+fields.push({
+  id: 'coloris_reno', label: 'Coloris (coffre, coulisses & tablier)', type: 'choice', default: 'blanc-9010',
+  visibleWhen: IS_RENOBOX,
+  help: 'Coloris monocouleur standard. Autres RAL et multicouleurs : nous consulter.',
+  options: [
+    { value: 'blanc-9010', label: 'Blanc 9010', hex: '#f4f4f2' },
+    { value: 'gris-alu-9006', label: 'Gris alu AS 9006', hex: '#a1a1a0' },
+    { value: 'ivoire-1015', label: 'Ivoire 1015', hex: '#e6d2b5' },
+    { value: 'gris-7016', label: 'Gris 7016', hex: '#383e42' },
+    { value: 'gris-7035', label: 'Gris 7035', hex: '#d7d7d7' },
+    { value: 'gris-7038', label: 'Gris 7038', hex: '#b5b0a1' },
+    { value: 'marron-8019', label: 'Marron 8019 (proche)', hex: '#3d3635' },
   ],
 });
 
@@ -270,7 +338,7 @@ fields.push({
 // Section de coffre AUTO selon la hauteur (grille MN) : 137 (≤1550) / 150 (≤2250)
 // / 165 (≤2550). Affichée sous le champ « Taille de coffre » (override possible).
 fields.push({
-  id: 'coffre_auto_info', type: 'info',
+  id: 'coffre_auto_info', type: 'info', visibleWhen: IS_MINIBOX,
   help: 'Section mini automatique selon la hauteur : {{coffre_auto}}. Pour uniformiser la section sur plusieurs repères, précisez-le dans la note (dernière étape).',
 });
 
@@ -299,25 +367,40 @@ const derived = [
 ];
 
 // ---- Prix de BASE = grille de coût de motorisation (Largeur × Hauteur) ----
+//  - Minibox : lookup2d sur la grille MN/Somfy parsée.
+//  - Renobox : ⚠️ PROVISOIRE — grille tarifaire pas encore fournie. Formule placeholder
+//    (surface × coef) le temps de recevoir la grille, à remplacer par un lookup2d sur
+//    reno-renobox-grids.json. NE PAS considérer les prix Renobox comme définitifs.
 priceRules.unshift({
   code: 'base', label: 'Prix de base', kind: 'base',
-  amount: { op: 'lookup2d', table: V('grid'), row: V('hauteur'), col: V('largeur') },
+  amount: {
+    op: 'if', cond: IS_RENOBOX,
+    then: { op: 'round', arg: { op: '+', args: [200, { op: '*', args: [V('surface_m2'), 150] }] } },
+    else: { op: 'lookup2d', table: V('grid'), row: V('hauteur'), col: V('largeur') },
+  },
 });
 
-// ---- Contraintes (limites dimensionnelles Minibox alu 37) ----
+// ---- Contraintes ----
 const constraints = [
-  { message: 'Largeur inférieure au minimum pour cette manœuvre / ce moteur', requires: { op: 'gte', left: V('largeur'), right: V('largeur_mini') } },
-  { message: 'Largeur maximale 2400 mm (lame Alu 37)', requires: lte('largeur', 2400) },
-  { message: 'Hauteur maximale 2550 mm (coffre 165)', requires: lte('hauteur', 2550) },
-  { message: 'Surface maximale 5,5 m² (lame Alu 37)', requires: lte('surface_m2', 5.5) },
+  // Minibox (lame alu 37) — n'enforce que pour la sous-famille minibox.
+  { message: 'Largeur inférieure au minimum pour cette manœuvre / ce moteur', requires: onlyFor('minibox', { op: 'gte', left: V('largeur'), right: V('largeur_mini') }) },
+  { message: 'Largeur maximale 2400 mm (lame Alu 37)', requires: onlyFor('minibox', lte('largeur', 2400)) },
+  { message: 'Hauteur maximale 2550 mm (coffre 165)', requires: onlyFor('minibox', lte('hauteur', 2550)) },
+  { message: 'Surface maximale 5,5 m² (lame Alu 37)', requires: onlyFor('minibox', lte('surface_m2', 5.5)) },
+  // Renobox — limites par lame (Alu 42 : L≤3000 / 8 m² · Alu 56 : L≤4000 / 10 m²).
+  // ⚠️ Largeur MINI non contrainte tant que la grille tarifaire Renobox n'est pas fournie.
+  { message: 'Largeur maximale 3000 mm (lame Alu 42)', requires: { any: [ne('sous_famille', 'renobox'), ne('lame_reno', 'alu42'), lte('largeur', 3000)] } },
+  { message: 'Largeur maximale 4000 mm (lame Alu 56)', requires: { any: [ne('sous_famille', 'renobox'), ne('lame_reno', 'alu56'), lte('largeur', 4000)] } },
+  { message: 'Surface maximale 8 m² (lame Alu 42)', requires: { any: [ne('sous_famille', 'renobox'), ne('lame_reno', 'alu42'), lte('surface_m2', 8)] } },
+  { message: 'Surface maximale 10 m² (lame Alu 56)', requires: { any: [ne('sous_famille', 'renobox'), ne('lame_reno', 'alu56'), lte('surface_m2', 10)] } },
 ];
 
 // ---- Étapes (ordre de l'arbre) ----
 const steps = [
   { id: 'produit', title: 'Type de produit', fields: ['sous_famille'] },
-  { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'pose', 'enroulement', 'lame_info'] },
-  { id: 'coffre', title: 'Coffre', fields: ['coffre_auto_info', 'coffre_pan', 'lame_finale'] },
-  { id: 'coloris', title: 'Coloris', fields: ['coloris'] },
+  { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'pose', 'enroulement', 'lame_info', 'lame_reno'] },
+  { id: 'coffre', title: 'Coffre', fields: ['coffre_auto_info', 'coffre_pan', 'lame_finale', 'coffre_reno_info', 'coffre_reno', 'coffre_pan_reno'] },
+  { id: 'coloris', title: 'Coloris', fields: ['coloris', 'coloris_reno'] },
   { id: 'coulisses', title: 'Coulisses', fields: ['coulisse_type', 'percage', 'arrets_bas'] },
   { id: 'manoeuvre', title: 'Manœuvre', fields: [
     'manoeuvre', 'tringle_cote', 'sortie_tringle', 'genouillere_manuelle', 'commande', 'moteur', 'position_moteur', 'sortie_fil', 'emetteur_type',
@@ -329,7 +412,7 @@ const steps = [
 
 const def = {
   slug: 'volet-roulant-renovation',
-  name: 'Volet roulant rénovation (Minibox)',
+  name: 'Volet roulant rénovation (Minibox · Renobox)',
   famille: 'reno', nodeField: 'sous_famille',
   fields, derived, steps, priceRules,
   tables: { d1: {}, d2: grids },
