@@ -125,6 +125,22 @@ fields.push({
   visibleWhen: IS_RENOBOX,
   options: [{ value: 'pan_coupe', label: 'Pan coupé (PC)' }, { value: 'pan_rond', label: 'Pan rond (PR)' }],
 });
+// Lame finale Renobox : classique par défaut ; affleurante (+8,5 €/ml largeur) UNIQUEMENT
+// en pan coupé ET lame 42 ; pan rond → classique imposée.
+fields.push({
+  id: 'lame_finale_reno', label: 'Lame finale', type: 'choice', role: 'spec', default: 'classique',
+  visibleWhen: IS_RENOBOX,
+  options: [
+    { value: 'classique', label: 'Lame finale classique' },
+    { value: 'affleurante', label: 'Lame finale affleurante (+8,50 €/ml)',
+      availableWhen: AND([eq('coffre_pan_reno', 'pan_coupe'), eq('lame_reno', 'alu42')]) },
+  ],
+});
+priceRules.push({
+  code: 'lame_finale_affleurante', label: 'Lame finale affleurante', kind: 'add',
+  when: AND([IS_RENOBOX, eq('lame_finale_reno', 'affleurante')]),
+  amount: { op: 'round', arg: { op: '*', args: [8.5, { op: '/', args: [V('largeur'), 1000] }] } },
+});
 
 // ── Coloris (coffre, coulisses & tablier) — monocouleur. Pan coupé : 5 coloris ;
 //    Pan rond : Blanc 9010 & Gris 7016 seulement. Standards sans plus-value.
@@ -180,13 +196,15 @@ const COFFRE_STD = ['blanc-9010', 'ivoire-1015', 'gris-7035', 'gris-7038', 'gris
 const COFFRE_OPT = ['rouge-3004', 'bleu-5011', 'vert-6005', 'vert-6009', 'vert-6021', 'gris-7011', 'gris-7012', 'gris-7021', 'gris-7022', 'gris-7039', 'marron-8014', 'noir-9005', 'ral-9007', 'noir-2100-sable', 'gris-2900-sable', 'chene-dore'];
 fields.push({
   id: 'coloris_coffre_reno', label: 'Coloris coffre', type: 'choice', default: 'blanc-9010', visibleWhen: MULTI_VIS,
-  help: 'Coloris option : plus-value 77 € + 44 €/ml (coffre 150-165) ou 54 €/ml (coffre 180-250) × largeur.',
+  help: 'Coloris option : plus-value au ml de largeur (lame 42 : 44 €/ml coffre 150-165, 54 €/ml 180-205 · lame 56 : 66 €/ml). Un forfait laquage de 77 € s’ajoute par commande (offert dès 2000 € de commande).',
   options: [...rOpt(COFFRE_STD), ...rOpt(COFFRE_OPT)],
 });
+// Plus-value coloris coffre au ml de largeur (le forfait laquage 77 € est géré au niveau
+// de la COMMANDE — offert ≥ 2000 € — car conditionné au total, pas à la ligne).
 priceRules.push({
   code: 'coloris_coffre_opt', label: 'Coloris coffre (option)', kind: 'add',
   when: AND([MULTI_VIS, inSet('coloris_coffre_reno', COFFRE_OPT)]),
-  amount: { op: 'round', arg: { op: '+', args: [77, { op: '*', args: [V('coffre_color_rate'), { op: '/', args: [V('largeur'), 1000] }] }] } },
+  amount: { op: 'round', arg: { op: '*', args: [V('coffre_color_rate'), { op: '/', args: [V('largeur'), 1000] }] } },
 });
 // Coloris TABLIER (dépend de la lame). Options = +14 €/m².
 const TABLIER_STD = ['blanc-9010', 'ivoire-1015', 'gris-7035', 'gris-7038', 'gris-7016', 'alu-as-9006', 'marron-8019', 'gris-7039', 'noir-9005', 'noir-2100-sable', 'gris-2900-sable'];
@@ -209,10 +227,37 @@ priceRules.push({
   when: AND([MULTI_VIS, inSet('coloris_tablier_reno', TABLIER_OPT_ALL)]),
   amount: { op: 'round', arg: { op: '*', args: [14, V('surface_m2')] } },
 });
+// Coloris COULISSE (indépendant de la lame) : 7 standards + 15 options (sans Chêne doré).
+// Plus-value option = 40 €/ml de hauteur × 2 coulisses.
+const COULISSE_STD = COFFRE_STD;
+const COULISSE_OPT = COFFRE_OPT.filter((k) => k !== 'chene-dore');
+fields.push({
+  id: 'coloris_coulisse_reno', label: 'Coloris coulisses', type: 'choice', default: 'blanc-9010', visibleWhen: MULTI_VIS,
+  help: 'Coloris option : plus-value 40 €/ml de hauteur (× 2 coulisses).',
+  options: [...rOpt(COULISSE_STD), ...rOpt(COULISSE_OPT)],
+});
+priceRules.push({
+  code: 'coloris_coulisse_opt', label: 'Coloris coulisses (option)', kind: 'add',
+  when: AND([MULTI_VIS, inSet('coloris_coulisse_reno', COULISSE_OPT)]),
+  amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 40, 2] } },
+});
+// Coloris LAME FINALE (indépendant de la lame) : 7 standards + 16 options (avec Chêne doré).
+// Plus-value option = 18 €/ml de largeur.
+fields.push({
+  id: 'coloris_lamefinale_reno', label: 'Coloris lame finale', type: 'choice', default: 'blanc-9010', visibleWhen: MULTI_VIS,
+  help: 'Coloris option : plus-value 18 €/ml de largeur.',
+  options: [...rOpt(COFFRE_STD), ...rOpt(COFFRE_OPT)],
+});
+priceRules.push({
+  code: 'coloris_lamefinale_opt', label: 'Coloris lame finale (option)', kind: 'add',
+  when: AND([MULTI_VIS, inSet('coloris_lamefinale_reno', COFFRE_OPT)]),
+  amount: { op: 'round', arg: { op: '*', args: [18, { op: '/', args: [V('largeur'), 1000] }] } },
+});
 
 // ── Coulisse : 53/22 par défaut ; à aile +8,5 €/ml. Perçage T / F / sans. ──
 fields.push({
   id: 'coulisse_type', label: 'Coulisses', type: 'choice', default: 'c53x22',
+  visibleWhen: IS_MINIBOX,
   help: 'Coulisse à aile : 53×22 uniquement (aile de 60 mm).',
   helpImage: '/reno-minibox-coulisse-aile.png',
   options: [
@@ -220,10 +265,27 @@ fields.push({
     { value: 'a_aile', label: 'Coulisse à aile (+8,50 €/ml)' },
   ],
 });
-// +value coulisse à aile : 8,5 €/ml de hauteur × 2 coulisses (à confirmer : base du ml).
+// +value coulisse à aile : 8,5 €/ml de hauteur × 2 coulisses.
 priceRules.push({
   code: 'coulisse_aile', label: 'Coulisse à aile', kind: 'add',
-  when: eq('coulisse_type', 'a_aile'),
+  when: AND([IS_MINIBOX, eq('coulisse_type', 'a_aile')]),
+  amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 8.5, 2] } },
+});
+// ── (RENOBOX) Coulisse selon la lame : 42 → 53/22 (+ à aile) · 56 → 66/27 (pas de à aile).
+fields.push({
+  id: 'coulisse_reno', label: 'Coulisses', type: 'choice', role: 'spec', default: 'c53x22',
+  visibleWhen: IS_RENOBOX,
+  help: 'Coulisse par défaut : 53/22 (lame 42) ou 66/27 (lame 56). Coulisse à aile : 53/22 uniquement.',
+  helpImage: '/reno-minibox-coulisse-aile.png',
+  options: [
+    { value: 'c53x22', label: 'Coulisse 53/22 (par défaut)', availableWhen: eq('lame_reno', 'alu42') },
+    { value: 'c66x27', label: 'Coulisse 66/27 (par défaut)', availableWhen: eq('lame_reno', 'alu56') },
+    { value: 'a_aile', label: 'Coulisse à aile (+8,50 €/ml)', availableWhen: eq('lame_reno', 'alu42') },
+  ],
+});
+priceRules.push({
+  code: 'coulisse_aile_reno', label: 'Coulisse à aile', kind: 'add',
+  when: AND([IS_RENOBOX, eq('coulisse_reno', 'a_aile')]),
   amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 8.5, 2] } },
 });
 fields.push({
@@ -241,7 +303,10 @@ fields.push({
 // en applique sans appui de fenêtre.
 fields.push({
   id: 'arrets_bas', label: 'Arrêts bas de coulisse (+6 €/paire)', type: 'boolean',
-  visibleWhen: AND([eq('pose', 'applique'), inSet('coulisse_type', ['c53x22', 'a_aile'])]),
+  visibleWhen: AND([eq('pose', 'applique'), { any: [
+    AND([IS_MINIBOX, inSet('coulisse_type', ['c53x22', 'a_aile'])]),
+    AND([IS_RENOBOX, inSet('coulisse_reno', ['c53x22', 'a_aile'])]),
+  ] }]),
   help: 'Bouche les coulisses en pose applique sans appui de fenêtre (coulisse 53×22).',
   helpImage: '/reno-minibox-arrets-bas.png',
 });
@@ -404,7 +469,8 @@ const derived = [
   { id: 'coffre_reno_eff', expr: { op: 'if', cond: eq('coffre_reno', 'auto'),
       then: { op: 'if', cond: eq('lame_reno', 'alu56'), then: 205, else: 150 },
       else: V('coffre_reno') } },
-  { id: 'coffre_color_rate', expr: { op: 'if', cond: lte('coffre_reno_eff', 165), then: 44, else: 54 } },
+  { id: 'coffre_color_rate', expr: { op: 'if', cond: eq('lame_reno', 'alu56'), then: 66,
+      else: { op: 'if', cond: lte('coffre_reno_eff', 165), then: 44, else: 54 } } },
   // Grille de prix retenue = coût de motorisation par marque × commande.
   //  - manuelle → grille MN filaire (− moins-value) ;
   //  - motorisée filaire/radio → g_<moteur>_<commande> ;
@@ -457,9 +523,9 @@ const constraints = [
 const steps = [
   { id: 'produit', title: 'Type de produit', fields: ['sous_famille'] },
   { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'pose', 'enroulement', 'lame_info', 'lame_reno'] },
-  { id: 'coffre', title: 'Coffre', fields: ['coffre_auto_info', 'coffre_pan', 'lame_finale', 'coffre_reno_info', 'coffre_reno', 'coffre_pan_reno'] },
-  { id: 'coloris', title: 'Coloris', fields: ['coloris', 'coloris_mode_reno', 'coloris_mono_reno', 'coloris_coffre_reno', 'coloris_tablier_reno'] },
-  { id: 'coulisses', title: 'Coulisses', fields: ['coulisse_type', 'percage', 'arrets_bas'] },
+  { id: 'coffre', title: 'Coffre', fields: ['coffre_auto_info', 'coffre_pan', 'lame_finale', 'coffre_reno_info', 'coffre_reno', 'coffre_pan_reno', 'lame_finale_reno'] },
+  { id: 'coloris', title: 'Coloris', fields: ['coloris', 'coloris_mode_reno', 'coloris_mono_reno', 'coloris_coffre_reno', 'coloris_tablier_reno', 'coloris_coulisse_reno', 'coloris_lamefinale_reno'] },
+  { id: 'coulisses', title: 'Coulisses', fields: ['coulisse_type', 'coulisse_reno', 'percage', 'arrets_bas'] },
   { id: 'manoeuvre', title: 'Manœuvre', fields: [
     'manoeuvre', 'tringle_cote', 'sortie_tringle', 'genouillere_manuelle', 'commande', 'moteur', 'position_moteur', 'sortie_fil', 'emetteur_type',
     'radio_info', 'centralisation_info', 'inverseur', 'inverseur_pose', 'inverseur_maintien',
