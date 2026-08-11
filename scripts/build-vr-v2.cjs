@@ -507,6 +507,7 @@ const COFFRE_SEUL_SECTIONS = [
 ].map((s) => ({ ...s, lmin: CS_LMIN, lmax: CS_LMAX, grid: CS_PRICES[s.code].map((p, i) => [CS_WIDTHS[i], p]) }));
 // GAMME (coffre classique / renforcé) — 1er niveau de la cascade coffre seul.
 fields.push({ id: 'coffre_gamme', label: 'Gamme de coffre', type: 'choice', default: 'classique',
+  helpImage: '/schema-tradi-type-coffre.png',
   options: [
     { value: 'classique', label: 'Coffre classique' },
     { value: 'renforce', label: 'Coffre renforcé' },
