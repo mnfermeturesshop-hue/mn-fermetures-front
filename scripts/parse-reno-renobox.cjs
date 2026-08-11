@@ -43,18 +43,24 @@ function widthCols(a) {
   return best && best.mainCols.length ? best : null;
 }
 
-// Extrait { filaire:{h->{w->prix}}, radio:{...} } d'UNE feuille (données brutes par ligne).
+// Prix valide : entier plausible (les cellules corrompues du fichier — ex. « 0.12 » pour
+// 1120 — sont neutralisées → null, la lookup2d prendra la colonne voisine par snap-up).
+const price = (v) => { const n = fix(v); return n != null && Number.isInteger(n) && n >= 50 && n <= 5000 ? n : null; };
+
+// Extrait { filaire:[...], radio:[...] } d'UNE feuille. La colonne du label (Filaire /
+// RS100 io) est en col1 sur la plupart des feuilles, mais en col0 sur certaines
+// continuations Somfy (ex. Table 12) → détection dynamique.
 function readSheet(a) {
   const wc = widthCols(a);
   if (!wc) return null;
-  const out = { filaire: [], radio: [] }; // tableaux de lignes {min, cells:[{w,p}]}
+  const labelCol = a.some((r) => isFil(String(r[1]))) ? 1 : 0;
+  const out = { filaire: [], radio: [] };
   for (let i = wc.hrow + 1; i < a.length; i++) {
-    const t = String(a[i][1]).trim();
+    const t = String(a[i][labelCol]).trim();
     const kind = isFil(t) ? 'filaire' : isRad(t) ? 'radio' : null;
     if (!kind) continue;
-    const minCol = kind === 'filaire' ? 3 : 4;
-    const min = fix(a[i][minCol]);
-    const cells = wc.mainCols.map((mc) => ({ w: mc.w, p: fix(a[i][mc.idx]) }));
+    const min = labelCol === 1 ? price(a[i][kind === 'filaire' ? 3 : 4]) : null;
+    const cells = wc.mainCols.map((mc) => ({ w: mc.w, p: price(a[i][mc.idx]) }));
     out[kind].push({ min, cells });
   }
   return out;
@@ -72,21 +78,30 @@ function buildGrid(grp, sheetA, sheetB, kind, minWidth) {
   const maxA = Math.max(...colsA);
   const colsB = (B1[0] ? B1[0].cells.map((c) => c.w) : []).filter((w) => w > maxA);
   const cols = [minWidth, ...colsA, ...colsB];
+  let filled = 0;
   const cells = H.map((_, i) => {
     const rowA = A1[i], rowB = B1[i];
     const min = rowA ? rowA.min : null;
     const vA = rowA ? rowA.cells.map((c) => c.p) : colsA.map(() => null);
     const vB = rowB ? rowB.cells.filter((c) => c.w > maxA).map((c) => c.p) : colsB.map(() => null);
-    return [min, ...vA, ...vB];
+    const row = [min, ...vA, ...vB];
+    // Comble les nulls INTÉRIEURS (cellules corrompues du fichier) par la largeur voisine
+    // supérieure (snap-up). Les nulls de fin de ligne (coins hors-surface) restent null.
+    for (let c = row.length - 2; c >= 0; c--) {
+      if (row[c] == null && row[c + 1] != null) { row[c] = row[c + 1]; filled++; }
+    }
+    return row;
   });
+  if (filled) console.log(`  ↳ ${grp.key}/${kind} : ${filled} cellule(s) corrompue(s) comblée(s) par la largeur voisine`);
   return { rows: H.slice(), cols, cells };
 }
 
 const grids = {};
 for (const grp of GROUPS) {
-  grids[`${grp.key}_mn_filaire`]    = buildGrid(grp, grp.mn[0],    grp.mn[1],    'filaire', grp.minFil);
+  // L mini confirmées PDG : filaire 422 (MN) / 427 (Somfy) ; radio 622 (lame 42) / 628 (lame 56).
+  grids[`${grp.key}_mn_filaire`]    = buildGrid(grp, grp.mn[0],    grp.mn[1],    'filaire', 422);
   grids[`${grp.key}_mn_radio`]      = buildGrid(grp, grp.mn[0],    grp.mn[1],    'radio',   grp.minRadio);
-  grids[`${grp.key}_somfy_filaire`] = buildGrid(grp, grp.somfy[0], grp.somfy[1], 'filaire', grp.minFil);
+  grids[`${grp.key}_somfy_filaire`] = buildGrid(grp, grp.somfy[0], grp.somfy[1], 'filaire', 427);
   grids[`${grp.key}_somfy_radio`]   = buildGrid(grp, grp.somfy[0], grp.somfy[1], 'radio',   grp.minRadio);
 }
 
