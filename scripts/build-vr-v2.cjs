@@ -81,7 +81,7 @@ for (const sel of v1.selectors) {
     f.options.push(opt);
   }
   // B. type_volet (poses) visible uniquement en Tradi standard.
-  if (sel.id === 'type_volet') f.visibleWhen = eq('gamme_tradi', 'standard');
+  if (sel.id === 'type_volet') { f.visibleWhen = eq('gamme_tradi', 'standard'); f.helpImage = '/schema-tradi-type-volet.png'; }
   // Marque du moteur : en motorisation, hors solaire (le solaire force Somfy).
   // `moteur` = MARQUE du moteur (MN / Somfy) — renommé pour lever l'ambiguïté avec
   // le champ « Motorisation » (type Filaire/Radio/Solaire = `commande`). Visible pour
