@@ -318,6 +318,7 @@ fields.push({
   id: 'manoeuvre', label: 'Type de manœuvre', type: 'choice', default: 'motorisee',
   options: [
     { value: 'manuelle', label: 'Manuelle' },
+    { value: 'tirage_direct', label: 'Tirage direct', availableWhen: IS_RENOBOX },
     { value: 'motorisee', label: 'Motorisation' },
   ],
 });
@@ -326,13 +327,19 @@ fields.push({
 //    (L'arbre de décision indiquait <451 → −72 / −13 — à confirmer.)
 priceRules.push({
   code: 'manuelle_mv', label: 'Manœuvre manuelle (moins-value)', kind: 'add',
-  when: eq('manoeuvre', 'manuelle'),
+  when: AND([IS_MINIBOX, eq('manoeuvre', 'manuelle')]),
   amount: { op: 'if', cond: lt('largeur', 567), then: -77, else: -17 },
+});
+// (RENOBOX) moins-value manœuvre manuelle : largeur < 451 → −72 € ; ≥ 451 → −13 €.
+priceRules.push({
+  code: 'manuelle_mv_reno', label: 'Manœuvre manuelle (moins-value)', kind: 'add',
+  when: AND([IS_RENOBOX, eq('manoeuvre', 'manuelle')]),
+  amount: { op: 'if', cond: lt('largeur', 451), then: -72, else: -13 },
 });
 // Genouillère (manœuvre manuelle) : 60° incluse / 60° aimantée +41 / 90° +18 / 90° aimantée +59.
 fields.push({
   id: 'genouillere_manuelle', label: 'Genouillère', type: 'choice', default: 'g60',
-  visibleWhen: eq('manoeuvre', 'manuelle'),
+  visibleWhen: AND([IS_MINIBOX, eq('manoeuvre', 'manuelle')]),
   options: [
     { value: 'g60', label: 'Genouillère 60° (incluse)' },
     { value: 'g60a', label: 'Genouillère 60° aimantée (+41 €)' },
@@ -342,7 +349,7 @@ fields.push({
 });
 for (const [val, price] of Object.entries({ g60a: 41, g90: 18, g90a: 59 })) {
   priceRules.push({ code: `opt_genou_${val}`, label: `Genouillère ${val}`, kind: 'add',
-    when: AND([eq('manoeuvre', 'manuelle'), eq('genouillere_manuelle', val)]), amount: price });
+    when: AND([IS_MINIBOX, eq('manoeuvre', 'manuelle'), eq('genouillere_manuelle', val)]), amount: price });
 }
 
 // Motorisation : type (filaire/radio/solaire) + marque (MN/Somfy).
@@ -365,7 +372,7 @@ fields.push({
 // Côté de manœuvre (fabrication) — gauche / droite.
 fields.push({
   id: 'position_moteur', label: 'Position manœuvre', type: 'choice', role: 'spec', default: 'droite',
-  visibleWhen: eq('manoeuvre', 'motorisee'),
+  visibleWhen: AND([IS_MINIBOX, eq('manoeuvre', 'motorisee')]),
   options: [{ value: 'gauche', label: 'Gauche (G)' }, { value: 'droite', label: 'Droite (D)' }],
 });
 
@@ -428,7 +435,7 @@ priceRules.push({ code: 'opt_alim_depannage', label: 'Alimentation de dépannage
 // Côté tringle (fabrication) — manœuvre manuelle.
 fields.push({
   id: 'tringle_cote', label: 'Côté tringle', type: 'choice', role: 'spec', default: 'droite',
-  visibleWhen: eq('manoeuvre', 'manuelle'),
+  visibleWhen: AND([IS_MINIBOX, eq('manoeuvre', 'manuelle')]),
   options: [{ value: 'gauche', label: 'Gauche' }, { value: 'droite', label: 'Droite' }],
 });
 
@@ -439,18 +446,67 @@ fields.push({
 fields.push({
   id: 'sortie_fil', label: 'Numéro de sortie du fil', type: 'choice', role: 'spec', default: '1',
   // Le moteur solaire est autonome (batterie/panneau) : pas de fil → pas de sortie de fil.
-  visibleWhen: AND([eq('manoeuvre', 'motorisee'), inSet('commande', ['filaire', 'radio'])]),
+  visibleWhen: AND([IS_MINIBOX, eq('manoeuvre', 'motorisee'), inSet('commande', ['filaire', 'radio'])]),
   help: 'Position de sortie du fil sur le coffre (voir schéma) — 1 à 11.',
   helpImage: '/reno-minibox-sortie-fil.png',
   options: Array.from({ length: 11 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) })),
 });
 fields.push({
   id: 'sortie_tringle', label: 'Numéro de sortie de la tringle', type: 'choice', role: 'spec', default: '1',
-  visibleWhen: eq('manoeuvre', 'manuelle'),
+  visibleWhen: AND([IS_MINIBOX, eq('manoeuvre', 'manuelle')]),
   help: 'Position de sortie de la tringle oscillante (voir schéma) — 1 à 5.',
   helpImage: '/reno-minibox-sortie-tringle.png',
   options: Array.from({ length: 5 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) })),
 });
+
+// ════════ (RENOBOX) Manœuvre ════════
+// Côté (manœuvre / fil) et Sortie (sous-coffre / façade) — pour toutes les manœuvres.
+fields.push({
+  id: 'cote_reno', label: 'Côté de manœuvre', type: 'choice', role: 'spec', default: 'droite',
+  visibleWhen: IS_RENOBOX,
+  options: [{ value: 'gauche', label: 'Gauche (G)' }, { value: 'droite', label: 'Droite (D)' }],
+});
+fields.push({
+  id: 'sortie_reno', label: 'Sortie', type: 'choice', role: 'spec', default: 'sous_coffre',
+  visibleWhen: IS_RENOBOX,
+  options: [{ value: 'sous_coffre', label: 'Sous-coffre' }, { value: 'facade', label: 'Façade' }],
+});
+// Tirage direct : position de la serrure (lame finale / intermédiaire + hauteur).
+// ⚠️ PRIX : barème propre non fourni → la ligne prend la base provisoire Renobox (TODO).
+const TIRAGE_VIS = AND([IS_RENOBOX, eq('manoeuvre', 'tirage_direct')]);
+fields.push({
+  id: 'serrure_position', label: 'Position de la serrure', type: 'choice', role: 'spec', default: 'lame_finale',
+  visibleWhen: TIRAGE_VIS,
+  options: [{ value: 'lame_finale', label: 'Sur lame finale' }, { value: 'lame_intermediaire', label: 'Sur lame intermédiaire' }],
+});
+fields.push({
+  id: 'serrure_hauteur', label: 'Hauteur position lame intermédiaire (mm)', type: 'dimension', unit: 'mm', default: 1000,
+  visibleWhen: AND([TIRAGE_VIS, eq('serrure_position', 'lame_intermediaire')]),
+  help: 'Hauteur de la serrure sur lame intermédiaire (tirage direct — L mini 630 mm).',
+});
+// Motorisation filaire : commande de secours intégrée (+136 €) — Renobox uniquement.
+const secoursVis = AND([IS_RENOBOX, filaireVis]);
+fields.push({ id: 'commande_secours', label: 'Commande de secours intégrée (+136 €)', type: 'boolean', visibleWhen: secoursVis });
+priceRules.push({ code: 'opt_commande_secours', label: 'Commande de secours intégrée', kind: 'add',
+  when: AND([secoursVis, eq('commande_secours', true)]), amount: 136 });
+// Genouillère (6 variantes) : manœuvre manuelle OU commande de secours filaire.
+const GEN_VIS_RENO = AND([IS_RENOBOX, { any: [eq('manoeuvre', 'manuelle'), AND([filaireVis, eq('commande_secours', true)])] }]);
+fields.push({
+  id: 'genouillere_reno', label: 'Genouillère', type: 'choice', default: 'app60',
+  visibleWhen: GEN_VIS_RENO,
+  options: [
+    { value: 'app60', label: 'En applique 60° non aimantée (incluse)' },
+    { value: 'app90', label: 'En applique 90° non aimantée (+18 €)' },
+    { value: 'sc60', label: 'Sous coffre 60° (incluse)' },
+    { value: 'app60a', label: 'En applique 60° aimantée (+41 €)' },
+    { value: 'app90a', label: 'En applique 90° aimantée (+59 €)' },
+    { value: 'sc60a', label: 'Sous coffre 60° aimantée (+41 €)' },
+  ],
+});
+for (const [val, price] of Object.entries({ app90: 18, app60a: 41, app90a: 59, sc60a: 41 })) {
+  priceRules.push({ code: `opt_genou_reno_${val}`, label: `Genouillère ${val}`, kind: 'add',
+    when: AND([GEN_VIS_RENO, eq('genouillere_reno', val)]), amount: price });
+}
 
 // Section de coffre AUTO selon la hauteur (grille MN) : 137 (≤1550) / 150 (≤2250)
 // / 165 (≤2550). Affichée sous le champ « Taille de coffre » (override possible).
@@ -530,6 +586,8 @@ const steps = [
     'manoeuvre', 'tringle_cote', 'sortie_tringle', 'genouillere_manuelle', 'commande', 'moteur', 'position_moteur', 'sortie_fil', 'emetteur_type',
     'radio_info', 'centralisation_info', 'inverseur', 'inverseur_pose', 'inverseur_maintien',
     'emetteur_5c', 'situo_io_1c', 'situo_io_5c', 'amy_4c_io', 'alim_depannage',
+    // Renobox
+    'cote_reno', 'sortie_reno', 'serrure_position', 'serrure_hauteur', 'genouillere_reno', 'commande_secours',
   ] },
   { id: 'recap', title: 'Récapitulatif', fields: [] },
 ];
