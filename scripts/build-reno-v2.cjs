@@ -330,11 +330,18 @@ priceRules.push({
   when: AND([IS_MINIBOX, eq('manoeuvre', 'manuelle')]),
   amount: { op: 'if', cond: lt('largeur', 567), then: -77, else: -17 },
 });
-// (RENOBOX) moins-value manœuvre manuelle : largeur < 451 → −72 € ; ≥ 451 → −13 €.
+// (RENOBOX) Tringle oscillante (manœuvre manuelle) = moins-value sur grille filaire :
+// largeur < 573 → −77 € ; ≥ 573 → −17 € (barème tarif, prioritaire sur l'arbre 451/72/13).
 priceRules.push({
   code: 'manuelle_mv_reno', label: 'Manœuvre manuelle (moins-value)', kind: 'add',
   when: AND([IS_RENOBOX, eq('manoeuvre', 'manuelle')]),
-  amount: { op: 'if', cond: lt('largeur', 451), then: -72, else: -13 },
+  amount: { op: 'if', cond: lt('largeur', 573), then: -77, else: -17 },
+});
+// (RENOBOX) Tirage direct = plus-value +135 € sur grille filaire (largeur 630-2000 mm).
+priceRules.push({
+  code: 'tirage_direct_pv_reno', label: 'Tirage direct (plus-value)', kind: 'add',
+  when: AND([IS_RENOBOX, eq('manoeuvre', 'tirage_direct')]),
+  amount: 135,
 });
 // Genouillère (manœuvre manuelle) : 60° incluse / 60° aimantée +41 / 90° +18 / 90° aimantée +59.
 fields.push({
@@ -472,7 +479,7 @@ fields.push({
   options: [{ value: 'sous_coffre', label: 'Sous-coffre' }, { value: 'facade', label: 'Façade' }],
 });
 // Tirage direct : position de la serrure (lame finale / intermédiaire + hauteur).
-// ⚠️ PRIX : barème propre non fourni → la ligne prend la base provisoire Renobox (TODO).
+// Prix = grille filaire + 135 € (règle tirage_direct_pv_reno) ; largeur 630-2000 mm.
 const TIRAGE_VIS = AND([IS_RENOBOX, eq('manoeuvre', 'tirage_direct')]);
 fields.push({
   id: 'serrure_position', label: 'Position de la serrure', type: 'choice', role: 'spec', default: 'lame_finale',
@@ -573,6 +580,9 @@ const constraints = [
   { message: 'Largeur maximale 4000 mm (lame Alu 56)', requires: { any: [ne('sous_famille', 'renobox'), ne('lame_reno', 'alu56'), lte('largeur', 4000)] } },
   { message: 'Surface maximale 8 m² (lame Alu 42)', requires: { any: [ne('sous_famille', 'renobox'), ne('lame_reno', 'alu42'), lte('surface_m2', 8)] } },
   { message: 'Surface maximale 10 m² (lame Alu 56)', requires: { any: [ne('sous_famille', 'renobox'), ne('lame_reno', 'alu56'), lte('surface_m2', 10)] } },
+  // Renobox tirage direct : largeur 630-2000 mm.
+  { message: 'Tirage direct : largeur minimale 630 mm', requires: { any: [ne('sous_famille', 'renobox'), ne('manoeuvre', 'tirage_direct'), { op: 'gte', left: V('largeur'), right: 630 }] } },
+  { message: 'Tirage direct : largeur maximale 2000 mm', requires: { any: [ne('sous_famille', 'renobox'), ne('manoeuvre', 'tirage_direct'), lte('largeur', 2000)] } },
 ];
 
 // ---- Étapes (ordre de l'arbre) ----
