@@ -1,111 +1,95 @@
 import Link from 'next/link';
-import { getAllProducts, getProductBySlugDB } from '@/lib/catalog/db';
-import { MENU } from '@/lib/catalog/mock';
-import { isMatrix } from '@/lib/catalog/types';
-import { ProductCard } from '@/components/product/ProductCard';
-import { TablierConfigurator } from '@/components/product/TablierConfigurator';
-import { FindMyPart } from '@/components/ui/FindMyPart';
-import { TablierGenerateur } from '@/components/tablier/TablierGenerateur';
-import { maskProductPrices } from '@/lib/catalog/maskPrices';
-import { pricesVisible } from '@/lib/pricing/visibility';
 
-export default async function HomePage() {
-  const [allProducts, rawTablier, showPrices] = await Promise.all([
-    getAllProducts(),
-    getProductBySlugDB('tablier-pvc-40'),
-    pricesVisible(),
-  ]);
+// Configurateurs mis en avant (liste curatée) — accès direct à l'outil pro.
+// Slugs des 3 premiers = SEEDS de lib/configurateur/loader.ts ; /configurateur = page tablier.
+const CONFIGURATORS = [
+  { name: 'Volet roulant Traditionnel', desc: 'Tradi · Tradi + coffre · Coffre seul', href: '/configurateur/volet-roulant-traditionnel', icon: '▦' },
+  { name: 'Volet roulant Rénovation', desc: 'Minibox · Renobox · Gros coffre', href: '/configurateur/volet-roulant-renovation', icon: '▤' },
+  { name: 'Store banne', desc: 'Monobloc · Semi-coffre · Coffre intégral', href: '/configurateur/store-banne', icon: '☀' },
+  { name: 'Tablier sur mesure', desc: 'PVC & aluminium · prix HT instantané', href: '/configurateur', icon: '▥' },
+];
 
-  // Prix réservés aux connectés : masqués avant envoi au navigateur
-  const featured = (showPrices ? allProducts : allProducts.map(maskProductPrices)).slice(0, 6);
-  const tablier = rawTablier && !showPrices ? maskProductPrices(rawTablier) : rawTablier;
+const QUICK_LINKS = [
+  { label: 'Nos gammes', sub: 'Catalogue par nomenclature', href: '/gammes', icon: '🗂' },
+  { label: 'Mes devis', sub: 'Créer & retrouver vos devis', href: '/devis', icon: '📄' },
+  { label: 'Mes commandes', sub: 'Suivi & documents', href: '/compte', icon: '📦' },
+];
 
+const B2B_STRIP = [
+  ['🚚', 'Expédition 24-48h'],
+  ['✓', 'Franco de port dès 400 € HT'],
+  ['🏦', 'Virement 30 j fin de mois'],
+  ['％', 'Remises pro négociées'],
+  ['🎧', 'Commercial dédié'],
+];
+
+const DOCS = [
+  ['48', 'Notices & plans de montage'],
+  ['12', 'Fiches conseil'],
+  ['9', 'Abaques moteurs'],
+  ['2', 'Catalogues en ligne'],
+];
+
+export default function HomePage() {
   return (
     <>
-      {/* HERO */}
-      <section className="hero">
+      {/* HERO compact B2B */}
+      <section className="hero home-hero">
         <div className="wrap">
-          <div className="grid">
-            <div>
-              <span className="eyebrow">Accessoires volets roulants · Tarif 2026</span>
-              <h1>Tout le sur‑mesure du volet roulant, à la référence près.</h1>
-              <p className="lead">
-                Tabliers, kits axes, motorisations Somfy &amp; MN, profilés et pièces détachées.
-                Un prix juste, calculé à la dimension.
-              </p>
-            </div>
-            {tablier && isMatrix(tablier) && <TablierConfigurator product={tablier} />}
+          <span className="eyebrow">Tarif 2026 · Espace professionnel</span>
+          <h1>Configurez vos volets roulants sur mesure — prix HT à la dimension.</h1>
+          <p className="lead">
+            Traditionnel, rénovation, store banne et tablier : le prix HT net (remise pro déduite)
+            est calculé instantanément. Franco dès 400 € HT · virement 30 jours.
+          </p>
+          <div className="home-hero-cta">
+            <Link className="btn solid lg" href="#configurateurs">Configurer un produit</Link>
+            <Link className="btn ghost lg" href="/compte">Mon compte</Link>
           </div>
         </div>
       </section>
 
-      {/* FAMILLES */}
-      <section className="block">
+      {/* VOS CONFIGURATEURS — le cœur */}
+      <section className="block" id="configurateurs">
         <div className="wrap">
           <div className="sec-head">
             <div>
-              <span className="eyebrow">Univers produits</span>
-              <h2>Parcourir par famille</h2>
+              <span className="eyebrow">Sur mesure — prix instantané</span>
+              <h2>Vos configurateurs</h2>
             </div>
+            <Link className="link-all" href="/gammes">Voir toutes les gammes →</Link>
           </div>
-          <div className="catgrid">
-            {MENU.map((item) => (
-              <Link className="cat" href={item.href} key={item.href}>
-                <div className="ic">{item.icon}</div>
-                <b>{item.name}</b>
-                <span>{item.subtitle ?? 'Voir les références'}</span>
+          <div className="config-grid">
+            {CONFIGURATORS.map((c) => (
+              <Link className="config-card" href={c.href} key={c.href}>
+                <div className="config-ic">{c.icon}</div>
+                <div className="config-body">
+                  <b>{c.name}</b>
+                  <span>{c.desc}</span>
+                </div>
+                <span className="config-cta">Configurer →</span>
               </Link>
             ))}
           </div>
         </div>
       </section>
 
-      {/* GUIDE "TROUVER MA PIÈCE" */}
-      <section className="block">
-        <div className="wrap">
-          <FindMyPart />
-        </div>
-      </section>
-
-      {/* À LA UNE */}
-      {featured.length > 0 && (
-        <section className="block alt">
-          <div className="wrap">
-            <div className="sec-head">
-              <div>
-                <span className="eyebrow">2026</span>
-                <h2>Les références à la une</h2>
-              </div>
-              <Link className="link-all" href="/catalogue/tabliers">Tout le catalogue →</Link>
-            </div>
-            <div className="prods">
-              {featured.map((p) => (
-                <ProductCard product={p} key={p.slug} />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* CONFIGURATEUR TABLIER */}
+      {/* RACCOURCIS */}
       <section className="block alt">
         <div className="wrap">
-          <div className="sec-head">
-            <div>
-              <span className="eyebrow">Sur mesure — Tarif 2026</span>
-              <h2>Configurateur de tablier volet roulant</h2>
-            </div>
-            <Link className="link-all" href="/configurateur">Ouvrir en plein écran →</Link>
+          <div className="quick-links">
+            {QUICK_LINKS.map((q) => (
+              <Link className="quick-link" href={q.href} key={q.href}>
+                <span className="quick-ic">{q.icon}</span>
+                <span className="quick-txt"><b>{q.label}</b><span>{q.sub}</span></span>
+                <span className="quick-arrow">→</span>
+              </Link>
+            ))}
           </div>
-          <p style={{ marginBottom: 32, color: 'var(--muted)', fontSize: 15 }}>
-            7 types de lames PVC &amp; aluminium, 10 coloris, calcul du prix HT instantané selon les dimensions saisies.
-          </p>
-          <TablierGenerateur />
         </div>
       </section>
 
-
-      {/* DOCUMENTATION */}
+      {/* DOCUMENTATION (conservée) */}
       <section className="block">
         <div className="wrap">
           <div className="sec-head">
@@ -115,14 +99,23 @@ export default async function HomePage() {
             </div>
           </div>
           <div className="docs">
-            {[
-              ['48', 'Notices & plans de montage'],
-              ['12', 'Fiches conseil'],
-              ['9', 'Abaques moteurs'],
-              ['2', 'Catalogues en ligne'],
-            ].map(([n, label]) => (
+            {DOCS.map(([n, label]) => (
               <div className="doc" key={label}>
                 <div className="n">{n}</div>
+                <span>{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* RÉASSURANCE B2B */}
+      <section className="b2b-strip">
+        <div className="wrap">
+          <div className="b2b-strip-row">
+            {B2B_STRIP.map(([ic, label]) => (
+              <div className="b2b-item" key={label}>
+                <span className="b2b-ic">{ic}</span>
                 <span>{label}</span>
               </div>
             ))}
