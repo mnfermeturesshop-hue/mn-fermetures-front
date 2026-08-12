@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useCheckoutStore, type PlacedOrder } from '@/lib/store/checkout';
 import { euro } from '@/lib/store/cart';
+import { laquageForfaitHT } from '@/lib/pricing/shipping';
 
 interface Props { params: { id: string } }
 
@@ -68,6 +69,10 @@ export default function ConfirmationPage({ params }: Props) {
   const addr = order.shippingAddress;
   // Éco-contribution totale (déjà incluse dans le total) — ligne « dont » informative.
   const ecoTotal = order.lines.reduce((s, l) => s + (l.ecoContribHT ?? 0) * l.quantity, 0);
+  // Forfait laquage (recalculé depuis les lignes) : facturé si commande < 2000 € HT, sinon offert.
+  const hasLaque = order.lines.some((l) => l.pricing?.kind === 'configurateur' && l.pricing.laque === true);
+  const productsHT = order.lines.reduce((s, l) => s + (l.unitPriceHT + (l.surchargeUnitHT ?? 0) + (l.ecoContribHT ?? 0)) * l.quantity, 0);
+  const laquageHT = laquageForfaitHT(productsHT, hasLaque);
   const isVirement      = order.paymentMethod === 'virement';
   const isBonDeCommande = order.paymentMethod === 'bon_de_commande';
   const isPaid          = order.status === 'paid';
@@ -152,6 +157,17 @@ export default function ConfirmationPage({ params }: Props) {
                   <td colSpan={2}>Livraison ({SHIPPING_LABELS[order.shippingMethod]})</td>
                   <td>{order.fraisHT === 0 ? <span className="green">Offerte</span> : euro(order.fraisHT)}</td>
                 </tr>
+                {laquageHT > 0 ? (
+                  <tr>
+                    <td colSpan={2}>Forfait laquage HT</td>
+                    <td>{euro(laquageHT)}</td>
+                  </tr>
+                ) : hasLaque ? (
+                  <tr>
+                    <td colSpan={2}>Forfait laquage HT</td>
+                    <td><span className="green">Offert (commande ≥ 2000 € HT)</span></td>
+                  </tr>
+                ) : null}
                 <tr className="confirm-total-row">
                   <td colSpan={2}><strong>Total TTC</strong></td>
                   <td><strong>{euro(order.totalTTC)}</strong></td>

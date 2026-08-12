@@ -60,13 +60,14 @@ function LineRow({ line }: { line: CartLine }) {
 }
 
 export default function CartPage() {
-  const { lines, totalHT, tva, fraisLivraison, isFranco, laquageForfait, clearCart, showTTC, toggleTTC } = useCartStore();
+  const { lines, totalHT, tva, fraisLivraison, isFranco, laquageForfait, hasLaquage, clearCart, showTTC, toggleTTC } = useCartStore();
   const { isPro } = useAuthStore();
 
   const ht = totalHT();
   const franco = isFranco();
   const frais = fraisLivraison();
   const laquage = laquageForfait();
+  const laque = hasLaquage();           // ≥1 coffre laqué (facturé si <2000 € HT, offert sinon)
   const grandHT = ht + frais + laquage;
 
   if (lines.length === 0) {
@@ -134,9 +135,11 @@ export default function CartPage() {
               <span>Frais de livraison HT</span>
               <span>{franco ? <span className="green">Offerts</span> : euro(frais)}</span>
             </div>
-            {laquage > 0 && (
+            {laquage > 0 ? (
               <div className="summary-row muted"><span>Forfait laquage HT</span><span>{euro(laquage)}</span></div>
-            )}
+            ) : laque ? (
+              <div className="summary-row muted"><span>Forfait laquage HT</span><span className="green">Offert (commande ≥ 2000 € HT)</span></div>
+            ) : null}
             <div className="summary-row summary-ht"><span>Total HT</span><span>{euro(grandHT)}</span></div>
             <div className="summary-row summary-ttc"><span>Total TTC</span><span>{euro(grandHT * 1.2)}</span></div>
           </div>

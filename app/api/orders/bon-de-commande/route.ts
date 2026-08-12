@@ -47,6 +47,10 @@ interface BonDeCommandePayload {
   totalHT: number;
   totalTTC: number;
   fraisHT: number;
+  /** Forfait laquage facturé (0 si offert ≥ 2000 € HT ou aucun coffre laqué). */
+  laquageHT?: number;
+  /** ≥1 coffre laqué → afficher la ligne « forfait laquage » (facturée ou offerte). */
+  hasLaque?: boolean;
   shippingAddress: Address;
 }
 
@@ -116,8 +120,17 @@ function addrBlock(addr: Address): string {
 }
 
 function totalsBlock(p: BonDeCommandePayload): string {
-  const prodHT = p.totalHT - p.fraisHT;
+  const laquageHT = p.laquageHT ?? 0;
+  const prodHT = p.totalHT - p.fraisHT - laquageHT;
   const ecoHT = p.lines.reduce((s, l) => s + (l.ecoContribHT ?? 0) * l.quantity, 0);
+  // Ligne comptable forfait laquage : facturée (< 2000 € HT) ou « Offert » (≥ 2000 € HT).
+  const laquageRow = laquageHT > 0
+    ? `<tr><td style="padding:6px 0;color:#6b7280;">Forfait laquage HT</td>
+        <td style="padding:6px 0;text-align:right;font-weight:600;">${euro(laquageHT)}</td></tr>`
+    : p.hasLaque
+      ? `<tr><td style="padding:6px 0;color:#6b7280;">Forfait laquage HT</td>
+          <td style="padding:6px 0;text-align:right;color:#16a34a;font-weight:600;">Offert (commande ≥ 2000 € HT)</td></tr>`
+      : '';
   return `
     <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin-top:12px;">
       <tr>
@@ -132,6 +145,7 @@ function totalsBlock(p: BonDeCommandePayload): string {
         <td style="padding:6px 0;color:#6b7280;">Frais de livraison HT (${p.shippingMethod === 'express' ? 'Express 24h' : 'Standard'})</td>
         <td style="padding:6px 0;text-align:right;font-weight:600;">${p.fraisHT === 0 ? '<span style="color:#16a34a">Offerts</span>' : euro(p.fraisHT)}</td>
       </tr>
+      ${laquageRow}
       <tr style="border-top:2px solid #e5e7eb;">
         <td style="padding:10px 0 4px;font-weight:700;color:#1e3a5f;">Total HT</td>
         <td style="padding:10px 0 4px;text-align:right;font-weight:700;color:#1e3a5f;">${euro(p.totalHT)}</td>
@@ -339,6 +353,8 @@ export async function POST(req: NextRequest) {
     totalHT: totals.totalHT,
     totalTTC: totals.totalTTC,
     fraisHT: totals.fraisHT,
+    laquageHT: totals.laquageHT,
+    hasLaque: verified.hasLaque,
   };
 
   // 1. Sauvegarde en base

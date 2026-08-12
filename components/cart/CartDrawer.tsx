@@ -53,7 +53,7 @@ function CartLineRow({ line }: { line: CartLine }) {
 }
 
 export function CartDrawer() {
-  const { lines, isOpen, closeCart, totalHT, tva, fraisLivraison, isFranco, laquageForfait, showTTC, toggleTTC } =
+  const { lines, isOpen, closeCart, totalHT, tva, fraisLivraison, isFranco, laquageForfait, hasLaquage, showTTC, toggleTTC } =
     useCartStore();
   const { isPro } = useAuthStore();
   // B2B uniquement : les non-pros sont dirigés vers l'espace pro pour se connecter
@@ -127,12 +127,17 @@ export function CartDrawer() {
                 <span>Livraison</span>
                 <span>{franco ? <b className="green">Offerte</b> : euro(frais) + ' HT'}</span>
               </div>
-              {laquage > 0 && (
+              {laquage > 0 ? (
                 <div className="drawer-row muted">
                   <span>Forfait laquage</span>
                   <span>{euro(laquage)} HT</span>
                 </div>
-              )}
+              ) : hasLaquage() ? (
+                <div className="drawer-row muted">
+                  <span>Forfait laquage</span>
+                  <span className="green">Offert</span>
+                </div>
+              ) : null}
               <div className="drawer-row total">
                 <span>Total {showTTC ? 'TTC' : 'HT'}</span>
                 <span>{euro(display)}</span>

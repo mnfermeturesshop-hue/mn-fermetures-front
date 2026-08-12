@@ -45,7 +45,7 @@ export interface VerifiedLine {
 }
 
 export type VerifyResult =
-  | { ok: true; lines: VerifiedLine[]; productsHT: number; laquageHT: number }
+  | { ok: true; lines: VerifiedLine[]; productsHT: number; laquageHT: number; hasLaque: boolean }
   | { ok: false; error: string };
 
 const MAX_QTY = 999;
@@ -228,5 +228,6 @@ export async function verifyCartLines(
     lines: verified,
     productsHT: roundedProductsHT,
     laquageHT: laquageForfaitHT(roundedProductsHT, hasLaque),
+    hasLaque,   // ≥1 coffre laqué → afficher la ligne « forfait laquage » (facturée ou offerte)
   };
 }

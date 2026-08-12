@@ -48,7 +48,7 @@ function DevisContent() {
   const savedDevisNum = searchParams.get('devis');
 
   const { placedOrder }                                             = useCheckoutStore();
-  const { lines, totalHT, isFranco, fraisLivraison, laquageForfait } = useCartStore();
+  const { lines, totalHT, isFranco, fraisLivraison, laquageForfait, hasLaquage } = useCartStore();
   const { user, isPro }                                             = useAuthStore();
 
   const [savedDevis, setSavedDevis]     = useState<SavedDevis | null>(null);
@@ -343,12 +343,17 @@ function DevisContent() {
                   : euro(devisFraisHT)}
               </td>
             </tr>
-            {!isSavedMode && !isOrderMode && laquageForfait() > 0 && (
+            {!isSavedMode && !isOrderMode && (laquageForfait() > 0 ? (
               <tr>
                 <td colSpan={4}>Forfait laquage HT</td>
                 <td>{euro(laquageForfait())}</td>
               </tr>
-            )}
+            ) : hasLaquage() ? (
+              <tr>
+                <td colSpan={4}>Forfait laquage HT</td>
+                <td className="green">Offert (commande ≥ 2000 € HT)</td>
+              </tr>
+            ) : null)}
             <tr className="devis-subtotal">
               <td colSpan={4}>Sous-total HT</td>
               <td>{euro(devisTotalHT)}</td>
