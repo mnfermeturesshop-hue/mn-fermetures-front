@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { useAuthStore } from '@/lib/store/auth';
 
 interface NavItem { href: string; label: string; icon: string }
 
@@ -26,19 +27,43 @@ const COMMERCIAL_NAV = new Set(['/admin', '/admin/clients', '/admin/devis', '/ad
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
   const [role, setRole] = useState<'admin' | 'commercial' | null>(null);
+  const [checked, setChecked] = useState(false);
+  const wasAuthed = useRef(false);
 
   const isLogin = pathname === '/admin/login';
 
+  // Vérifie l'accès (session serveur) et récupère le rôle (filtrage du menu).
+  // Accès refusé (non admin/commercial) → redirection vers la page de connexion.
   useEffect(() => {
     if (isLogin) return;
+    let cancelled = false;
     fetch('/api/admin/me')
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => { if (data?.role) setRole(data.role); })
-      .catch(() => {});
-  }, [isLogin]);
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.role) setRole(data.role);
+        else router.replace('/admin/login');
+        setChecked(true);
+      })
+      .catch(() => { if (!cancelled) { setChecked(true); router.replace('/admin/login'); } });
+    return () => { cancelled = true; };
+  }, [isLogin, router]);
+
+  // Réagit à la DÉCONNEXION : un compte connecté qui repasse à `null` → page de connexion
+  // admin (le `wasAuthed` évite de rediriger un chargement initial non encore hydraté).
+  useEffect(() => { if (user) wasAuthed.current = true; }, [user]);
+  useEffect(() => {
+    if (!isLogin && wasAuthed.current && user === null) router.replace('/admin/login');
+  }, [user, isLogin, router]);
 
   if (isLogin) return <>{children}</>;
+  if (!checked) return <div style={{ padding: 48, textAlign: 'center', color: '#6b7280' }}>Chargement…</div>;
+  // Accès refusé ou déconnexion en cours → on n'affiche pas le back-office (redirection).
+  if (!role || (wasAuthed.current && user === null)) return null;
 
   const nav = role === 'commercial'
     ? NAV.filter((item) => COMMERCIAL_NAV.has(item.href))
@@ -77,6 +102,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <div className="adm-sidebar-foot">
           <Link href="/" className="adm-back-link">← Retour au site</Link>
+          <button type="button" className="adm-back-link" style={{ background: 'none', border: 0, cursor: 'pointer', textAlign: 'left', padding: 0 }} onClick={() => logout()}>
+            ⏻ Déconnexion
+          </button>
         </div>
       </aside>
 
