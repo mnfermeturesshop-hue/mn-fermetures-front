@@ -53,8 +53,24 @@ export function AuthSync() {
       });
     }
 
+    // Vide panier + tunnel de commande quand une SESSION connectée se termine (prix
+    // propres au compte). Ne se déclenche que si un utilisateur était présent, pour ne
+    // pas effacer le panier d'un invité à chaque chargement.
+    const clearSessionStores = async () => {
+      if (!useAuthStore.getState().user) return;
+      try {
+        const [{ useCartStore }, { useCheckoutStore }] = await Promise.all([
+          import('@/lib/store/cart'),
+          import('@/lib/store/checkout'),
+        ]);
+        useCartStore.getState().clearCart();
+        useCheckoutStore.getState().reset();
+      } catch { /* stores non chargés */ }
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
+        void clearSessionStores();
         setUser(null);
         return;
       }

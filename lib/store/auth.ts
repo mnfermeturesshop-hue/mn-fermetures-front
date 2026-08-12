@@ -114,6 +114,16 @@ export const useAuthStore = create<AuthStore>()(
           await supabase.auth.signOut();
         }
         set({ user: null });
+        // Vider le panier ET le tunnel de commande : les prix sont propres au compte
+        // (remises pro) — un panier ne doit pas survivre à la déconnexion / changer de compte.
+        try {
+          const [{ useCartStore }, { useCheckoutStore }] = await Promise.all([
+            import('@/lib/store/cart'),
+            import('@/lib/store/checkout'),
+          ]);
+          useCartStore.getState().clearCart();
+          useCheckoutStore.getState().reset?.();
+        } catch { /* stores non chargés → rien à vider */ }
       },
 
       setUser: (user) => set({ user }),
