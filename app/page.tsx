@@ -49,10 +49,10 @@ export default async function HomePage() {
       <section className="hero home-hero">
         <div className="wrap">
           <span className="eyebrow">Tarif 2026 · Espace professionnel</span>
-          <h1>Configurez vos volets roulants sur mesure — prix HT à la dimension.</h1>
+          <h1>Configurez vos solutions de fermetures sur mesure — prix HT à la dimension.</h1>
           <p className="lead">
-            Traditionnel, rénovation, store banne et tablier : le prix HT net (remise pro déduite)
-            est calculé instantanément. Franco dès 400 € HT · virement 30 jours.
+            Volets roulants, Volets battants, Moustiquaires, Portails &amp; Clôtures, Tabliers seuls :
+            le prix HT net (remise pro déduite) est calculé instantanément. Franco dès 400 € HT.
           </p>
           <div className="home-hero-cta">
             <Link className="btn solid lg" href="#configurateurs">Configurer un produit</Link>
