@@ -126,10 +126,16 @@ fields.push({
 // (Gros coffre). Le prix de base dépend du couple lame + coffre + moteur + commande.
 fields.push({
   id: 'coffre_reno', label: 'Section de coffre', type: 'choice', role: 'spec', default: 'auto',
-  visibleWhen: AND([IS_ALU, eq('lame_reno', 'alu56')]),
+  visibleWhen: IS_ALU,
+  help: 'Lame 42 : section mini automatique par la hauteur, ou choix d’une section supérieure. Lame 56 : coffre 205 (Renobox) / 250 (Gros coffre).',
   options: [
+    // Lame 42 : « Automatique » (section mini par hauteur) OU choix d’une section ≥ la mini
+    // (chaque section n’est proposée que si elle supporte la hauteur : 150 ≤1350, 165 ≤1750, 180 ≤2250).
     { value: 'auto', label: 'Automatique (par hauteur)', availableWhen: eq('lame_reno', 'alu42') },
-    { value: '205', label: 'Coffre 205', availableWhen: AND([eq('lame_reno', 'alu56'), IS_RENOBOX]) },
+    { value: '150', label: 'Coffre 150', availableWhen: AND([eq('lame_reno', 'alu42'), lte('hauteur', 1350)]) },
+    { value: '165', label: 'Coffre 165', availableWhen: AND([eq('lame_reno', 'alu42'), lte('hauteur', 1750)]) },
+    { value: '180', label: 'Coffre 180', availableWhen: AND([eq('lame_reno', 'alu42'), lte('hauteur', 2250)]) },
+    { value: '205', label: 'Coffre 205', availableWhen: { any: [eq('lame_reno', 'alu42'), AND([eq('lame_reno', 'alu56'), IS_RENOBOX])] } },
     { value: '250', label: 'Coffre 250', availableWhen: IS_GROS },
   ],
 });
@@ -572,9 +578,10 @@ const derived = [
   { id: 'surface_m2', expr: { op: '*', args: [{ op: '/', args: [V('largeur'), 1000] }, { op: '/', args: [V('hauteur'), 1000] }] } },
   { id: 'coffre_auto', expr: { op: 'if', cond: lte('hauteur', 1550), then: '137',
       else: { op: 'if', cond: lte('hauteur', 2250), then: '150', else: '165' } } },
-  // (RENOBOX) Section de coffre effective : lame 42 → AUTO par la hauteur
-  // (150 ≤1350 · 165 ≤1750 · 180 ≤2250 · 205 sinon) ; lame 56 → 205 / 250 choisi.
-  { id: 'coffre_reno_eff', expr: { op: 'if', cond: eq('lame_reno', 'alu42'),
+  // (RENOBOX) Section de coffre effective : « auto » (lame 42) → section mini par la
+  // hauteur (150 ≤1350 · 165 ≤1750 · 180 ≤2250 · 205 sinon) ; sinon la section CHOISIE
+  // (lame 42 section supérieure, ou lame 56 → 205 / 250).
+  { id: 'coffre_reno_eff', expr: { op: 'if', cond: eq('coffre_reno', 'auto'),
       then: { op: 'if', cond: lte('hauteur', 1350), then: 150,
         else: { op: 'if', cond: lte('hauteur', 1750), then: 165,
           else: { op: 'if', cond: lte('hauteur', 2250), then: 180, else: 205 } } },
