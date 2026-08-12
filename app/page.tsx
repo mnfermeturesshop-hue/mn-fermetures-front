@@ -1,12 +1,14 @@
 import Link from 'next/link';
+import { listConfigurators } from '@/lib/configurateur/loader';
 
-// Configurateurs mis en avant (liste curatée) — accès direct à l'outil pro.
-// Slugs des 3 premiers = SEEDS de lib/configurateur/loader.ts ; /configurateur = page tablier.
+// Configurateurs mis en avant (liste curatée) — accès direct à l'outil pro. Le champ
+// `slug` (quand présent) permet de MASQUER la carte si l'admin a désactivé le configurateur.
+// Le tablier (/configurateur) est une page à part → toujours affiché.
 const CONFIGURATORS = [
-  { name: 'Volet roulant Traditionnel', desc: 'Tradi · Tradi + coffre · Coffre seul', href: '/configurateur/volet-roulant-traditionnel', icon: '▦' },
-  { name: 'Volet roulant Rénovation', desc: 'Minibox · Renobox · Gros coffre', href: '/configurateur/volet-roulant-renovation', icon: '▤' },
-  { name: 'Store banne', desc: 'Monobloc · Semi-coffre · Coffre intégral', href: '/configurateur/store-banne', icon: '☀' },
-  { name: 'Tablier sur mesure', desc: 'PVC & aluminium · prix HT instantané', href: '/configurateur', icon: '▥' },
+  { slug: 'volet-roulant-traditionnel', name: 'Volet roulant Traditionnel', desc: 'Tradi · Tradi + coffre · Coffre seul', href: '/configurateur/volet-roulant-traditionnel', icon: '▦' },
+  { slug: 'volet-roulant-renovation', name: 'Volet roulant Rénovation', desc: 'Minibox · Renobox · Gros coffre', href: '/configurateur/volet-roulant-renovation', icon: '▤' },
+  { slug: 'store-banne', name: 'Store banne', desc: 'Monobloc · Semi-coffre · Coffre intégral', href: '/configurateur/store-banne', icon: '☀' },
+  { slug: null, name: 'Tablier sur mesure', desc: 'PVC & aluminium · prix HT instantané', href: '/configurateur', icon: '▥' },
 ];
 
 const QUICK_LINKS = [
@@ -30,7 +32,17 @@ const DOCS = [
   ['2', 'Catalogues en ligne'],
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  // N'afficher que les configurateurs ACTIFS (l'admin peut en désactiver depuis le back-office).
+  let activeSlugs: Set<string>;
+  try {
+    const configs = await listConfigurators();
+    activeSlugs = new Set(configs.filter((c) => c.active).map((c) => c.slug));
+  } catch {
+    activeSlugs = new Set(CONFIGURATORS.map((c) => c.slug).filter((s): s is string => !!s));
+  }
+  const configurators = CONFIGURATORS.filter((c) => c.slug === null || activeSlugs.has(c.slug));
+
   return (
     <>
       {/* HERO compact B2B */}
@@ -60,7 +72,7 @@ export default function HomePage() {
             <Link className="link-all" href="/gammes">Voir toutes les gammes →</Link>
           </div>
           <div className="config-grid">
-            {CONFIGURATORS.map((c) => (
+            {configurators.map((c) => (
               <Link className="config-card" href={c.href} key={c.href}>
                 <div className="config-ic">{c.icon}</div>
                 <div className="config-body">

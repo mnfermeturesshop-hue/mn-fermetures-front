@@ -55,11 +55,59 @@ export async function loadConfiguratorDef(slug: string): Promise<DefV2 | null> {
         .select('definition, active')
         .eq('slug', slug)
         .single();
-      if (data?.active && isV2(data.definition)) return withCommercialNote(data.definition as DefV2);
+      if (data) {
+        if (data.active === false) return null;   // désactivé par l'admin (seed inclus)
+        if (isV2(data.definition)) return withCommercialNote(data.definition as DefV2);
+      }
     } catch {
       // Table absente ou ligne au format v1 → repli sur le seed.
     }
   }
   const seed = SEEDS[slug];
   return seed ? withCommercialNote(seed) : null;
+}
+
+/** Un slug correspond-il à un configurateur INTÉGRÉ (seed en dur) ? Un seed ne peut pas
+ *  être supprimé (c'est du code) — seulement désactivé. */
+export function isSeedConfigurator(slug: string): boolean {
+  return slug in SEEDS;
+}
+
+/** Définition BRUTE (base si présente, sinon seed) — sans le filtre « désactivé » ni la
+ *  note commerciale. Sert au back-office (ré/activer, archiver). */
+export async function rawConfiguratorDef(slug: string): Promise<DefV2 | null> {
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const admin = createAdminClient();
+      const { data } = await admin.from('configurators').select('definition').eq('slug', slug).single();
+      if (data && isV2(data.definition)) return data.definition as DefV2;
+    } catch { /* repli seed */ }
+  }
+  return SEEDS[slug] ?? null;
+}
+
+export interface ConfiguratorListItem {
+  slug: string; name: string; famille: string; active: boolean;
+  source: 'seed' | 'db'; hasSeed: boolean; updatedAt?: string;
+}
+
+/** Liste fusionnée seeds + base (la base prime), avec l'état actif/désactivé. */
+export async function listConfigurators(): Promise<ConfiguratorListItem[]> {
+  const map = new Map<string, ConfiguratorListItem>();
+  for (const b of builtinConfigurators()) {
+    map.set(b.slug, { ...b, active: true, source: 'seed', hasSeed: true });
+  }
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const admin = createAdminClient();
+      const { data } = await admin.from('configurators').select('slug, name, famille, active, updated_at');
+      for (const r of data ?? []) {
+        map.set(r.slug, {
+          slug: r.slug, name: r.name, famille: r.famille, active: r.active,
+          source: 'db', hasSeed: isSeedConfigurator(r.slug), updatedAt: r.updated_at,
+        });
+      }
+    } catch { /* table absente → seeds seuls */ }
+  }
+  return [...map.values()];
 }

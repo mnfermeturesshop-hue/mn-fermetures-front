@@ -1,32 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/guards';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { builtinConfigurators, loadConfiguratorDef } from '@/lib/configurateur/loader';
+import { loadConfiguratorDef, listConfigurators, rawConfiguratorDef, isSeedConfigurator } from '@/lib/configurateur/loader';
 import { validateDef } from '@/lib/configurateur/v2/validate';
 import { priceFrom } from '@/lib/configurateur/v2/engine';
 
 export const runtime = 'nodejs';
 
-interface ListItem { slug: string; name: string; famille: string; active: boolean; source: 'seed' | 'db'; updatedAt?: string }
-
 /** Liste des configurateurs (seeds intégrés + lignes en base ; la base prime). */
 export async function GET() {
   const guard = await requireAdmin();
   if (!guard.ok) return guard.response;
+  const items = await listConfigurators();
+  return NextResponse.json({ items: items.sort((a, b) => a.name.localeCompare(b.name)) });
+}
 
-  const map = new Map<string, ListItem>();
-  for (const b of builtinConfigurators()) map.set(b.slug, { ...b, active: true, source: 'seed' });
+/** Activer / désactiver un configurateur (seed inclus : upsert la def + le flag). */
+export async function PATCH(req: NextRequest) {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
 
-  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    try {
-      const admin = createAdminClient();
-      const { data } = await admin.from('configurators').select('slug, name, famille, active, updated_at');
-      for (const r of data ?? []) {
-        map.set(r.slug, { slug: r.slug, name: r.name, famille: r.famille, active: r.active, source: 'db', updatedAt: r.updated_at });
-      }
-    } catch { /* table absente → seeds seuls */ }
+  const body = await req.json().catch(() => null) as { slug?: string; active?: boolean } | null;
+  if (!body?.slug || typeof body.active !== 'boolean') {
+    return NextResponse.json({ error: 'slug et active (booléen) requis.' }, { status: 400 });
   }
-  return NextResponse.json({ items: [...map.values()].sort((a, b) => a.name.localeCompare(b.name)) });
+  const def = await rawConfiguratorDef(body.slug);
+  if (!def) return NextResponse.json({ error: 'Configurateur introuvable.' }, { status: 404 });
+
+  const supabase = createAdminClient();
+  const { error } = await supabase.from('configurators').upsert(
+    { slug: def.slug, name: def.name, famille: def.famille, definition: def, active: body.active, updated_at: new Date().toISOString() },
+    { onConflict: 'slug' },
+  );
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  return NextResponse.json({ ok: true, slug: body.slug, active: body.active });
+}
+
+/** Supprimer définitivement un configurateur EN BASE. Interdit pour un seed intégré
+ *  (c'est du code — le supprimer le ferait réapparaître) : on renvoie une erreur claire. */
+export async function DELETE(req: NextRequest) {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+
+  const slug = req.nextUrl.searchParams.get('slug');
+  if (!slug) return NextResponse.json({ error: 'slug requis.' }, { status: 400 });
+  if (isSeedConfigurator(slug)) {
+    return NextResponse.json({ error: 'Configurateur intégré : utilisez « Désactiver » (il ne peut pas être supprimé définitivement).' }, { status: 400 });
+  }
+  const supabase = createAdminClient();
+  const { error } = await supabase.from('configurators').delete().eq('slug', slug);
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  return NextResponse.json({ ok: true, slug });
 }
 
 /** Enregistre (ou valide en `dryRun`) une définition éditée par l'admin. */

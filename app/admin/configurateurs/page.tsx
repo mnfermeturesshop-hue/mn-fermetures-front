@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { toast } from '@/components/ui/Toast';
 import { DefBuilder, type DefObj } from '@/components/admin/DefBuilder';
 
-interface ListItem { slug: string; name: string; famille: string; active: boolean; source: 'seed' | 'db'; updatedAt?: string }
+interface ListItem { slug: string; name: string; famille: string; active: boolean; source: 'seed' | 'db'; hasSeed?: boolean; updatedAt?: string }
 
 const euro = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 
@@ -66,6 +66,26 @@ export default function AdminConfigurateurs() {
     } catch { toast.error('JSON invalide'); }
   };
   const newDef = () => { setSlug(null); setJsonText(JSON.stringify(TEMPLATE, null, 2)); setCheck(null); };
+
+  // Activer / désactiver (masque partout : configurateur, accueil, gammes). Réversible.
+  const toggleActive = async (it: ListItem) => {
+    const next = !it.active;
+    if (!next && !window.confirm(`Désactiver « ${it.name} » ? Il ne sera plus proposé sur le site (accueil + configurateur). Réversible à tout moment.`)) return;
+    setBusy(true);
+    const r = await fetch('/api/admin/configurateurs', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: it.slug, active: next }) });
+    setBusy(false);
+    if (r.ok) { toast.success(next ? 'Réactivé' : 'Désactivé'); loadList(); }
+    else toast.error(((await r.json().catch(() => ({}))) as { error?: string }).error ?? 'Erreur');
+  };
+  // Suppression définitive (configurateurs EN BASE uniquement — un intégré se désactive).
+  const deleteConfig = async (it: ListItem) => {
+    if (!window.confirm(`Supprimer définitivement « ${it.name} » ? Action irréversible.`)) return;
+    setBusy(true);
+    const r = await fetch(`/api/admin/configurateurs?slug=${encodeURIComponent(it.slug)}`, { method: 'DELETE' });
+    setBusy(false);
+    if (r.ok) { toast.success('Supprimé'); if (slug === it.slug) { setSlug(null); setJsonText(''); } loadList(); }
+    else toast.error(((await r.json().catch(() => ({}))) as { error?: string }).error ?? 'Erreur');
+  };
 
   const parse = (): unknown | null => {
     try { return JSON.parse(jsonText); } catch (e) { setCheck({ ok: false, errors: ['JSON invalide : ' + (e as Error).message] }); return null; }
@@ -154,13 +174,27 @@ export default function AdminConfigurateurs() {
 
       {/* Liste */}
       <div className="adm-card" style={{ marginBottom: 18 }}>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {list.map((it) => (
-            <button key={it.slug} type="button" className={`btn ${slug === it.slug ? 'solid' : 'ghost'} sm`} onClick={() => openDef(it.slug)}>
-              {it.name} <span style={{ opacity: .6, fontSize: 11 }}>({it.source === 'db' ? 'en base' : 'intégré'})</span>
-            </button>
+            <div key={it.slug} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '6px 0', borderBottom: '1px solid var(--line)', opacity: it.active ? 1 : .6 }}>
+              <button type="button" className={`btn ${slug === it.slug ? 'solid' : 'ghost'} sm`} onClick={() => openDef(it.slug)} style={{ minWidth: 220, justifyContent: 'flex-start', textAlign: 'left' }}>
+                {it.name}
+              </button>
+              <span style={{ fontSize: 11, color: 'var(--muted)' }}>{it.source === 'db' ? 'en base' : 'intégré'}</span>
+              {!it.active && <span style={{ fontSize: 11, fontWeight: 700, color: '#b45309', background: '#fef3c7', padding: '2px 8px', borderRadius: 999 }}>Désactivé</span>}
+              <span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+                <button type="button" className="btn ghost sm" disabled={busy} onClick={() => toggleActive(it)}>
+                  {it.active ? 'Désactiver' : 'Réactiver'}
+                </button>
+                {!it.hasSeed && (
+                  <button type="button" className="btn ghost sm" disabled={busy} onClick={() => deleteConfig(it)} style={{ color: '#dc2626', borderColor: '#fecaca' }}>
+                    Supprimer
+                  </button>
+                )}
+              </span>
+            </div>
           ))}
-          <button type="button" className="btn ghost sm" onClick={newDef}>+ Nouveau</button>
+          <button type="button" className="btn ghost sm" onClick={newDef} style={{ alignSelf: 'flex-start', marginTop: 8 }}>+ Nouveau</button>
         </div>
       </div>
 
