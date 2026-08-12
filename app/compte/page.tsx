@@ -13,6 +13,20 @@ import { orderCountsForLoyalty } from '@/lib/loyalty';
 import { LoyaltyGauge } from '@/components/compte/LoyaltyGauge';
 import { ClientStats } from '@/components/compte/ClientStats';
 import { CommentThread } from '@/components/comments/CommentThread';
+import { TAXONOMY_SEED } from '@/lib/catalog/taxonomy';
+import { normalizeDiscounts } from '@/lib/pricing/discount-resolver';
+
+// Nom lisible d'un nœud de nomenclature (chemin Gamme › Famille › Sous-famille).
+const NODE_BY_SLUG = new Map(TAXONOMY_SEED.map((n) => [n.slug, n]));
+function nodePath(slug: string): string {
+  const parts: string[] = [];
+  let cur = NODE_BY_SLUG.get(slug);
+  while (cur) {
+    parts.unshift(cur.name);
+    cur = cur.parentSlug ? NODE_BY_SLUG.get(cur.parentSlug) : undefined;
+  }
+  return parts.length ? parts.join(' › ') : slug;
+}
 
 interface OrderLine { name: string; quantity: number; unitPriceHT: number }
 
@@ -860,10 +874,31 @@ export default function ComptePage() {
                 <h2>Vos conditions tarifaires</h2>
               </div>
               <div className="tarifs-box">
-                <div className="tarif-row">
-                  <span>Remise négociée</span>
-                  <strong>{user.proDiscounts && Object.keys(user.proDiscounts).length > 0 ? 'Par famille' : '—'}</strong>
-                </div>
+                {(() => {
+                  const rows = Object.entries(normalizeDiscounts(user.proDiscounts))
+                    .filter(([, pct]) => pct > 0)
+                    .sort((a, b) => b[1] - a[1]);
+                  return rows.length > 0 ? (
+                    <div className="tarif-remises">
+                      <div className="tarif-remises-head">Vos remises négociées</div>
+                      {rows.map(([slug, pct]) => (
+                        <div className="tarif-row" key={slug}>
+                          <span>{nodePath(slug)}</span>
+                          <strong className="green">−{pct}%</strong>
+                        </div>
+                      ))}
+                      <p className="tarif-remises-note">
+                        Une remise appliquée à une gamme ou une famille vaut pour toutes ses sous-familles.
+                        Elle est déduite automatiquement sur vos devis et commandes.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="tarif-row">
+                      <span>Remise négociée</span>
+                      <strong>Tarifs standard — contactez votre commercial</strong>
+                    </div>
+                  );
+                })()}
                 <div className="tarif-row">
                   <span>Franco de port</span>
                   <strong>Dès 400 € HT</strong>
