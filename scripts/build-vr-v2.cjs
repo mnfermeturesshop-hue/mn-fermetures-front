@@ -165,6 +165,21 @@ for (const sel of v1.selectors) {
         { value: 'tirage', label: 'Par tirage direct' },
       ],
     });
+    // Tirage direct : position de la serrure (lame finale / intermédiaire + hauteur), comme en Reno.
+    const TIRAGE_DIRECT = AND([eq('manoeuvre', 'manuelle'), eq('manoeuvre_type', 'tirage')]);
+    fields.push({
+      id: 'serrure_position', label: 'Position de la serrure', type: 'choice', role: 'spec', default: 'lame_finale',
+      visibleWhen: TIRAGE_DIRECT,
+      options: [
+        { value: 'lame_finale', label: 'Sur lame finale' },
+        { value: 'lame_intermediaire', label: 'Sur lame intermédiaire' },
+      ],
+    });
+    fields.push({
+      id: 'serrure_hauteur', label: 'Hauteur position lame intermédiaire (mm)', type: 'dimension', unit: 'mm', default: 1000,
+      visibleWhen: AND([TIRAGE_DIRECT, eq('serrure_position', 'lame_intermediaire')]),
+      help: 'Hauteur de la serrure sur lame intermédiaire (tirage direct).',
+    });
   }
 }
 
@@ -683,7 +698,7 @@ const steps = [
   // de motorisation (MN/Somfy) — d'où `emetteur_type` placé avant `moteur`. Toutes
   // les options de motorisation/manœuvre (inverseur, secours, genouillère, émetteurs,
   // centralisation, alim solaire, genouillère manuelle) sont regroupées ici.
-  { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'manoeuvre_type', 'cote_manoeuvre', 'sortie_manoeuvre', 'cote_fil', 'sortie_fil', 'commande', 'emetteur_type', 'moteur', 'radio_somfy', ...manoeuvreOptionIds] },
+  { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'manoeuvre_type', 'serrure_position', 'serrure_hauteur', 'cote_manoeuvre', 'sortie_manoeuvre', 'cote_fil', 'sortie_fil', 'commande', 'emetteur_type', 'moteur', 'radio_somfy', ...manoeuvreOptionIds] },
   { id: 'coloris', title: 'Coloris', fields: ['color_tablier', 'color_coulisse', 'color_lame_finale'] },
   { id: 'options', title: 'Options', fields: optionFieldIds },
   { id: 'recap', title: 'Récapitulatif', fields: [] },
