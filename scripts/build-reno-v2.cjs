@@ -369,8 +369,18 @@ fields.push({
   helpImage: '/schema-manoeuvres.png',
   options: [
     { value: 'manuelle', label: 'Manuelle' },
-    { value: 'tirage_direct', label: 'Tirage direct', availableWhen: IS_ALU },
     { value: 'motorisee', label: 'Motorisation' },
+  ],
+});
+// (RENOBOX / GROS COFFRE) Sous-choix de la manœuvre manuelle : tringle oscillante
+// (moins-value) ou tirage direct (plus-value +135 €, largeur 630-2000). Minibox n'a
+// que la tringle → pas de ce sous-choix.
+fields.push({
+  id: 'manoeuvre_type_reno', label: 'Manœuvre manuelle', type: 'choice', default: 'tringle',
+  visibleWhen: AND([IS_ALU, eq('manoeuvre', 'manuelle')]),
+  options: [
+    { value: 'tringle', label: 'Par tringle oscillante' },
+    { value: 'tirage', label: 'Par tirage direct' },
   ],
 });
 // Manuelle = grille de coût de motorisation FILAIRE − moins-value.
@@ -384,14 +394,14 @@ priceRules.push({
 // (RENOBOX) Tringle oscillante (manœuvre manuelle) = moins-value sur grille filaire :
 // largeur < 573 → −77 € ; ≥ 573 → −17 € (barème tarif, prioritaire sur l'arbre 451/72/13).
 priceRules.push({
-  code: 'manuelle_mv_reno', label: 'Manœuvre manuelle (moins-value)', kind: 'add',
-  when: AND([IS_ALU, eq('manoeuvre', 'manuelle')]),
+  code: 'manuelle_mv_reno', label: 'Tringle oscillante (moins-value)', kind: 'add',
+  when: AND([IS_ALU, eq('manoeuvre', 'manuelle'), eq('manoeuvre_type_reno', 'tringle')]),
   amount: { op: 'if', cond: lt('largeur', 573), then: -77, else: -17 },
 });
 // (RENOBOX) Tirage direct = plus-value +135 € sur grille filaire (largeur 630-2000 mm).
 priceRules.push({
   code: 'tirage_direct_pv_reno', label: 'Tirage direct (plus-value)', kind: 'add',
-  when: AND([IS_ALU, eq('manoeuvre', 'tirage_direct')]),
+  when: AND([IS_ALU, eq('manoeuvre', 'manuelle'), eq('manoeuvre_type_reno', 'tirage')]),
   amount: 135,
 });
 // Genouillère (manœuvre manuelle) : 60° incluse / 60° aimantée +41 / 90° +18 / 90° aimantée +59.
@@ -531,7 +541,7 @@ fields.push({
 });
 // Tirage direct : position de la serrure (lame finale / intermédiaire + hauteur).
 // Prix = grille filaire + 135 € (règle tirage_direct_pv_reno) ; largeur 630-2000 mm.
-const TIRAGE_VIS = AND([IS_ALU, eq('manoeuvre', 'tirage_direct')]);
+const TIRAGE_VIS = AND([IS_ALU, eq('manoeuvre', 'manuelle'), eq('manoeuvre_type_reno', 'tirage')]);
 fields.push({
   id: 'serrure_position', label: 'Position de la serrure', type: 'choice', role: 'spec', default: 'lame_finale',
   visibleWhen: TIRAGE_VIS,
@@ -548,7 +558,9 @@ fields.push({ id: 'commande_secours', label: 'Commande de secours intégrée (+1
 priceRules.push({ code: 'opt_commande_secours', label: 'Commande de secours intégrée', kind: 'add',
   when: AND([secoursVis, eq('commande_secours', true)]), amount: 136 });
 // Genouillère (6 variantes) : manœuvre manuelle OU commande de secours filaire.
-const GEN_VIS_RENO = AND([IS_ALU, { any: [eq('manoeuvre', 'manuelle'), AND([filaireVis, eq('commande_secours', true)])] }]);
+// Genouillère = manivelle : manœuvre manuelle PAR TRINGLE (pas le tirage direct) OU
+// commande de secours filaire.
+const GEN_VIS_RENO = AND([IS_ALU, { any: [AND([eq('manoeuvre', 'manuelle'), eq('manoeuvre_type_reno', 'tringle')]), AND([filaireVis, eq('commande_secours', true)])] }]);
 fields.push({
   id: 'genouillere_reno', label: 'Genouillère', type: 'choice', default: 'app60',
   visibleWhen: GEN_VIS_RENO,
@@ -592,7 +604,7 @@ const derived = [
   //  - manœuvre manuelle / tirage direct → grille FILAIRE (± moins/plus-value) ;
   //  - solaire → grille SOMFY RADIO (RS100 io) + kit solaire ;
   //  - sinon grille du moteur × commande choisis.
-  { id: 'base_cmd_reno', expr: { op: 'if', cond: inSet('manoeuvre', ['manuelle', 'tirage_direct']), then: 'filaire',
+  { id: 'base_cmd_reno', expr: { op: 'if', cond: eq('manoeuvre', 'manuelle'), then: 'filaire',
       else: { op: 'if', cond: eq('commande', 'solaire'), then: 'radio', else: V('commande') } } },
   { id: 'base_moteur_reno', expr: { op: 'if', cond: eq('commande', 'solaire'), then: 'somfy', else: V('moteur') } },
   { id: 'grid_group_reno', expr: { op: 'if', cond: eq('lame_reno', 'alu42'), then: 'r42',
@@ -654,8 +666,8 @@ const constraints = [
   // Largeur ≥ largeur mini de la grille (filaire 422/427 · radio 622/628) — Renobox + Gros coffre.
   { message: 'Largeur inférieure au minimum pour ce moteur / cette commande', requires: onlyForAlu({ op: 'gte', left: V('largeur'), right: V('largeur_mini_reno') }) },
   // Tirage direct : largeur 630-2000 mm (Renobox + Gros coffre).
-  { message: 'Tirage direct : largeur minimale 630 mm', requires: { any: [ninSet('sous_famille', ['renobox', 'reno-gros-coffre']), ne('manoeuvre', 'tirage_direct'), { op: 'gte', left: V('largeur'), right: 630 }] } },
-  { message: 'Tirage direct : largeur maximale 2000 mm', requires: { any: [ninSet('sous_famille', ['renobox', 'reno-gros-coffre']), ne('manoeuvre', 'tirage_direct'), lte('largeur', 2000)] } },
+  { message: 'Tirage direct : largeur minimale 630 mm', requires: { any: [ninSet('sous_famille', ['renobox', 'reno-gros-coffre']), ne('manoeuvre', 'manuelle'), ne('manoeuvre_type_reno', 'tirage'), { op: 'gte', left: V('largeur'), right: 630 }] } },
+  { message: 'Tirage direct : largeur maximale 2000 mm', requires: { any: [ninSet('sous_famille', ['renobox', 'reno-gros-coffre']), ne('manoeuvre', 'manuelle'), ne('manoeuvre_type_reno', 'tirage'), lte('largeur', 2000)] } },
 ];
 
 // ---- Étapes (ordre de l'arbre) ----
@@ -666,7 +678,7 @@ const steps = [
   { id: 'coloris', title: 'Coloris', fields: ['coloris', 'coloris_mode_reno', 'coloris_mono_reno', 'coloris_coffre_reno', 'coloris_tablier_reno', 'coloris_coulisse_reno', 'coloris_lamefinale_reno'] },
   { id: 'coulisses', title: 'Coulisses', fields: ['coulisse_type', 'coulisse_reno', 'dva_option', 'ar_option', 'percage', 'arrets_bas'] },
   { id: 'manoeuvre', title: 'Manœuvre', fields: [
-    'manoeuvre', 'tringle_cote', 'sortie_tringle', 'genouillere_manuelle', 'commande', 'moteur', 'position_moteur', 'sortie_fil', 'emetteur_type',
+    'manoeuvre', 'manoeuvre_type_reno', 'tringle_cote', 'sortie_tringle', 'genouillere_manuelle', 'commande', 'moteur', 'position_moteur', 'sortie_fil', 'emetteur_type',
     'radio_info', 'centralisation_info', 'inverseur', 'inverseur_pose', 'inverseur_maintien',
     'emetteur_5c', 'situo_io_1c', 'situo_io_5c', 'amy_4c_io', 'alim_depannage',
     // Renobox
