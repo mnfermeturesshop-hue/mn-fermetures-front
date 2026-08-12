@@ -14,6 +14,10 @@
 const fs = require('fs');
 const path = require('path');
 const v1 = require('../lib/configurateur/data/volet-roulant-traditionnel.json');
+// Grille tarifaire « Volet + coffre » (1.1.2) : base TOUT COMPRIS (volet + coffre
+// Thermic'élite 280) par lame × moteur × commande + PV coffres/sous-face (parse-tradi-coffre.cjs).
+const tcGrids = require('../lib/configurateur/data/tradi-coffre-grids.json');
+const tcAdjust = require('../lib/configurateur/data/tradi-coffre-adjust.json');
 
 // ---- helpers conditions/expr ----
 const V = (name) => ({ var: name });
@@ -244,7 +248,13 @@ for (const g of v1.grids) {
 // snappent en interne pour trouver la bonne case), mais la surface et la cote
 // fabriquée utilisent les dimensions EXACTES saisies par le client.
 const derived = [
-  { id: 'grid', expr: { op: 'concat', args: ['g_', V('pose'), '_', V('lame'), '_', V('moteur'), '_', V('layer')] } },
+  // Lame → numéro pour les clés de grille Tradi+coffre (cd942 → 42, 56 → 56).
+  { id: 'tc_lame', expr: { op: 'if', cond: eq('lame', 'cd942'), then: '42', else: '56' } },
+  // Grille de base : Tradi+coffre (1.1.2) → grille TOUT COMPRIS `tc<lame>_<moteur>_<layer>`
+  // (volet + coffre Thermic'élite 280) ; sinon grille volet `g_<pose>_<lame>_<moteur>_<layer>`.
+  { id: 'grid', expr: { op: 'if', cond: eq('sous_famille', 'tradi-coffre'),
+      then: { op: 'concat', args: ['tc', V('tc_lame'), '_', V('moteur'), '_', V('layer')] },
+      else: { op: 'concat', args: ['g_', V('pose'), '_', V('lame'), '_', V('moteur'), '_', V('layer')] } } },
   { id: 'surface_m2', expr: { op: '*', args: [{ op: '/', args: [V('largeur'), 1000] }, { op: '/', args: [V('hauteur'), 1000] }] } },
   // NB : le poids du tablier / la puissance moteur sont gérés dans Optilog (hors SaaS).
 ];
@@ -569,9 +579,21 @@ for (const s of COFFRE_SEUL_SECTIONS) {
 const CS_ON = inSet('sous_famille', ['tradi-coffre', 'coffre-seul']);
 // base coffre : lecture de la grille de la section choisie (kind:'base'). En
 // tradi-coffre, elle S'AJOUTE à la base volet (deux bases sommées).
+// Base coffre par SECTION — uniquement 1.1.3 (coffre seul). En 1.1.2 (tradi-coffre), le
+// coffre Thermic'élite 280 est DÉJÀ dans la base tout-compris `tc…` : le choix d'une
+// section supérieure devient une plus-value (règle tc_pv_coffre), pas une base additive.
 priceRules.push({ code: 'base_coffre_seul', label: 'Coffre', kind: 'base',
-  when: CS_ON,
+  when: eq('sous_famille', 'coffre-seul'),
   amount: { op: 'lookup1d', table: { op: 'concat', args: ['cs_', V('coffre_section')] }, key: V('largeur') } });
+// (TRADI+COFFRE) Plus-value coffre supérieur (Briquélite / NeoThermic / NeoBric) par
+// largeur ; Thermic'élite 280/300 = 0 (compris dans la base). ⚠️ Thermic'élite 300 :
+// prix = base (PV à confirmer PDG). ⚠️ Verrouillage (moins-value AR) : en attente PDG.
+priceRules.push({ code: 'tc_pv_coffre', label: 'Plus-value coffre', kind: 'add',
+  when: AND([eq('sous_famille', 'tradi-coffre'), inSet('coffre_section', ['briquelite_280', 'neothermic_280', 'neobric_280'])]),
+  amount: { op: 'lookup1d', key: V('largeur'), table: { op: 'concat', args: ['pv_',
+    { op: 'if', cond: eq('coffre_section', 'briquelite_280'), then: 'briquelite',
+      else: { op: 'if', cond: eq('coffre_section', 'neothermic_280'), then: 'neothermic', else: 'neobric' } },
+    '_tc', V('tc_lame')] } } });
 // Pattes de maintien : quantité × 8,80 € (au-delà de 2300 mm).
 priceRules.push({ code: 'coffre_seul_pattes', label: 'Pattes de maintien supplémentaires', kind: 'add',
   when: AND([CS_ON, gte('largeur', 2300), gte('pattes_maintien', 1)]),
@@ -586,9 +608,14 @@ tableLabels['cs_pv_couleur'] = 'Coffre sous-face couleur (+val)';
 d1['cs_mv_cacherail'] = { keys: CS_WIDTHS, values: [
   -5, -6, -7, -8, -12, -13, -14, -15, -16, -16, -17, -18, -19, -21, -22, -23, -24, -24, -42, -45, -46, -49, -50, -52, -54, -55, -57, -58, -61, -63, -64, -67, -68, -69, -71, -72, -73, -75, -77, -78, -80] };
 tableLabels['cs_mv_cacherail'] = 'Coffre cache-rail (−val)';
+// Sous-face couleur — coffre seul (1.1.3) : barème `cs_pv_couleur`.
 priceRules.push({ code: 'coffre_sf_couleur', label: 'Sous-face couleur (plus-value)', kind: 'add',
-  when: AND([CS_ON, inSet('coffre_sous_face', ['7016', '7039', '2100'])]),
+  when: AND([eq('sous_famille', 'coffre-seul'), inSet('coffre_sous_face', ['7016', '7039', '2100'])]),
   amount: { op: 'lookup1d', table: 'cs_pv_couleur', key: V('largeur') } });
+// Sous-face couleur — tradi+coffre (1.1.2) : barème propre du tarif Volet+coffre.
+priceRules.push({ code: 'tc_pv_sousface', label: 'Sous-face couleur (plus-value)', kind: 'add',
+  when: AND([eq('sous_famille', 'tradi-coffre'), inSet('coffre_sous_face', ['7016', '7039', '2100'])]),
+  amount: { op: 'lookup1d', key: V('largeur'), table: { op: 'concat', args: ['pv_sousface_tc', V('tc_lame')] } } });
 priceRules.push({ code: 'coffre_sf_cacherail', label: 'Cache-rail (sans sous-face)', kind: 'add',
   when: AND([CS_ON, eq('coffre_sous_face', 'cache_rail')]),
   amount: { op: 'lookup1d', table: 'cs_mv_cacherail', key: V('largeur') } });
@@ -703,6 +730,16 @@ const steps = [
   { id: 'options', title: 'Options', fields: optionFieldIds },
   { id: 'recap', title: 'Récapitulatif', fields: [] },
 ];
+
+// Grilles + barèmes « Volet + coffre » (1.1.2) fusionnés dans les tables (base tc… + PV).
+Object.assign(d2, tcGrids);
+Object.assign(d1, tcAdjust);
+Object.assign(tableLabels, {
+  tc42_mn_filaire: 'Volet+coffre L42 · MN Filaire', tc42_mn_radio: 'Volet+coffre L42 · MN Radio',
+  tc42_somfy_filaire: 'Volet+coffre L42 · Somfy Filaire', tc42_somfy_radio: 'Volet+coffre L42 · Somfy Radio',
+  tc56_mn_filaire: 'Volet+coffre L56 · MN Filaire', tc56_mn_radio: 'Volet+coffre L56 · MN Radio',
+  tc56_somfy_filaire: 'Volet+coffre L56 · Somfy Filaire', tc56_somfy_radio: 'Volet+coffre L56 · Somfy Radio',
+});
 
 const def = {
   // Le configurateur sert TOUTE la famille Tradi (1.1). Le nœud de surcharge/
