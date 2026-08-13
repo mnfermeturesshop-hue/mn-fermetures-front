@@ -127,3 +127,25 @@ export function flatMenuOptions(): MenuOption[] {
   traverse(topNavItems(), 0);
   return result;
 }
+
+/** Options GROUPÉES par rubrique parente (pour un <select> avec <optgroup>) — bien plus
+ *  lisible que la liste plate. Chaque rubrique de tête (Tabliers, Kits axes, Pièces
+ *  détachées, Aide à la pose…) devient un groupe ; ses positions valides = les options. */
+export function menuOptionGroups(): { group: string; options: MenuOption[] }[] {
+  const validSlugs = new Set(categories.map((c) => c.slug));
+  const indent = ['', '   ', '      '];
+  const groups: { group: string; options: MenuOption[] }[] = [];
+  for (const top of topNavItems()) {
+    const options: MenuOption[] = [];
+    const walk = (item: NavItem, depth: number) => {
+      const cat = categorySlugFromHref(item.href);
+      if (cat && validSlugs.has(cat)) {
+        options.push({ label: (indent[depth] ?? '         ') + item.name, href: item.href, depth, categorySlug: cat });
+      }
+      for (const ch of item.children ?? []) walk(ch, depth + 1);
+    };
+    walk(top, 0);
+    if (options.length) groups.push({ group: top.name, options });
+  }
+  return groups;
+}

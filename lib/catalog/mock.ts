@@ -30,6 +30,8 @@ export const categories: Category[] = [
   { slug: 'consoles', name: 'Consoles & flasques', icon: '◳' },
   { slug: 'embouts', name: 'Embouts', icon: '◖' },
   { slug: 'verrouillages', name: 'Verrouillages', icon: '⛓' },
+  { slug: 'manoeuvres-manuelles', name: 'Manœuvres manuelles', icon: '🔧' },
+  { slug: 'aide-a-la-pose', name: 'Aide à la pose', icon: '🛠' },
   { slug: 'pieces-detachees', name: 'Pièces détachées', icon: '🔩' },
 ];
 

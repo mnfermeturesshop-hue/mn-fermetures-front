@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { toast } from '@/components/ui/Toast';
 import { getAllBrands, getProductBySlugDB } from '@/lib/catalog/db';
 import type { Brand } from '@/lib/catalog/types';
-import { flatMenuOptions, categorySlugFromHref } from '@/lib/catalog/menuResolve';
+import { menuOptionGroups, categorySlugFromHref } from '@/lib/catalog/menuResolve';
 import type { MenuOption } from '@/lib/catalog/menuResolve';
 import { FAMILLES, type FamilleSlug } from '@/lib/familles';
 import { children as taxoChildren, type TaxonomyNode } from '@/lib/catalog/taxonomy';
@@ -25,7 +25,7 @@ export default function ProduitForm() {
   const isNew = params.slug === 'nouveau';
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [menuOptions] = useState<MenuOption[]>(() => flatMenuOptions());
+  const [menuGroups] = useState<{ group: string; options: MenuOption[] }[]>(() => menuOptionGroups());
   const [brands, setBrands] = useState<Brand[]>([]);
   const [saving, setSaving] = useState(false);
   const [savedInfo, setSavedInfo] = useState<{ slug: string; menuPath: string; hasImage: boolean } | null>(null);
@@ -297,8 +297,12 @@ export default function ProduitForm() {
                 required
               >
                 <option value="">— Choisir une position —</option>
-                {menuOptions.map((o) => (
-                  <option key={o.href} value={o.href}>{o.label}</option>
+                {menuGroups.map((g) => (
+                  <optgroup key={g.group} label={g.group}>
+                    {g.options.map((o) => (
+                      <option key={o.href} value={o.href}>{o.label}</option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
               {menuPath && (
