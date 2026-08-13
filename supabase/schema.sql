@@ -81,7 +81,9 @@ INSERT INTO public.categories (slug, name, icon, sort) VALUES
   ('consoles',        'Consoles & flasques', '◳', 6),
   ('embouts',         'Embouts',             '◖', 7),
   ('verrouillages',   'Verrouillages',       '⛓', 8),
-  ('pieces-detachees','Pièces détachées',    '🔩', 9)
+  ('pieces-detachees','Pièces détachées',    '🔩', 9),
+  ('manoeuvres-manuelles', 'Manœuvres manuelles', '🔧', 10),
+  ('aide-a-la-pose',       'Aide à la pose',       '🛠', 11)
 ON CONFLICT (slug) DO NOTHING;
 
 -- ============================================================
