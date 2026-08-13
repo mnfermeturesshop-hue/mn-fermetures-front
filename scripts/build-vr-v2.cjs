@@ -323,6 +323,8 @@ adjustments.forEach((adj, i) => {
     cs.push(eq('manoeuvre_type', 'tringle'));
   } else if (adj.code === 'attaches_rigides') {
     // Moins-value optionnelle, mais OBLIGATOIRE (appliquée d'office) si largeur < 650 mm.
+    // Exclut le tradi-coffre : là, l'AR a son propre barème (ar_tc<lame>, règle tc_mv_ar).
+    cs.push(ne('sous_famille', 'tradi-coffre'));
     cs.push(ANY([eq('attaches_rigides', true), lt('largeur', 650)]));
     (optionalCodes[adj.code] ??= []).push(AND(scopeConds(adj.scope, adj.layer)));
   } else if (adj.optional) {
@@ -586,14 +588,23 @@ priceRules.push({ code: 'base_coffre_seul', label: 'Coffre', kind: 'base',
   when: eq('sous_famille', 'coffre-seul'),
   amount: { op: 'lookup1d', table: { op: 'concat', args: ['cs_', V('coffre_section')] }, key: V('largeur') } });
 // (TRADI+COFFRE) Plus-value coffre supérieur (Briquélite / NeoThermic / NeoBric) par
-// largeur ; Thermic'élite 280/300 = 0 (compris dans la base). ⚠️ Thermic'élite 300 :
-// prix = base (PV à confirmer PDG). ⚠️ Verrouillage (moins-value AR) : en attente PDG.
+// largeur ; Thermic'élite 280 = 0 (compris dans la base).
 priceRules.push({ code: 'tc_pv_coffre', label: 'Plus-value coffre', kind: 'add',
   when: AND([eq('sous_famille', 'tradi-coffre'), inSet('coffre_section', ['briquelite_280', 'neothermic_280', 'neobric_280'])]),
   amount: { op: 'lookup1d', key: V('largeur'), table: { op: 'concat', args: ['pv_',
     { op: 'if', cond: eq('coffre_section', 'briquelite_280'), then: 'briquelite',
       else: { op: 'if', cond: eq('coffre_section', 'neothermic_280'), then: 'neothermic', else: 'neobric' } },
     '_tc', V('tc_lame')] } } });
+// ⚠️ PROVISOIRE — Thermic'élite 300 : plus-value forfaitaire 999 € en attendant le vrai
+// barème PDG (rendra la vraie valeur évidente / non commandable par erreur).
+priceRules.push({ code: 'tc_pv_thermic300', label: "Coffre Thermic'élite 300 (plus-value provisoire)", kind: 'add',
+  when: AND([eq('sous_famille', 'tradi-coffre'), eq('coffre_section', 'thermic_300')]),
+  amount: 999 });
+// Verrouillage : base = verrous automatiques (DVA). Attaches rigides (case cochée, ou
+// OBLIGATOIRES si largeur < 650) = moins-value par largeur (barème ar_tc<lame>).
+priceRules.push({ code: 'tc_mv_ar', label: 'Attaches rigides (moins-value)', kind: 'add',
+  when: AND([eq('sous_famille', 'tradi-coffre'), ANY([eq('attaches_rigides', true), lt('largeur', 650)])]),
+  amount: { op: 'lookup1d', key: V('largeur'), table: { op: 'concat', args: ['ar_tc', V('tc_lame')] } } });
 // Pattes de maintien : quantité × 8,80 € (au-delà de 2300 mm).
 priceRules.push({ code: 'coffre_seul_pattes', label: 'Pattes de maintien supplémentaires', kind: 'add',
   when: AND([CS_ON, gte('largeur', 2300), gte('pattes_maintien', 1)]),
