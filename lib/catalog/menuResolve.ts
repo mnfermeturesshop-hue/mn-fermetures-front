@@ -134,12 +134,14 @@ export function flatMenuOptions(): MenuOption[] {
 export function menuOptionGroups(): { group: string; options: MenuOption[] }[] {
   const validSlugs = new Set(categories.map((c) => c.slug));
   const indent = ['', '   ', '      '];
+  const seen = new Set<string>();   // une position n'apparaît qu'une fois (ex. Aide à la pose)
   const groups: { group: string; options: MenuOption[] }[] = [];
   for (const top of topNavItems()) {
     const options: MenuOption[] = [];
     const walk = (item: NavItem, depth: number) => {
       const cat = categorySlugFromHref(item.href);
-      if (cat && validSlugs.has(cat)) {
+      if (cat && validSlugs.has(cat) && !seen.has(item.href)) {
+        seen.add(item.href);
         options.push({ label: (indent[depth] ?? '         ') + item.name, href: item.href, depth, categorySlug: cat });
       }
       for (const ch of item.children ?? []) walk(ch, depth + 1);

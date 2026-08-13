@@ -124,6 +124,7 @@ export const MENU: NavTop[] = [
       { name: 'Embouts',             href: '/catalogue/embouts',             children: [] },
       { name: 'Verrouillages',       href: '/catalogue/verrouillages',       children: [] },
       { name: 'Manœuvres manuelles', href: '/catalogue/manoeuvres-manuelles', children: [] },
+      { name: 'Aide à la pose',      href: '/catalogue/aide-a-la-pose',       children: [] },
     ],
   },
   {
