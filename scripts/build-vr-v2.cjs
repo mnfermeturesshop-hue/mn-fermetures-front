@@ -671,8 +671,10 @@ constraints.push({ message: 'Tirage direct : largeur autorisée entre 630 et 200
 for (const c of constraints) c.requires = ANY([eq('sous_famille', 'coffre-seul'), c.requires]);
 // Bornes L mini / L max du coffre, par section — appliquées dès qu'un coffre est
 // présent (tradi-coffre 1.1.2 & coffre-seul 1.1.3).
+// Bornes largeur par section : UNIQUEMENT coffre-seul (1.1.3). Le tradi-coffre (1.1.2)
+// est borné par sa grille tout-compris + WIDTH_MIN (min réel 300/400 selon moteur).
 constraints.push({ message: 'Largeur hors bornes pour cette section de coffre',
-  requires: ANY([{ not: inSet('sous_famille', ['tradi-coffre', 'coffre-seul']) },
+  requires: ANY([ne('sous_famille', 'coffre-seul'),
     ANY(COFFRE_SEUL_SECTIONS.map((s) => AND([eq('coffre_section', s.code), gte('largeur', s.lmin), lte('largeur', s.lmax)])))]) });
 
 // ---- GATING par sous-famille (1.1.1 tradi-std / 1.1.2 tradi-coffre / 1.1.3 coffre-seul) ----

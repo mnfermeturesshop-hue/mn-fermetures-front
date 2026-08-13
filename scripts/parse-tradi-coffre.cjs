@@ -76,10 +76,12 @@ function buildGrid(grp, sheetA, sheetB, kind, minWidth) {
 
 const grids = {};
 for (const grp of GROUPS) {
-  grids[`${grp.key}_mn_filaire`]    = buildGrid(grp, grp.mn[0],    grp.mn[1],    'filaire', grp.minFil);
-  grids[`${grp.key}_mn_radio`]      = buildGrid(grp, grp.mn[0],    grp.mn[1],    'radio',   grp.minRadio);
-  grids[`${grp.key}_somfy_filaire`] = buildGrid(grp, grp.somfy[0], grp.somfy[1], 'filaire', grp.minFil);
-  grids[`${grp.key}_somfy_radio`]   = buildGrid(grp, grp.somfy[0], grp.somfy[1], 'radio',   grp.minRadio);
+  // Colonne mini = borne HAUTE de la bande « L de … à » (pour le snap-up), PAR MOTEUR :
+  //  MN  → filaire 450 / radio 600 ;  Somfy → filaire 460 / radio 415 (source fichier).
+  grids[`${grp.key}_mn_filaire`]    = buildGrid(grp, grp.mn[0],    grp.mn[1],    'filaire', 450);
+  grids[`${grp.key}_mn_radio`]      = buildGrid(grp, grp.mn[0],    grp.mn[1],    'radio',   600);
+  grids[`${grp.key}_somfy_filaire`] = buildGrid(grp, grp.somfy[0], grp.somfy[1], 'filaire', 460);
+  grids[`${grp.key}_somfy_radio`]   = buildGrid(grp, grp.somfy[0], grp.somfy[1], 'radio',   415);
 }
 
 // ── Barèmes 1D par largeur : PV coffres (Briquélite / NeoThermic / NeoBric), sous-face
