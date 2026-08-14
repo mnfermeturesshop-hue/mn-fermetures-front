@@ -121,7 +121,7 @@ section.block { padding: 38px 0; }
 .stock.no { color: var(--rupture); }
 .swatches { display: flex; gap: 5px; }
 .sw { width: 15px; height: 15px; border-radius: 50%; border: 1px solid rgba(0,0,0,.15); }
-.card .foot { display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 4px; }
+.card .foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 10px; margin-top: auto; padding-top: 4px; }
 .pr { font-family: var(--font-display); font-weight: 800; color: var(--navy-700); font-size: 17px; }
 .pr small { font-size: 11px; color: var(--muted); font-weight: 600; font-family: var(--font-body); }
 .pr .from { font-size: 11px; color: var(--muted); font-weight: 600; display: block; font-family: var(--font-body); }
@@ -132,8 +132,9 @@ section.block { padding: 38px 0; }
 /* Remise pro affichée sur la carte produit */
 .pr .card-cross { display: block; font-size: 11px; color: var(--muted); font-weight: 600; text-decoration: line-through; font-family: var(--font-body); }
 .card-discount-badge { display: inline-block; font-size: 10px; font-weight: 800; color: #fff; background: #d4421b; border-radius: 4px; padding: 1px 5px; margin-bottom: 3px; letter-spacing: .2px; font-family: var(--font-body); }
-/* Ajout direct depuis carte produit */
-.card-add-row { display: flex; align-items: center; gap: 6px; width: 100%; }
+/* Ajout direct depuis carte produit — toujours sur sa propre ligne, pleine largeur,
+   pour que le bouton « Ajouter » ne soit jamais tronqué dans une vignette étroite. */
+.card-add-row { display: flex; align-items: center; gap: 6px; width: 100%; flex-basis: 100%; }
 .card-add-row .add { flex: 1; text-align: center; }
 .card-qty-ctrl { display: flex; align-items: center; gap: 0; border: 1px solid var(--line);
   border-radius: 8px; overflow: hidden; }
