@@ -178,6 +178,17 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
                 {showTTC ? <>{euro(price * (1 + TVA))} TTC</> : <>{euro(price)} HT</>}
               </div>
             )}
+            {split && (surchargePct > 0 || ecoContribHT > 0) && (
+              <div className="price-breakdown">
+                <div className="pb-row"><span>Produit HT</span><span>{euro(split.productNet)}</span></div>
+                {surchargePct > 0 && (
+                  <div className="pb-row"><span>+ Surcharge temporaire (+{surchargePct}%)</span><span>{euro(split.surchargeNet)}</span></div>
+                )}
+                {ecoContribHT > 0 && (
+                  <div className="pb-row"><span>+ Éco-contribution</span><span>{euro(ecoContribHT)}</span></div>
+                )}
+              </div>
+            )}
             <div className="cfg-dims">{width} × {height} mm</div>
           </div>
           <button

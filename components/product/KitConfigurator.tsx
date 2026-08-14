@@ -21,6 +21,8 @@ export function KitConfigurator({ product }: { product: KitProduct }) {
   const ecoContribHT = resolveEcoSeed(useSurchargeStore((s) => s.eco), node);
   const net = (base: number) => { const s = splitB2BPrice(base, surchargePct, discountPct); return s.productNet + s.surchargeNet + ecoContribHT; };
   const finalPriceHT = net(config.priceHT);
+  const split = splitB2BPrice(config.priceHT, surchargePct, discountPct);
+  const showBreakdown = surchargePct > 0 || ecoContribHT > 0;
 
   const handleAdd = () => {
     const s = splitB2BPrice(config.priceHT, surchargePct, discountPct);
@@ -81,6 +83,17 @@ export function KitConfigurator({ product }: { product: KitProduct }) {
           <div className="big">{euro(finalPriceHT)} <small>HT</small></div>
           {discountPct > 0 && (
             <div className="unit-uprice unit-uprice--crossed">{euro(config.priceHT)} HT</div>
+          )}
+          {showBreakdown && (
+            <div className="price-breakdown">
+              <div className="pb-row"><span>Produit HT</span><span>{euro(split.productNet)}</span></div>
+              {surchargePct > 0 && (
+                <div className="pb-row"><span>+ Surcharge temporaire (+{surchargePct}%)</span><span>{euro(split.surchargeNet)}</span></div>
+              )}
+              {ecoContribHT > 0 && (
+                <div className="pb-row"><span>+ Éco-contribution</span><span>{euro(ecoContribHT)}</span></div>
+              )}
+            </div>
           )}
         </div>
         <button className="btn solid" type="button" onClick={handleAdd}>

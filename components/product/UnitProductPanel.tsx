@@ -31,6 +31,9 @@ export function UnitProductPanel({ product }: { product: UnitProduct }) {
   const net = (base: number) => { const s = splitB2BPrice(base, surchargePct, discountPct); return s.productNet + s.surchargeNet + ecoContribHT; };
 
   const variant: ProductVariant | undefined = product.variants.find((v) => v.reference === selectedRef);
+  // Détail transparent (par unité) : produit net / surcharge / éco quand ils s'appliquent.
+  const split = variant ? splitB2BPrice(variant.priceHT, surchargePct, discountPct) : null;
+  const showBreakdown = !!split && (surchargePct > 0 || ecoContribHT > 0);
 
   const handleAdd = () => {
     if (!variant) return;
@@ -138,6 +141,17 @@ export function UnitProductPanel({ product }: { product: UnitProduct }) {
               {discountPct > 0 && (
                 <div className="unit-uprice unit-uprice--crossed">
                   {euro(variant.priceHT)} HT / {uomLabel}
+                </div>
+              )}
+              {showBreakdown && split && (
+                <div className="price-breakdown">
+                  <div className="pb-row"><span>Produit HT</span><span>{euro(split.productNet)}</span></div>
+                  {surchargePct > 0 && (
+                    <div className="pb-row"><span>+ Surcharge temporaire (+{surchargePct}%)</span><span>{euro(split.surchargeNet)}</span></div>
+                  )}
+                  {ecoContribHT > 0 && (
+                    <div className="pb-row"><span>+ Éco-contribution</span><span>{euro(ecoContribHT)}</span></div>
+                  )}
                 </div>
               )}
               <div className="unit-uprice">
