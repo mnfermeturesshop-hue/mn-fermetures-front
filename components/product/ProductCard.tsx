@@ -3,10 +3,7 @@ import Image from 'next/image';
 import { type Product, isUnit, isMatrix, isKit } from '@/lib/catalog/types';
 import { priceFrom } from '@/lib/catalog/resolvePrice';
 import { getBrand } from '@/lib/catalog/mock';
-import { CardAddButton } from './CardAddButton';
-
-const euro = (n: number) =>
-  n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+import { CardPriceFooter } from './CardPriceFooter';
 
 const GLYPHS: Record<string, string> = {
   tabliers: '▤', 'kits-axes': '⚙', motorisations: '⊙', commandes: '⎚',
@@ -87,44 +84,22 @@ export function ProductCard({ product }: { product: Product }) {
           </div>
         )}
 
-        <div className="foot">
-          {product.proOnly ? (
-            <div className="proonly">Prix réservé aux pros</div>
-          ) : isMade ? (
-            <div className="pr">
-              <span className="from">à partir de</span>
-              {priceFrom(product).toFixed(0)},00 <small>€ HT</small>
-            </div>
-          ) : isUnit(product) && product.uom === 'ml' ? (
-            <div className="pr">
-              <span className="from">à partir de</span>
-              {euro(priceFrom(product))}
-              <small> /ml</small>
-            </div>
-          ) : (
-            <div className="pr">
-              {euro(priceFrom(product))}
-              <small> /{isUnit(product) ? product.uom : 'unité'}</small>
-            </div>
-          )}
-
-          {product.proOnly ? (
-            <Link className="add" href="/pro">Se connecter</Link>
-          ) : directVariant && isUnit(product) ? (
-            <CardAddButton
-              lineKey={directVariant.reference}
-              name={product.name}
-              reference={directVariant.reference}
-              unitPriceHT={directVariant.priceHT}
-              uom={product.uom}
-              label={directVariant.label}
-            />
-          ) : (
-            <Link className={`add ${isMade || (isUnit(product) && product.uom === 'ml') ? 'config' : ''}`} href={`/produit/${product.slug}`}>
-              {cta(product)}
-            </Link>
-          )}
-        </div>
+        <CardPriceFooter
+          name={product.name}
+          node={product.taxonomySlug ?? product.famille}
+          categorySlug={product.categorySlug}
+          proOnly={!!product.proOnly}
+          kind={isMade ? 'made' : isUnit(product) && product.uom === 'ml' ? 'ml' : 'unit'}
+          uom={isUnit(product) ? product.uom : 'unite'}
+          grossFrom={priceFrom(product)}
+          detailHref={`/produit/${product.slug}`}
+          ctaLabel={cta(product)}
+          directVariant={
+            directVariant && isUnit(product)
+              ? { reference: directVariant.reference, priceHT: directVariant.priceHT, label: directVariant.label }
+              : undefined
+          }
+        />
       </div>
     </div>
   );
