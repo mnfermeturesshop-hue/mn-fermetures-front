@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { toast } from '@/components/ui/Toast';
-import { getAllBrands, getProductBySlugDB } from '@/lib/catalog/db';
+import { getAllBrands, getAllProducts, getProductBySlugDB } from '@/lib/catalog/db';
 import type { Brand } from '@/lib/catalog/types';
 import { menuOptionGroups, categorySlugFromHref } from '@/lib/catalog/menuResolve';
 import type { MenuOption } from '@/lib/catalog/menuResolve';
@@ -14,10 +14,55 @@ import { children as taxoChildren, type TaxonomyNode } from '@/lib/catalog/taxon
 type PricingType = 'unit' | 'matrix' | 'kit';
 
 interface VariantRow { reference: string; label: string; priceHT: number; inStock: boolean; stockQty: number }
-interface KitConfigRow { reference: string; label: string; priceHT: number }
+/** Un composant de kit : accessoire référencé (componentReference) OU ligne libre. */
+interface BomRow { componentReference?: string; label: string; quantity: number }
+interface KitConfigRow { reference: string; label: string; priceHT: number; bom: BomRow[] }
+/** Accessoire sélectionnable (variante d'un produit unitaire importé). */
+interface Accessory { reference: string; name: string; label: string; priceHT: number; categorySlug: string }
 
 const EMPTY_VARIANT: VariantRow = { reference: '', label: '', priceHT: 0, inStock: true, stockQty: 0 };
-const EMPTY_KIT: KitConfigRow = { reference: '', label: '', priceHT: 0 };
+const newKit = (): KitConfigRow => ({ reference: '', label: '', priceHT: 0, bom: [] });
+
+/** Combobox de recherche d'accessoires (par nom OU référence) — clic pour ajouter. */
+function AccessorySearch({ accessories, onPick }: { accessories: Accessory[]; onPick: (a: Accessory) => void }) {
+  const [q, setQ] = useState('');
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const h = (e: MouseEvent) => { if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+  const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const nq = norm(q.trim());
+  const results = nq
+    ? accessories.filter((a) => norm(a.name).includes(nq) || norm(a.reference).includes(nq) || norm(a.label).includes(nq)).slice(0, 20)
+    : [];
+  return (
+    <div className="adm-acc-search" ref={boxRef}>
+      <input
+        type="text"
+        placeholder="Rechercher un accessoire (nom ou référence)…"
+        value={q}
+        onChange={(e) => { setQ(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false); }}
+      />
+      {open && nq && (
+        <ul className="adm-acc-results">
+          {results.length === 0 ? (
+            <li className="adm-acc-empty">Aucun accessoire trouvé</li>
+          ) : results.map((a) => (
+            <li key={a.reference} onClick={() => { onPick(a); setQ(''); setOpen(false); }}>
+              <span className="adm-acc-name">{a.name}{a.label ? ` · ${a.label}` : ''}</span>
+              <span className="adm-acc-meta"><span className="adm-mono">{a.reference}</span> · {a.priceHT.toFixed(2)} €</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 export default function ProduitForm() {
   const router = useRouter();
@@ -54,11 +99,28 @@ export default function ProduitForm() {
   // Matrix
   const [matrixCsv, setMatrixCsv] = useState('');
 
-  // Kit configs
-  const [kitConfigs, setKitConfigs] = useState<KitConfigRow[]>([{ ...EMPTY_KIT }]);
+  // Kit configs + catalogue d'accessoires (pour composer la nomenclature)
+  const [kitConfigs, setKitConfigs] = useState<KitConfigRow[]>([newKit()]);
+  const [accessories, setAccessories] = useState<Accessory[]>([]);
+  const accByRef = useMemo(() => {
+    const m = new Map<string, Accessory>();
+    for (const a of accessories) m.set(a.reference, a);
+    return m;
+  }, [accessories]);
 
   useEffect(() => {
     getAllBrands().then(setBrands);
+    // Catalogue d'accessoires = variantes des produits unitaires (déjà importés).
+    getAllProducts().then((all) => {
+      const accs: Accessory[] = [];
+      for (const p of all) {
+        if (p.pricingType !== 'unit') continue;
+        for (const v of p.variants) {
+          accs.push({ reference: v.reference, name: p.name, label: v.label ?? '', priceHT: v.priceHT, categorySlug: p.categorySlug });
+        }
+      }
+      setAccessories(accs);
+    }).catch(() => {});
     fetch('/api/admin/nomenclature')
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { if (d?.items) setTaxNodes(d.items); })
@@ -93,6 +155,11 @@ export default function ProduitForm() {
             reference: c.reference,
             label: c.label,
             priceHT: c.priceHT,
+            bom: (c.bom ?? []).map((b) => ({
+              componentReference: b.componentReference,
+              label: b.label,
+              quantity: b.quantity,
+            })),
           })));
         }
       });
@@ -128,8 +195,27 @@ export default function ProduitForm() {
     setVariants((prev) => prev.map((v, idx) => idx === i ? { ...v, [field]: value } : v));
   };
 
-  const updateKit = (i: number, field: keyof KitConfigRow, value: string | number) => {
+  const updateKit = (i: number, field: 'reference' | 'label' | 'priceHT', value: string | number) => {
     setKitConfigs((prev) => prev.map((c, idx) => idx === i ? { ...c, [field]: value } : c));
+  };
+
+  // Nomenclature (bom) d'une configuration de kit
+  const addComponent = (ci: number, a: Accessory) => {
+    const label = a.label ? `${a.name} · ${a.label}` : a.name;
+    setKitConfigs((prev) => prev.map((c, idx) =>
+      idx === ci ? { ...c, bom: [...c.bom, { componentReference: a.reference, label, quantity: 1 }] } : c));
+  };
+  const addFreeComponent = (ci: number) => {
+    setKitConfigs((prev) => prev.map((c, idx) =>
+      idx === ci ? { ...c, bom: [...c.bom, { label: '', quantity: 1 }] } : c));
+  };
+  const updateComponent = (ci: number, bi: number, field: 'label' | 'quantity', value: string | number) => {
+    setKitConfigs((prev) => prev.map((c, idx) =>
+      idx === ci ? { ...c, bom: c.bom.map((b, j) => j === bi ? { ...b, [field]: value } : b) } : c));
+  };
+  const removeComponent = (ci: number, bi: number) => {
+    setKitConfigs((prev) => prev.map((c, idx) =>
+      idx === ci ? { ...c, bom: c.bom.filter((_, j) => j !== bi) } : c));
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -203,7 +289,13 @@ export default function ProduitForm() {
           reference: c.reference,
           label: c.label,
           priceHT: Number(c.priceHT),
-          bom: [],
+          bom: c.bom
+            .filter((b) => b.componentReference || b.label.trim())
+            .map((b) => ({
+              label: b.label,
+              quantity: Number(b.quantity) || 1,
+              ...(b.componentReference ? { componentReference: b.componentReference } : {}),
+            })),
         }));
       }
 
@@ -447,19 +539,68 @@ export default function ProduitForm() {
         {pricingType === 'kit' && (
           <div className="adm-card">
             <h2 className="adm-card-title">Configurations du kit</h2>
-            <div className="adm-variants">
-              <div className="adm-variants-head">
-                <span>Référence</span><span>Libellé</span><span>Prix HT (€)</span><span></span>
-              </div>
-              {kitConfigs.map((c, i) => (
-                <div key={i} className="adm-variant-row">
-                  <input placeholder="KIT-001" value={c.reference} onChange={(e) => updateKit(i, 'reference', e.target.value)} className="adm-mono" />
-                  <input placeholder="Largeur 1500 · 10 Nm" value={c.label} onChange={(e) => updateKit(i, 'label', e.target.value)} />
-                  <input type="number" step="0.01" min="0" value={c.priceHT} onChange={(e) => updateKit(i, 'priceHT', e.target.value)} />
-                  <button type="button" className="adm-row-del" onClick={() => setKitConfigs((prev) => prev.filter((_, idx) => idx !== i))}>✕</button>
-                </div>
-              ))}
-              <button type="button" className="adm-add-row" onClick={() => setKitConfigs((prev) => [...prev, { ...EMPTY_KIT }])}>
+            <p className="adm-hint">Chaque configuration est un kit vendable (référence + prix HT saisi). Ajoutez en dessous les accessoires qui le composent — recherchez-les par nom ou référence.</p>
+            <div className="adm-kit-configs">
+              {kitConfigs.map((c, i) => {
+                const sum = c.bom.reduce((s, b) => s + (b.componentReference ? (accByRef.get(b.componentReference)?.priceHT ?? 0) : 0) * b.quantity, 0);
+                return (
+                  <div key={i} className="adm-kit-config">
+                    <div className="adm-kit-config-head">
+                      <input placeholder="KIT-001" value={c.reference} onChange={(e) => updateKit(i, 'reference', e.target.value)} className="adm-mono" />
+                      <input placeholder="Largeur 1500 · 10 Nm" value={c.label} onChange={(e) => updateKit(i, 'label', e.target.value)} />
+                      <div className="adm-kit-price">
+                        <input type="number" step="0.01" min="0" value={c.priceHT} onChange={(e) => updateKit(i, 'priceHT', e.target.value)} />
+                        <span>€ HT</span>
+                      </div>
+                      <button type="button" className="adm-row-del" onClick={() => setKitConfigs((prev) => prev.filter((_, idx) => idx !== i))}>✕</button>
+                    </div>
+
+                    <div className="adm-kit-bom">
+                      <div className="adm-kit-bom-title">Composition (nomenclature)</div>
+                      <AccessorySearch accessories={accessories} onPick={(a) => addComponent(i, a)} />
+
+                      {c.bom.length > 0 && (
+                        <div className="adm-bom-list">
+                          {c.bom.map((b, j) => {
+                            const acc = b.componentReference ? accByRef.get(b.componentReference) : undefined;
+                            const lineTotal = (acc?.priceHT ?? 0) * b.quantity;
+                            return (
+                              <div key={j} className="adm-bom-row">
+                                <input
+                                  className="adm-bom-label"
+                                  value={b.label}
+                                  placeholder={b.componentReference ? '' : 'Ligne libre (ex. visserie, notice)'}
+                                  onChange={(e) => updateComponent(i, j, 'label', e.target.value)}
+                                />
+                                {b.componentReference
+                                  ? <span className="adm-mono adm-bom-ref">{b.componentReference}</span>
+                                  : <span className="adm-bom-ref adm-bom-free">libre</span>}
+                                <div className="adm-bom-qty">
+                                  <span>×</span>
+                                  <input type="number" min={1} value={b.quantity} onChange={(e) => updateComponent(i, j, 'quantity', Math.max(1, parseInt(e.target.value) || 1))} />
+                                </div>
+                                <span className="adm-bom-price">{acc ? `${acc.priceHT.toFixed(2)} € · ${lineTotal.toFixed(2)} €` : '—'}</span>
+                                <button type="button" className="adm-row-del" onClick={() => removeComponent(i, j)}>✕</button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      <div className="adm-kit-bom-foot">
+                        <button type="button" className="adm-add-row adm-add-free" onClick={() => addFreeComponent(i)}>＋ Ligne libre</button>
+                        {sum > 0 && (
+                          <div className="adm-kit-sum">
+                            Somme des accessoires : <b>{sum.toFixed(2)} €</b>
+                            <button type="button" className="adm-link-btn" onClick={() => updateKit(i, 'priceHT', Math.round(sum * 100) / 100)}>Reporter dans le prix</button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              <button type="button" className="adm-add-row" onClick={() => setKitConfigs((prev) => [...prev, newKit()])}>
                 ＋ Ajouter une configuration
               </button>
             </div>

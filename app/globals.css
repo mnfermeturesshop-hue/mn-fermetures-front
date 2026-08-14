@@ -1643,6 +1643,51 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 .adm-matrix-csv { width: 100%; font-family: var(--font-mono); font-size: 12px;
   padding: 12px; border: 1px solid var(--line); border-radius: 8px; resize: vertical; }
 
+/* --- Kits axes : configurations + nomenclature (composition) --- */
+.adm-kit-configs { display: flex; flex-direction: column; gap: 14px; }
+.adm-kit-config { border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: var(--surface-2); }
+.adm-kit-config-head { display: grid; grid-template-columns: 1.4fr 1.6fr auto .3fr; gap: 8px; align-items: center; }
+.adm-kit-config input { padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px;
+  font-size: 13px; font-family: var(--font-body); width: 100%; background: #fff; }
+.adm-kit-price { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.adm-kit-price input { width: 90px; }
+.adm-kit-price span { font-size: 12px; color: var(--muted); font-weight: 600; }
+.adm-kit-bom { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.adm-kit-bom-title { font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--muted); margin-bottom: 8px; }
+.adm-bom-list { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.adm-bom-row { display: grid; grid-template-columns: 1fr auto auto auto auto; gap: 8px; align-items: center; }
+.adm-bom-label { padding: 7px 10px; border: 1px solid var(--line); border-radius: 7px;
+  font-size: 13px; font-family: var(--font-body); width: 100%; background: #fff; }
+.adm-bom-ref { font-size: 11px; color: var(--steel-600); white-space: nowrap; }
+.adm-bom-free { font-style: italic; color: var(--alu-400); }
+.adm-bom-qty { display: flex; align-items: center; gap: 4px; }
+.adm-bom-qty span { color: var(--muted); font-size: 13px; }
+.adm-bom-qty input { width: 52px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 7px;
+  font-size: 13px; text-align: center; background: #fff; }
+.adm-bom-price { font-size: 12px; color: var(--navy-700); font-weight: 600; white-space: nowrap; }
+.adm-kit-bom-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.adm-add-free { width: auto; padding: 7px 12px; margin-top: 0; }
+.adm-kit-sum { font-size: 12.5px; color: var(--muted); }
+.adm-kit-sum b { color: var(--navy-700); }
+.adm-link-btn { background: none; border: none; color: var(--steel-600); font-weight: 700;
+  font-size: 12px; cursor: pointer; text-decoration: underline; margin-left: 8px; font-family: inherit; }
+.adm-link-btn:hover { color: var(--navy-700); }
+/* Combobox de recherche d'accessoires */
+.adm-acc-search { position: relative; }
+.adm-acc-search > input { width: 100%; padding: 8px 10px; border: 1px solid var(--line);
+  border-radius: 7px; font-size: 13px; font-family: var(--font-body); background: #fff; }
+.adm-acc-results { position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; right: 0;
+  background: #fff; border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow);
+  max-height: 280px; overflow-y: auto; list-style: none; margin: 0; padding: 4px; }
+.adm-acc-results li { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 7px 9px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.adm-acc-results li:hover { background: var(--surface-2); }
+.adm-acc-name { font-weight: 600; color: var(--ink); }
+.adm-acc-meta { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.adm-acc-empty { color: var(--muted); cursor: default; font-style: italic; }
+.adm-acc-empty:hover { background: transparent; }
+
 /* Image upload */
 .adm-image-upload { display: flex; flex-direction: column; gap: 12px; }
 .adm-image-drop { display: flex; flex-direction: column; align-items: center; gap: 8px;
