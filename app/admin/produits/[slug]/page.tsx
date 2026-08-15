@@ -42,7 +42,7 @@ function AccessorySearch({ accessories, onPick }: { accessories: Accessory[]; on
     <div className="adm-acc-search" ref={boxRef}>
       <input
         type="text"
-        placeholder="Rechercher un accessoire (nom ou référence)…"
+        placeholder="Rechercher et ajouter un accessoire (nom ou référence)…"
         value={q}
         onChange={(e) => { setQ(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
@@ -557,6 +557,7 @@ export default function ProduitForm() {
 
                     <div className="adm-kit-bom">
                       <div className="adm-kit-bom-title">Composition (nomenclature)</div>
+                      <p className="adm-bom-help">Recherchez un accessoire et cliquez dessus pour l&apos;ajouter. Répétez l&apos;opération pour composer le kit de plusieurs accessoires.</p>
                       <AccessorySearch accessories={accessories} onPick={(a) => addComponent(i, a)} />
 
                       {c.bom.length > 0 && (
