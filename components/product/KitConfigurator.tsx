@@ -65,7 +65,7 @@ export function KitConfigurator({ product }: { product: KitProduct }) {
           {config.bom.map((item, i) => (
             <li key={i}>
               <span className="kit-qty">{item.quantity}×</span>
-              <span>{item.label}</span>
+              <span>{item.label}{item.lengthMm ? ` · ${item.lengthMm} mm` : ''}</span>
               {item.componentReference && (
                 <span className="ref kit-compref"> {item.componentReference}</span>
               )}

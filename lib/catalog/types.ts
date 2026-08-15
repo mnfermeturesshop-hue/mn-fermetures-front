@@ -87,6 +87,9 @@ export interface KitComponent {
   label: string;
   quantity: number;
   componentReference?: string; // lien vers une réf vendue à part
+  /** Longueur en mm — uniquement pour un composant tarifé au mètre linéaire (ml).
+   *  Total du composant = prix/ml × (lengthMm/1000) × quantity. */
+  lengthMm?: number;
 }
 export interface KitConfig {
   reference: string;

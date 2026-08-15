@@ -14,11 +14,12 @@ import { children as taxoChildren, type TaxonomyNode } from '@/lib/catalog/taxon
 type PricingType = 'unit' | 'matrix' | 'kit';
 
 interface VariantRow { reference: string; label: string; priceHT: number; inStock: boolean; stockQty: number }
-/** Un composant de kit : accessoire référencé (componentReference) OU ligne libre. */
-interface BomRow { componentReference?: string; label: string; quantity: number }
+/** Un composant de kit : accessoire référencé (componentReference) OU ligne libre.
+ *  lengthMm : longueur saisie pour un composant au mètre linéaire (ml). */
+interface BomRow { componentReference?: string; label: string; quantity: number; lengthMm?: number }
 interface KitConfigRow { reference: string; label: string; priceHT: number; bom: BomRow[] }
 /** Accessoire sélectionnable (variante d'un produit unitaire importé). */
-interface Accessory { reference: string; name: string; label: string; priceHT: number; categorySlug: string }
+interface Accessory { reference: string; name: string; label: string; priceHT: number; uom: string; categorySlug: string }
 
 const EMPTY_VARIANT: VariantRow = { reference: '', label: '', priceHT: 0, inStock: true, stockQty: 0 };
 const newKit = (): KitConfigRow => ({ reference: '', label: '', priceHT: 0, bom: [] });
@@ -116,7 +117,7 @@ export default function ProduitForm() {
       for (const p of all) {
         if (p.pricingType !== 'unit') continue;
         for (const v of p.variants) {
-          accs.push({ reference: v.reference, name: p.name, label: v.label ?? '', priceHT: v.priceHT, categorySlug: p.categorySlug });
+          accs.push({ reference: v.reference, name: p.name, label: v.label ?? '', priceHT: v.priceHT, uom: p.uom, categorySlug: p.categorySlug });
         }
       }
       setAccessories(accs);
@@ -159,6 +160,7 @@ export default function ProduitForm() {
               componentReference: b.componentReference,
               label: b.label,
               quantity: b.quantity,
+              ...(b.lengthMm ? { lengthMm: b.lengthMm } : {}),
             })),
           })));
         }
@@ -202,20 +204,32 @@ export default function ProduitForm() {
   // Nomenclature (bom) d'une configuration de kit
   const addComponent = (ci: number, a: Accessory) => {
     const label = a.label ? `${a.name} · ${a.label}` : a.name;
+    // Accessoire au mètre → longueur par défaut à préciser (2000 mm).
+    const row: BomRow = a.uom === 'ml'
+      ? { componentReference: a.reference, label, quantity: 1, lengthMm: 2000 }
+      : { componentReference: a.reference, label, quantity: 1 };
     setKitConfigs((prev) => prev.map((c, idx) =>
-      idx === ci ? { ...c, bom: [...c.bom, { componentReference: a.reference, label, quantity: 1 }] } : c));
+      idx === ci ? { ...c, bom: [...c.bom, row] } : c));
   };
   const addFreeComponent = (ci: number) => {
     setKitConfigs((prev) => prev.map((c, idx) =>
       idx === ci ? { ...c, bom: [...c.bom, { label: '', quantity: 1 }] } : c));
   };
-  const updateComponent = (ci: number, bi: number, field: 'label' | 'quantity', value: string | number) => {
+  const updateComponent = (ci: number, bi: number, field: 'label' | 'quantity' | 'lengthMm', value: string | number) => {
     setKitConfigs((prev) => prev.map((c, idx) =>
       idx === ci ? { ...c, bom: c.bom.map((b, j) => j === bi ? { ...b, [field]: value } : b) } : c));
   };
   const removeComponent = (ci: number, bi: number) => {
     setKitConfigs((prev) => prev.map((c, idx) =>
       idx === ci ? { ...c, bom: c.bom.filter((_, j) => j !== bi) } : c));
+  };
+  // Total d'un composant : au mètre = prix/ml × longueur(m) × qté ; sinon prix × qté.
+  const bomLineTotal = (b: BomRow): number => {
+    if (!b.componentReference) return 0;
+    const acc = accByRef.get(b.componentReference);
+    if (!acc) return 0;
+    const factor = acc.uom === 'ml' ? Math.max(0, b.lengthMm ?? 0) / 1000 : 1;
+    return acc.priceHT * factor * b.quantity;
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -295,6 +309,7 @@ export default function ProduitForm() {
               label: b.label,
               quantity: Number(b.quantity) || 1,
               ...(b.componentReference ? { componentReference: b.componentReference } : {}),
+              ...(b.lengthMm ? { lengthMm: Number(b.lengthMm) } : {}),
             })),
         }));
       }
@@ -542,7 +557,7 @@ export default function ProduitForm() {
             <p className="adm-hint">Chaque configuration est un kit vendable (référence + prix HT saisi). Ajoutez en dessous les accessoires qui le composent — recherchez-les par nom ou référence.</p>
             <div className="adm-kit-configs">
               {kitConfigs.map((c, i) => {
-                const sum = c.bom.reduce((s, b) => s + (b.componentReference ? (accByRef.get(b.componentReference)?.priceHT ?? 0) : 0) * b.quantity, 0);
+                const sum = c.bom.reduce((s, b) => s + bomLineTotal(b), 0);
                 return (
                   <div key={i} className="adm-kit-config">
                     <div className="adm-kit-config-head">
@@ -564,7 +579,8 @@ export default function ProduitForm() {
                         <div className="adm-bom-list">
                           {c.bom.map((b, j) => {
                             const acc = b.componentReference ? accByRef.get(b.componentReference) : undefined;
-                            const lineTotal = (acc?.priceHT ?? 0) * b.quantity;
+                            const isMl = acc?.uom === 'ml';
+                            const lineTotal = bomLineTotal(b);
                             return (
                               <div key={j} className="adm-bom-row">
                                 <input
@@ -576,11 +592,17 @@ export default function ProduitForm() {
                                 {b.componentReference
                                   ? <span className="adm-mono adm-bom-ref">{b.componentReference}</span>
                                   : <span className="adm-bom-ref adm-bom-free">libre</span>}
+                                {isMl ? (
+                                  <div className="adm-bom-len">
+                                    <input type="number" min={1} step={10} value={b.lengthMm ?? 0} onChange={(e) => updateComponent(i, j, 'lengthMm', Math.max(0, parseInt(e.target.value) || 0))} />
+                                    <span>mm</span>
+                                  </div>
+                                ) : <span className="adm-bom-len-empty" />}
                                 <div className="adm-bom-qty">
                                   <span>×</span>
                                   <input type="number" min={1} value={b.quantity} onChange={(e) => updateComponent(i, j, 'quantity', Math.max(1, parseInt(e.target.value) || 1))} />
                                 </div>
-                                <span className="adm-bom-price">{acc ? `${acc.priceHT.toFixed(2)} € · ${lineTotal.toFixed(2)} €` : '—'}</span>
+                                <span className="adm-bom-price">{acc ? `${acc.priceHT.toFixed(2)} €${isMl ? '/ml' : ''} · ${lineTotal.toFixed(2)} €` : '—'}</span>
                                 <button type="button" className="adm-row-del" onClick={() => removeComponent(i, j)}>✕</button>
                               </div>
                             );
