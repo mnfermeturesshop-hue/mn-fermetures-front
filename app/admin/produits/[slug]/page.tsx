@@ -594,7 +594,7 @@ export default function ProduitForm() {
                                   : <span className="adm-bom-ref adm-bom-free">libre</span>}
                                 {isMl ? (
                                   <div className="adm-bom-len">
-                                    <input type="number" min={1} step={10} value={b.lengthMm ?? 0} onChange={(e) => updateComponent(i, j, 'lengthMm', Math.max(0, parseInt(e.target.value) || 0))} />
+                                    <input type="number" min={1} step="any" value={b.lengthMm ?? 0} onChange={(e) => updateComponent(i, j, 'lengthMm', Math.max(0, parseInt(e.target.value) || 0))} />
                                     <span>mm</span>
                                   </div>
                                 ) : <span className="adm-bom-len-empty" />}
