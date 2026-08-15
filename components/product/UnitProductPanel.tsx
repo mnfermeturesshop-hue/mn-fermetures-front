@@ -124,6 +124,7 @@ export function UnitProductPanel({ product }: { product: UnitProduct }) {
                 <button type="button" onClick={() => setLengthMm((v) => Math.max(0, v - 100))}>−</button>
                 <input
                   id="lenMm"
+                  className="ml-len"
                   type="number"
                   min={1}
                   step={10}

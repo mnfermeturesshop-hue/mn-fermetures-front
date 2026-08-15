@@ -353,6 +353,8 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 .qty-row button:hover { background: var(--navy-700); color: #fff; }
 .qty-row input { width: 60px; text-align: center; border: 1px solid var(--line); border-radius: 7px;
   padding: 8px; font-size: 14px; font-weight: 600; }
+/* Champ longueur (mm) : plus large pour afficher la valeur entière + spinner */
+.qty-row input.ml-len { width: 104px; padding-right: 4px; }
 .unit-footer { display: flex; justify-content: space-between; align-items: flex-end;
   padding: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .unit-ref { font-size: 13px; }
