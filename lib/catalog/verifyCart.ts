@@ -181,6 +181,19 @@ export async function verifyCartLines(
       // Tradi = tout supplément coloris (color_*_pv) ; Renobox = UNIQUEMENT le coloris
       // coffre en plus-value (coloris_coffre_opt).
       if (res.lineItems.some((li) => (li.code.startsWith('color_') && li.code.endsWith('_pv')) || li.code === 'coloris_coffre_opt')) hasLaque = true;
+    } else if (raw?.pricing?.kind === 'linear') {
+      // Produit au mètre linéaire : PU d'une pièce = prix/ml × longueur (m).
+      // La longueur vient du client mais le prix/ml et le calcul restent serveur.
+      const pr = raw.pricing;
+      const hit = byRef.get(String(pr.reference));
+      if (!hit) return { ok: false, error: `Référence introuvable : ${pr.reference}` };
+      const lengthMm = Number(pr.lengthMm);
+      if (!Number.isFinite(lengthMm) || lengthMm <= 0 || lengthMm > 100000) {
+        return { ok: false, error: 'Longueur invalide.' };
+      }
+      base = Math.round(hit.base * (lengthMm / 1000) * 100) / 100;
+      name = hit.product.name;
+      node = hit.product.taxonomySlug ?? hit.product.famille;
     } else if (raw?.reference) {
       const hit = byRef.get(raw.reference);
       if (!hit) return { ok: false, error: `Référence introuvable : ${raw.reference}` };

@@ -180,7 +180,8 @@ export default async function ProductPage({ params }: Props) {
                   <div id="unit-panel">
                     <UnitProductPanel product={product} />
                   </div>
-                  <StickyAddBar product={product} panelId="unit-panel" />
+                  {/* Au mètre : la longueur se saisit dans le panneau → pas d'ajout rapide */}
+                  {product.uom !== 'ml' && <StickyAddBar product={product} panelId="unit-panel" />}
                 </>
               )}
               {isMatrix(product) && <TablierConfigurator product={product} />}

@@ -19,6 +19,9 @@ const UOM_LABELS: Record<string, string> = {
 export function UnitProductPanel({ product }: { product: UnitProduct }) {
   const [selectedRef, setSelectedRef] = useState(product.variants[0]?.reference ?? '');
   const [qty, setQty] = useState(1);
+  // Produits au mètre linéaire : la longueur (mm) pilote le prix (prix/ml × longueur).
+  const isMl = product.uom === 'ml';
+  const [lengthMm, setLengthMm] = useState(2000);
   const { addLine, openCart, showTTC } = useCartStore();
   const { user } = useAuthStore();
   const TVA = 0.20;
@@ -27,30 +30,41 @@ export function UnitProductPanel({ product }: { product: UnitProduct }) {
   const discountPct = resolveB2BDiscountSeed(user?.proDiscounts, node);
   const surchargePct = resolveB2BSurchargeSeed(useSurchargeStore((s) => s.map), node);
   const ecoContribHT = resolveEcoSeed(useSurchargeStore((s) => s.eco), node);
-  // Prix affiché = produit net + surcharge nette + éco (tout compris) ; la ligne panier stocke le détail.
-  const net = (base: number) => { const s = splitB2BPrice(base, surchargePct, discountPct); return s.productNet + s.surchargeNet + ecoContribHT; };
 
   const variant: ProductVariant | undefined = product.variants.find((v) => v.reference === selectedRef);
-  // Détail transparent (par unité) : produit net / surcharge / éco quand ils s'appliquent.
-  const split = variant ? splitB2BPrice(variant.priceHT, surchargePct, discountPct) : null;
+
+  // Prix de base d'UNE pièce : au ml = prix/ml × longueur(m) ; sinon = prix catalogue.
+  const meters = Math.max(0, lengthMm) / 1000;
+  const pieceBase = variant ? variant.priceHT * (isMl ? meters : 1) : 0;
+  const split = variant ? splitB2BPrice(pieceBase, surchargePct, discountPct) : null;
+  // Net « tout compris » d'une pièce (produit + surcharge + éco).
+  const pieceNet = split ? split.productNet + split.surchargeNet + ecoContribHT : 0;
+  // Tarif net au ml (hors éco) pour l'affichage « x € HT / ml ».
+  const perMlNet = variant
+    ? (() => { const s = splitB2BPrice(variant.priceHT, surchargePct, discountPct); return s.productNet + s.surchargeNet; })()
+    : 0;
   const showBreakdown = !!split && (surchargePct > 0 || ecoContribHT > 0);
+  const lengthValid = !isMl || lengthMm > 0;
 
   const handleAdd = () => {
-    if (!variant) return;
-    const s = splitB2BPrice(variant.priceHT, surchargePct, discountPct);
+    if (!variant || !split || !lengthValid) return;
     addLine({
-      key: `${variant.reference}`,
+      key: isMl ? `${variant.reference}-${lengthMm}` : `${variant.reference}`,
       name: product.name,
-      detail: variant.label,
+      detail: isMl
+        ? `${lengthMm} mm${variant.label ? ` · ${variant.label}` : ''}`
+        : variant.label,
       reference: variant.reference,
-      grossUnitPriceHT: variant.priceHT,
-      unitPriceHT: s.productNet,
-      ...(s.surchargeNet > 0 ? { surchargePct, surchargeGrossUnitHT: s.surchargeGross, surchargeUnitHT: s.surchargeNet } : {}),
+      grossUnitPriceHT: pieceBase,
+      unitPriceHT: split.productNet,
+      ...(split.surchargeNet > 0 ? { surchargePct, surchargeGrossUnitHT: split.surchargeGross, surchargeUnitHT: split.surchargeNet } : {}),
       ...(ecoContribHT > 0 ? { ecoContribHT } : {}),
       quantity: qty,
       uom: product.uom,
+      // Re-tarification serveur : au ml, le prix dépend de la longueur.
+      ...(isMl ? { pricing: { kind: 'linear' as const, reference: variant.reference, lengthMm } } : {}),
     });
-    trackAddToCart({ key: variant.reference, name: product.name, categorySlug: product.categorySlug, priceHT: variant.priceHT, quantity: qty });
+    trackAddToCart({ key: variant.reference, name: product.name, categorySlug: product.categorySlug, priceHT: pieceNet, quantity: qty });
     toast.success(`${product.name} ajouté au panier`);
     openCart();
   };
@@ -103,8 +117,29 @@ export function UnitProductPanel({ product }: { product: UnitProduct }) {
 
       {variant && (
         <>
+          {isMl && (
+            <div className="field">
+              <label htmlFor="lenMm">Longueur (mm)</label>
+              <div className="qty-row">
+                <button type="button" onClick={() => setLengthMm((v) => Math.max(0, v - 100))}>−</button>
+                <input
+                  id="lenMm"
+                  type="number"
+                  min={1}
+                  step={10}
+                  value={lengthMm}
+                  onChange={(e) => setLengthMm(Math.max(0, parseInt(e.target.value) || 0))}
+                />
+                <button type="button" onClick={() => setLengthMm((v) => v + 100)}>+</button>
+              </div>
+              <div className="ml-hint">
+                Prix calculé au mètre linéaire — saisissez la longueur souhaitée (ex.&nbsp;2400&nbsp;mm).
+              </div>
+            </div>
+          )}
+
           <div className="field">
-            <label>Quantité ({uomLabel})</label>
+            <label>Quantité ({isMl ? 'pièces' : uomLabel})</label>
             <div className="qty-row">
               <button type="button" onClick={() => setQty(Math.max(1, qty - 1))}>−</button>
               <input
@@ -134,18 +169,20 @@ export function UnitProductPanel({ product }: { product: UnitProduct }) {
               )}
               <div className="pr">
                 {showTTC
-                  ? <>{euro(net(variant.priceHT) * qty * (1 + TVA))}<small> TTC</small></>
-                  : <>{euro(net(variant.priceHT) * qty)}<small> HT</small></>
+                  ? <>{euro(pieceNet * qty * (1 + TVA))}<small> TTC</small></>
+                  : <>{euro(pieceNet * qty)}<small> HT</small></>
                 }
               </div>
               {discountPct > 0 && (
                 <div className="unit-uprice unit-uprice--crossed">
-                  {euro(variant.priceHT)} HT / {uomLabel}
+                  {isMl
+                    ? <>{euro(pieceBase * qty)} HT</>
+                    : <>{euro(variant.priceHT)} HT / {uomLabel}</>}
                 </div>
               )}
               {showBreakdown && split && (
                 <div className="price-breakdown">
-                  <div className="pb-row"><span>Produit HT</span><span>{euro(split.productNet)}</span></div>
+                  <div className="pb-row"><span>Produit HT{isMl ? ' (longueur)' : ''}</span><span>{euro(split.productNet)}</span></div>
                   {surchargePct > 0 && (
                     <div className="pb-row"><span>+ Surcharge temporaire (+{surchargePct}%)</span><span>{euro(split.surchargeNet)}</span></div>
                   )}
@@ -155,9 +192,11 @@ export function UnitProductPanel({ product }: { product: UnitProduct }) {
                 </div>
               )}
               <div className="unit-uprice">
-                {showTTC
-                  ? <>{euro(net(variant.priceHT) * (1 + TVA))} TTC / {uomLabel}</>
-                  : <>{euro(net(variant.priceHT))} HT / {uomLabel}</>
+                {isMl
+                  ? <>{showTTC ? <>{euro(perMlNet * (1 + TVA))} TTC</> : <>{euro(perMlNet)} HT</>} / ml · {lengthMm} mm × {qty}</>
+                  : (showTTC
+                      ? <>{euro(pieceNet * (1 + TVA))} TTC / {uomLabel}</>
+                      : <>{euro(pieceNet)} HT / {uomLabel}</>)
                 }
               </div>
             </div>
@@ -167,6 +206,7 @@ export function UnitProductPanel({ product }: { product: UnitProduct }) {
             className="btn solid full"
             type="button"
             onClick={handleAdd}
+            disabled={!lengthValid}
           >
             Ajouter au panier
           </button>

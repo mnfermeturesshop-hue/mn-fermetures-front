@@ -37,10 +37,12 @@ export function ProductCard({ product }: { product: Product }) {
     ? product.variants.filter((v) => v.color).map((v) => v.color!)
     : isMatrix(product) ? product.colors ?? [] : [];
 
-  // Ajout direct depuis la carte : uniquement unitaire, 1 seule variante, non-pro
+  // Ajout direct depuis la carte : uniquement unitaire, 1 seule variante, non-pro.
+  // Exclu au mètre (ml) : la longueur doit être saisie sur la fiche produit.
   const canAddDirect =
     !product.proOnly &&
     isUnit(product) &&
+    product.uom !== 'ml' &&
     product.variants.length === 1 &&
     product.variants[0].inStock;
   const directVariant = canAddDirect && isUnit(product) ? product.variants[0] : undefined;

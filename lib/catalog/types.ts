@@ -124,6 +124,13 @@ export type LinePricing =
       options: string[];
     }
   | {
+      // Produit au mètre linéaire : prix = prix/ml × longueur. Le serveur recalcule
+      // le PU d'une pièce depuis la référence + la longueur (jamais le prix client).
+      kind: 'linear';
+      reference: string;
+      lengthMm: number;
+    }
+  | {
       kind: 'tablier';
       slug: string;
       colorisCode: string;
