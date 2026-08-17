@@ -1751,6 +1751,16 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 .adm-qty-input { width: 80px; padding: 7px 10px; border: 1px solid var(--line);
   border-radius: 7px; font-size: 13px; font-family: var(--font-body); }
 .adm-qty-input:focus { outline: 2px solid var(--steel-600); }
+/* Outil Tarifs : sélecteurs de filtre + saisie prix inline */
+.adm-select { padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
+  font-size: 13px; font-family: var(--font-body); background: #fff; color: var(--ink); }
+.adm-select:focus { outline: 2px solid var(--steel-600); }
+.adm-price-input { width: 100px; padding: 7px 10px; border: 1px solid var(--line);
+  border-radius: 7px; font-size: 13px; font-weight: 600; text-align: right; font-family: var(--font-body); }
+.adm-price-input:focus { outline: 2px solid var(--steel-600); }
+.adm-kind-badge { display: inline-block; margin-left: 6px; font-size: 9.5px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .04em; color: #2f8f6b; background: #e7f4ee;
+  border-radius: 4px; padding: 1px 5px; vertical-align: middle; }
 
 /* Toggle switch */
 .adm-toggle { position: relative; display: inline-flex; align-items: center; cursor: pointer; }
