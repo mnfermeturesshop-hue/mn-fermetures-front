@@ -3,12 +3,11 @@ import { listConfigurators } from '@/lib/configurateur/loader';
 
 // Configurateurs mis en avant (liste curatée) — accès direct à l'outil pro. Le champ
 // `slug` (quand présent) permet de MASQUER la carte si l'admin a désactivé le configurateur.
-// Le tablier (/configurateur) est une page à part → toujours affiché.
 const CONFIGURATORS = [
   { slug: 'volet-roulant-traditionnel', name: 'Volet roulant Traditionnel', desc: 'Tradi · Tradi + coffre · Coffre seul', href: '/configurateur/volet-roulant-traditionnel', icon: '▦' },
   { slug: 'volet-roulant-renovation', name: 'Volet roulant Rénovation', desc: 'Minibox · Renobox · Gros coffre', href: '/configurateur/volet-roulant-renovation', icon: '▤' },
   { slug: 'store-banne', name: 'Store banne', desc: 'Monobloc · Semi-coffre · Coffre intégral', href: '/configurateur/store-banne', icon: '☀' },
-  { slug: null, name: 'Tablier sur mesure', desc: 'PVC & aluminium · prix HT instantané', href: '/configurateur', icon: '▥' },
+  { slug: 'tablier-sur-mesure', name: 'Tablier sur mesure', desc: 'PVC & aluminium · prix HT instantané', href: '/configurateur/tablier-sur-mesure', icon: '▥' },
 ];
 
 const QUICK_LINKS = [

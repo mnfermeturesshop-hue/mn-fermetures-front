@@ -1,12 +1,12 @@
 export const dynamic = 'force-dynamic';
 
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getAllProducts, getAllBrands } from '@/lib/catalog/db';
 import { resolveMenuPath } from '@/lib/catalog/menuResolve';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { CatalogueClient } from '@/components/catalogue/CatalogueClient';
-import { TablierGenerateur } from '@/components/tablier/TablierGenerateur';
 import { maskProductPrices } from '@/lib/catalog/maskPrices';
 import { pricesVisible } from '@/lib/pricing/visibility';
 
@@ -57,7 +57,9 @@ export default async function CataloguePage({ params }: Props) {
             <h2>Configurateur de tablier</h2>
             <p>Sélectionnez la lame, le coloris et les dimensions pour obtenir votre prix HT instantanément.</p>
           </div>
-          <TablierGenerateur />
+          <Link className="btn solid lg" href="/configurateur/tablier-sur-mesure">
+            Configurer un tablier sur mesure →
+          </Link>
         </section>
       )}
 

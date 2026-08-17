@@ -1,29 +1,7 @@
-import type { Metadata } from 'next';
-import { Breadcrumb } from '@/components/ui/Breadcrumb';
-import { TablierGenerateur } from '@/components/tablier/TablierGenerateur';
+import { redirect } from 'next/navigation';
 
-export const metadata: Metadata = {
-  title: 'Configurateur tablier — MM Fermetures',
-  description: 'Calculez votre tablier de volet roulant sur mesure : PVC ou aluminium, 7 types de lames, prix HT instantané.',
-};
-
+// Le générateur de tablier est désormais un configurateur v2 à part entière.
+// On conserve l'ancienne URL en la redirigeant vers le nouveau slug.
 export default function ConfigurateurPage() {
-  return (
-    <div className="wrap">
-      <Breadcrumb
-        crumbs={[
-          { label: 'Accueil', href: '/' },
-          { label: 'Configurateur tablier' },
-        ]}
-      />
-      <div className="cfg-page-head">
-        <span className="eyebrow">Tarif 2026 — sur mesure</span>
-        <h1>Configurateur de tablier volet roulant</h1>
-        <p className="lead">
-          Choisissez la lame, le coloris, saisissez vos dimensions&nbsp;: le prix HT est calculé instantanément d&apos;après le barème fabricant.
-        </p>
-      </div>
-      <TablierGenerateur />
-    </div>
-  );
+  redirect('/configurateur/tablier-sur-mesure');
 }

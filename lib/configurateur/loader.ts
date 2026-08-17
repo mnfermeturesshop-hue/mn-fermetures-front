@@ -7,6 +7,7 @@ import type { DefV2 } from './v2/types';
 import { VR_TRADI_SEED } from './seed';
 import storeBanne from './data/store-banne.json';
 import renovation from './data/volet-roulant-renovation.v2.json';
+import tablier from './data/tablier-sur-mesure.v2.json';
 
 // Seeds intégrés (repli). Ajouter une famille = ajouter une DONNÉE ici — aucun
 // code moteur/UI à écrire (cf. store banne, tarifé par formule et non par grille).
@@ -14,6 +15,7 @@ const SEEDS: Record<string, DefV2> = {
   [VR_TRADI_SEED.slug]: VR_TRADI_SEED,
   'store-banne': storeBanne as unknown as DefV2,
   [(renovation as unknown as DefV2).slug]: renovation as unknown as DefV2,
+  [(tablier as unknown as DefV2).slug]: tablier as unknown as DefV2,
 };
 
 const isV2 = (d: unknown): d is DefV2 =>
