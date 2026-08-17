@@ -228,6 +228,38 @@ const POSE_LBL = { independant: 'Indép', coffre: 'Coffre', express: 'Express' }
 const LAME_LBL = { cd942: 'CD942', 56: 'A56', 55: 'A55' };
 const MOTEUR_LBL = { mn: 'MN', somfy: 'Somfy' };
 const LAYER_LBL = { filaire: 'Fil', radio: 'Radio' };
+// Renommage des onglets d'export voulu par le PDG (clé = id de grille
+// `g_<pose>_<lame>_<moteur>_<couche>`). Une grille absente de cette table garde le
+// libellé généré automatiquement (« Indép · CD942 · MN · Fil »…).
+const PDG_TAB = {
+  // Indépendant
+  g_independant_cd942_mn_filaire: 'TRAZFA45FILMN',
+  g_independant_cd942_mn_radio: 'TRAZFA45RADMN',
+  g_independant_cd942_somfy_filaire: 'TRAZFA45FILSO',
+  g_independant_cd942_somfy_radio: 'TRAZFA45RS100SO',
+  g_independant_56_mn_filaire: 'TRAZFA56FILMN',
+  g_independant_56_mn_radio: 'TRAZFA56RADMN',
+  g_independant_56_somfy_filaire: 'TRAZFA56FILSO',
+  g_independant_56_somfy_radio: 'TRAZFA56RS100SO',
+  g_independant_55_mn_filaire: 'TRAZFA55FILMN',
+  g_independant_55_mn_radio: 'TRAZFA55RADMN',
+  g_independant_55_somfy_filaire: 'TRAZFA55FILSO',
+  g_independant_55_somfy_radio: 'TRADZFA55RS100SO',
+  // Coffre
+  g_coffre_cd942_mn_filaire: 'TRACTA45FILMN',
+  g_coffre_cd942_mn_radio: 'TRACTA45RADMN',
+  g_coffre_cd942_somfy_filaire: 'TRACTA45FILSO',
+  g_coffre_cd942_somfy_radio: 'TRACTA45RS100SO',
+  g_coffre_56_mn_filaire: 'TRACTA56FILMN',
+  g_coffre_56_mn_radio: 'TRACTA56RADMN',
+  g_coffre_56_somfy_filaire: 'TRACTA56FILSO',
+  g_coffre_56_somfy_radio: 'TRACTA56RS100SO',
+  // Express
+  g_express_cd942_mn_filaire: 'TRAEXA45FILMN',
+  g_express_cd942_mn_radio: 'TRAEXA45RADMN',
+  g_express_cd942_somfy_filaire: 'TRAEXA45FILSO',
+  g_express_cd942_somfy_radio: 'TRAEXA45RS100SO',
+};
 const d2 = {};
 const gridTableId = (k, layer) => `g_${k.pose}_${k.lame}_${k.moteur}_${layer}`;
 for (const g of v1.grids) {
@@ -238,8 +270,9 @@ for (const g of v1.grids) {
       cols: lg.widths,
       cells: g.heights.map((h) => lg.rows[String(h)]),
     };
-    // ex. « Indép · CD942 · MN · Fil » (≤ 31) — moteur/couche toujours visibles.
-    tableLabels[id] = `${POSE_LBL[g.key.pose] ?? g.key.pose} · ${LAME_LBL[g.key.lame] ?? g.key.lame} · ${MOTEUR_LBL[g.key.moteur] ?? g.key.moteur} · ${LAYER_LBL[layer] ?? layer}`;
+    // Renommage PDG si défini, sinon libellé auto « Indép · CD942 · MN · Fil » (≤ 31).
+    tableLabels[id] = PDG_TAB[id]
+      ?? `${POSE_LBL[g.key.pose] ?? g.key.pose} · ${LAME_LBL[g.key.lame] ?? g.key.lame} · ${MOTEUR_LBL[g.key.moteur] ?? g.key.moteur} · ${LAYER_LBL[layer] ?? layer}`;
   }
 }
 
