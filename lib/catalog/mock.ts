@@ -44,7 +44,7 @@ export const isNavGroup = (item: NavLeaf | NavGroup): item is NavGroup =>
 
 export const MENU: NavTop[] = [
   {
-    name: 'Configurateur sur mesure', href: '/configurateur/volet-roulant-traditionnel', icon: '▦',
+    name: 'Configurateur sur mesure', href: '/configurateur', icon: '▦',
     subtitle: 'Prix instantané',
     children: [
       { name: 'Volet roulant traditionnel', href: '/configurateur/volet-roulant-traditionnel' },

@@ -1,14 +1,6 @@
 import Link from 'next/link';
 import { listConfigurators } from '@/lib/configurateur/loader';
-
-// Configurateurs mis en avant (liste curatée) — accès direct à l'outil pro. Le champ
-// `slug` (quand présent) permet de MASQUER la carte si l'admin a désactivé le configurateur.
-const CONFIGURATORS = [
-  { slug: 'volet-roulant-traditionnel', name: 'Volet roulant Traditionnel', desc: 'Tradi · Tradi + coffre · Coffre seul', href: '/configurateur/volet-roulant-traditionnel', icon: '▦' },
-  { slug: 'volet-roulant-renovation', name: 'Volet roulant Rénovation', desc: 'Minibox · Renobox · Gros coffre', href: '/configurateur/volet-roulant-renovation', icon: '▤' },
-  { slug: 'store-banne', name: 'Store banne', desc: 'Monobloc · Semi-coffre · Coffre intégral', href: '/configurateur/store-banne', icon: '☀' },
-  { slug: 'tablier-sur-mesure', name: 'Tablier sur mesure', desc: 'PVC & aluminium · prix HT instantané', href: '/configurateur/tablier-sur-mesure', icon: '▥' },
-];
+import { FEATURED_CONFIGURATORS as CONFIGURATORS } from '@/lib/configurateur/featured';
 
 const QUICK_LINKS = [
   { label: 'Nos gammes', sub: 'Catalogue par nomenclature', href: '/gammes', icon: '🗂' },
@@ -38,9 +30,9 @@ export default async function HomePage() {
     const configs = await listConfigurators();
     activeSlugs = new Set(configs.filter((c) => c.active).map((c) => c.slug));
   } catch {
-    activeSlugs = new Set(CONFIGURATORS.map((c) => c.slug).filter((s): s is string => !!s));
+    activeSlugs = new Set(CONFIGURATORS.map((c) => c.slug));
   }
-  const configurators = CONFIGURATORS.filter((c) => c.slug === null || activeSlugs.has(c.slug));
+  const configurators = CONFIGURATORS.filter((c) => activeSlugs.has(c.slug));
 
   return (
     <>
