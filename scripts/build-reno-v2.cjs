@@ -708,6 +708,10 @@ const def = {
     // Renobox — lame 56 coffre 250 (Gros coffre)
     r56_250_mn_filaire: 'REN25A56FILMN', r56_250_mn_radio: 'REN25A56RADMN',
     r56_250_somfy_filaire: 'REN25A56FILSO', r56_250_somfy_radio: 'REN25A56RS100SO',
+    // Barèmes de verrouillage (1D) — sinon anonymes (B1/B2/B3) à l'export.
+    dva_r42: 'Verrous auto DVA · L42',
+    dva_r56_205: 'Verrous auto DVA · L56 C205',
+    ar_r56_250: 'Attaches rigides · L56 C250',
   },
   constraints,
 };
