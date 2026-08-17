@@ -13,10 +13,14 @@ const V = (name) => ({ var: name });
 const eq = (name, val) => ({ op: 'eq', left: V(name), right: val });
 const inSet = (name, set) => ({ op: 'in', value: V(name), set });
 
-// Lames selon l'option attache/verrou :
+// Verrouillage = UN SEUL choix par lame (mutuellement exclusif) :
+//  - lames « souples » (toutes sauf alu-77) : Attaches souples (défaut, 0 €) OU
+//    Attaches rigides (+PV) OU Verrous automatiques (+PV) ;
+//  - alu-77 (agrafé, sans attache) : Sans (défaut, 0 €) OU Verrous automatiques (+PV).
+const LAMES_SOUPLE = LAMES.filter((l) => l.attacheParDefaut !== 'verrou').map((l) => l.slug); // défaut « souple »
+const LAMES_AGRAFE = LAMES.filter((l) => l.attacheParDefaut === 'verrou').map((l) => l.slug); // alu-77 : défaut « sans »
 const LAMES_WITH_ATTACHE = LAMES.filter((l) => l.pvAttache).map((l) => l.slug);
-const LAMES_VERROU_OPT = LAMES.filter((l) => l.pvVerrou && l.attacheParDefaut !== 'verrou').map((l) => l.slug);
-const LAMES_VERROU_INCLUS = LAMES.filter((l) => l.attacheParDefaut === 'verrou').map((l) => l.slug); // alu-77
+const LAMES_WITH_VERROU = LAMES.filter((l) => l.pvVerrou).map((l) => l.slug);
 
 // ---- TABLES (grilles 2D + barèmes 1D) + libellés d'onglets Excel ----
 const d2 = {};
@@ -67,15 +71,15 @@ const fields = [
   { id: 'coloris', label: 'Coloris', type: 'choice', options: colorisOptions },
   { id: 'largeur', label: 'Largeur', type: 'dimension', unit: 'mm', min: largeurMin, max: largeurMax, step: 1, default: 1200 },
   { id: 'hauteur', label: 'Hauteur', type: 'dimension', unit: 'mm', min: hauteurMin, max: hauteurMax, step: 1, default: 1500 },
-  { id: 'attache', label: 'Attaches rigides', type: 'choice', default: 'non',
-    options: [{ value: 'non', label: 'Non' }, { value: 'oui', label: 'Oui' }],
-    visibleWhen: inSet('lame', LAMES_WITH_ATTACHE) },
-  { id: 'verrou', label: 'Verrous automatiques avec bagues', type: 'choice', default: 'non',
-    options: [{ value: 'non', label: 'Non' }, { value: 'oui', label: 'Oui' }],
-    visibleWhen: inSet('lame', LAMES_VERROU_OPT) },
-  { id: 'verrou_info', label: 'Verrouillage', type: 'info',
-    help: 'Ce tablier est fourni sans attaches rigides — verrous automatiques inclus.',
-    visibleWhen: inSet('lame', LAMES_VERROU_INCLUS) },
+  // Verrouillage : un seul choix (exclusif). Les options dispo dépendent de la lame.
+  { id: 'verrouillage', label: 'Attaches & verrouillage', type: 'choice', default: 'souple',
+    help: 'Attaches souples incluses. En option (plus-value) : attaches rigides OU verrous automatiques — pas les deux.',
+    options: [
+      { value: 'souple', label: 'Attaches souples (incluses)', availableWhen: inSet('lame', LAMES_SOUPLE) },
+      { value: 'sans', label: 'Agrafé — sans attache de verrouillage', availableWhen: inSet('lame', LAMES_AGRAFE) },
+      { value: 'rigide', label: 'Attaches rigides (+ plus-value)', availableWhen: inSet('lame', LAMES_WITH_ATTACHE) },
+      { value: 'verrou', label: 'Verrous automatiques avec bagues (+ plus-value)', availableWhen: inSet('lame', LAMES_WITH_VERROU) },
+    ] },
 ];
 
 // ---- RÈGLES DE PRIX (iso lib/tablier/engine) ----
@@ -83,14 +87,10 @@ const priceRules = [
   { code: 'base', label: 'Tablier (barème)', kind: 'base',
     amount: { op: 'lookup2d', table: { op: 'concat', args: ['tab_', V('lame')] }, row: V('hauteur'), col: V('largeur') } },
   { code: 'attache', label: 'Attaches rigides', kind: 'add',
-    when: { all: [eq('attache', 'oui'), inSet('lame', LAMES_WITH_ATTACHE)] },
+    when: eq('verrouillage', 'rigide'),
     amount: { op: 'lookup1d', table: { op: 'concat', args: ['att_', V('lame')] }, key: V('largeur') } },
   { code: 'verrou', label: 'Verrous automatiques', kind: 'add',
-    when: { all: [eq('verrou', 'oui'), inSet('lame', LAMES_VERROU_OPT)] },
-    amount: { op: 'lookup1d', table: { op: 'concat', args: ['ver_', V('lame')] }, key: V('largeur') } },
-  // alu-77 : verrous inclus de série (fourni sans attaches) → toujours ajoutés.
-  { code: 'verrou_inclus', label: 'Verrous automatiques (inclus)', kind: 'add',
-    when: inSet('lame', LAMES_VERROU_INCLUS),
+    when: eq('verrouillage', 'verrou'),
     amount: { op: 'lookup1d', table: { op: 'concat', args: ['ver_', V('lame')] }, key: V('largeur') } },
 ];
 
@@ -98,7 +98,7 @@ const steps = [
   { id: 'lame', title: 'Matière & lame', fields: ['matiere', 'lame'] },
   { id: 'coloris', title: 'Coloris', fields: ['coloris'] },
   { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur'] },
-  { id: 'options', title: 'Options', fields: ['attache', 'verrou', 'verrou_info'] },
+  { id: 'options', title: 'Options', fields: ['verrouillage'] },
   { id: 'recap', title: 'Récapitulatif', fields: [] },
 ];
 
