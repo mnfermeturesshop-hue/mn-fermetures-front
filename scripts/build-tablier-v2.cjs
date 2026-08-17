@@ -11,6 +11,9 @@ const LAMES = require('../lib/configurateur/data/tablier-lames.json');
 
 const V = (name) => ({ var: name });
 const eq = (name, val) => ({ op: 'eq', left: V(name), right: val });
+const ne = (name, val) => ({ op: 'ne', left: V(name), right: val });
+const gte = (name, n) => ({ op: 'gte', left: V(name), right: n });
+const lte = (name, n) => ({ op: 'lte', left: V(name), right: n });
 const inSet = (name, set) => ({ op: 'in', value: V(name), set });
 
 // Verrouillage = UN SEUL choix par lame (mutuellement exclusif) :
@@ -105,11 +108,26 @@ const steps = [
   { id: 'recap', title: 'Récapitulatif', fields: [] },
 ];
 
+// ---- CONTRAINTES : plage largeur/hauteur PAR LAME (message ciblé si hors plage) ----
+const constraints = [];
+for (const l of LAMES) {
+  const lmin = l.largeurs[0], lmax = l.largeurs[l.largeurs.length - 1];
+  const hmin = l.hauteurs[0], hmax = l.hauteurs[l.hauteurs.length - 1];
+  constraints.push({
+    requires: { any: [ne('lame', l.slug), { all: [gte('largeur', lmin), lte('largeur', lmax)] }] },
+    message: `Largeur hors plage pour ${l.nom} : ${lmin} à ${lmax} mm.`,
+  });
+  constraints.push({
+    requires: { any: [ne('lame', l.slug), { all: [gte('hauteur', hmin), lte('hauteur', hmax)] }] },
+    message: `Hauteur hors plage pour ${l.nom} : ${hmin} à ${hmax} mm.`,
+  });
+}
+
 const def = {
   // Rattaché au nœud de nomenclature `tabliers-seuls` : remise B2B / surcharge / éco
   // résolues sur ce nœud (verifyCart branche `configurateur`).
   slug: 'tablier-sur-mesure', name: 'Tablier sur mesure', famille: 'tabliers-seuls',
-  fields, steps, priceRules, tables: { d1, d2 }, tableLabels, constraints: [],
+  fields, steps, priceRules, tables: { d1, d2 }, tableLabels, constraints,
 };
 
 const out = path.join(__dirname, '..', 'lib', 'configurateur', 'data', 'tablier-sur-mesure.v2.json');
