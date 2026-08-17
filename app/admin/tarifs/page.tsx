@@ -6,6 +6,9 @@ import type { Brand, Category } from '@/lib/catalog/types';
 import { toast } from '@/components/ui/Toast';
 
 interface PriceRow {
+  /** Identifiant UNIQUE de ligne (une même référence peut exister dans plusieurs
+   *  produits/catégories → on ne peut pas se fier à la seule référence). */
+  uid: string;
   slug: string;
   name: string;
   reference: string;
@@ -45,10 +48,12 @@ export default function AdminTarifs() {
   useEffect(() => {
     Promise.all([getAllProducts(), getAllCategories(), getAllBrands()]).then(([products, cats, brs]) => {
       const list: PriceRow[] = [];
+      let n = 0;
       for (const p of products) {
         if (p.pricingType === 'unit') {
           for (const v of p.variants) {
             list.push({
+              uid: `${p.slug}::variant::${v.reference}::${n++}`,
               slug: p.slug, name: p.name, reference: v.reference, label: v.label ?? '',
               kind: 'variant', categorySlug: p.categorySlug, brandSlug: p.brandSlug,
               priceHT: v.priceHT, dirty: false, saving: false,
@@ -57,6 +62,7 @@ export default function AdminTarifs() {
         } else if (p.pricingType === 'kit') {
           for (const c of p.configs) {
             list.push({
+              uid: `${p.slug}::kit::${c.reference}::${n++}`,
               slug: p.slug, name: p.name, reference: c.reference, label: c.label ?? '',
               kind: 'kit', categorySlug: p.categorySlug, brandSlug: p.brandSlug,
               priceHT: c.priceHT, dirty: false, saving: false,
@@ -99,19 +105,19 @@ export default function AdminTarifs() {
     return brands.filter((b) => set.has(b.slug));
   }, [rows, brands]);
 
-  const setPrice = (kind: string, reference: string, value: number) => {
-    setRows((prev) => prev.map((r) => (r.reference === reference && r.kind === kind ? { ...r, priceHT: value, dirty: true } : r)));
+  const setPrice = (uid: string, value: number) => {
+    setRows((prev) => prev.map((r) => (r.uid === uid ? { ...r, priceHT: value, dirty: true } : r)));
   };
 
   const saveRow = async (row: PriceRow) => {
-    setRows((prev) => prev.map((r) => (r.reference === row.reference && r.kind === row.kind ? { ...r, saving: true } : r)));
+    setRows((prev) => prev.map((r) => (r.uid === row.uid ? { ...r, saving: true } : r)));
     try {
       await pushPrices([{ slug: row.slug, kind: row.kind, reference: row.reference, priceHT: row.priceHT }]);
-      setRows((prev) => prev.map((r) => (r.reference === row.reference && r.kind === row.kind ? { ...r, dirty: false, saving: false } : r)));
+      setRows((prev) => prev.map((r) => (r.uid === row.uid ? { ...r, dirty: false, saving: false } : r)));
       toast.success(`Prix mis à jour — ${row.reference}`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Erreur lors de la mise à jour');
-      setRows((prev) => prev.map((r) => (r.reference === row.reference && r.kind === row.kind ? { ...r, saving: false } : r)));
+      setRows((prev) => prev.map((r) => (r.uid === row.uid ? { ...r, saving: false } : r)));
     }
   };
 
@@ -180,7 +186,7 @@ export default function AdminTarifs() {
             </thead>
             <tbody>
               {filtered.map((row) => (
-                <tr key={`${row.kind}:${row.reference}`} className={`adm-tr ${row.dirty ? 'adm-tr-dirty' : ''}`}>
+                <tr key={row.uid} className={`adm-tr ${row.dirty ? 'adm-tr-dirty' : ''}`}>
                   <td>
                     <span className="ref">{row.reference}</span>
                     {row.kind === 'kit' && <span className="adm-kind-badge">kit</span>}
@@ -196,7 +202,7 @@ export default function AdminTarifs() {
                       step="0.01"
                       className="adm-price-input"
                       value={row.priceHT}
-                      onChange={(e) => setPrice(row.kind, row.reference, parseFloat(e.target.value) || 0)}
+                      onChange={(e) => setPrice(row.uid, parseFloat(e.target.value) || 0)}
                     />
                   </td>
                   <td>
