@@ -1450,6 +1450,41 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 }
 .zoom-close:hover { background: #f1f5f9; color: #0f172a; }
 
+/* Fiche moteur — bouton + modale « Abaques moteurs » */
+.abaque-btn { width: 100%; margin-top: 10px; }
+.abaque-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,.6);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 24px 16px; overflow-y: auto;
+  animation: fadeIn .15s ease;
+}
+.abaque-modal {
+  position: relative; width: 100%; max-width: 760px;
+  background: #fff; border-radius: 14px;
+  box-shadow: 0 24px 80px rgba(0,0,0,.5);
+  margin: auto;
+}
+.abaque-modal-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 16px 20px; border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; background: #fff; border-radius: 14px 14px 0 0;
+}
+.abaque-modal-head h2 { margin: 0; font-size: 17px; color: var(--navy-700); }
+.abaque-close {
+  background: none; border: none; font-size: 20px; color: #64748b;
+  cursor: pointer; line-height: 1; padding: 4px 8px; border-radius: 6px;
+  transition: background .15s, color .15s;
+}
+.abaque-close:hover { background: #f1f5f9; color: #0f172a; }
+.abaque-modal-body { padding: 16px 20px 22px; }
+.abaque-modal-intro { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
+/* Verdict de compatibilité */
+.abaque-verdict { margin-top: 12px; padding: 12px 14px; border-radius: 10px;
+  font-size: 14px; font-weight: 600; line-height: 1.45; }
+.abaque-verdict--ok { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+.abaque-verdict--ko { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
+
 /* Admin login */
 .adm-login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0f172a; }
 .adm-login-box { width: 100%; max-width: 380px; padding: 40px 36px; background: #1e293b; border-radius: 16px; box-shadow: 0 8px 40px rgba(0,0,0,.4); }

@@ -9,6 +9,7 @@ import { TablierConfigurator } from '@/components/product/TablierConfigurator';
 import { KitConfigurator } from '@/components/product/KitConfigurator';
 import { UnitProductPanel } from '@/components/product/UnitProductPanel';
 import { StickyAddBar } from '@/components/product/StickyAddBar';
+import { MotorAbaqueButton } from '@/components/product/MotorAbaqueButton';
 import { ReassuranceStrip } from '@/components/ui/ReassuranceStrip';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
@@ -80,6 +81,12 @@ export default async function ProductPage({ params }: Props) {
   const pill     = PILL[product.pricingType] ?? PILL.unit;
   const prixFrom = priceFrom(product);
   const specs    = product.specs ? Object.entries(product.specs) : [];
+
+  // Fiche moteur : le nom commence par « Moteur » et porte la puissance (ex. « … 50 nm »).
+  // → bouton « Abaques moteurs » (vérification de compatibilité) dans le panneau d'achat.
+  const isMotor  = /^\s*moteur\b/i.test(product.name);
+  const motorNmRaw = isMotor ? Number(product.name.match(/(\d+)\s*nm/i)?.[1]) : NaN;
+  const motorNm  = Number.isFinite(motorNmRaw) ? motorNmRaw : undefined;
 
   const crumbs = [
     { label: 'Accueil', href: '/' },
@@ -180,6 +187,8 @@ export default async function ProductPage({ params }: Props) {
                   <div id="unit-panel">
                     <UnitProductPanel product={product} />
                   </div>
+                  {/* Fiche moteur : aide au choix via les abaques moteurs */}
+                  {isMotor && <MotorAbaqueButton nm={motorNm} />}
                   {/* Au mètre : la longueur se saisit dans le panneau → pas d'ajout rapide */}
                   {product.uom !== 'ml' && <StickyAddBar product={product} panelId="unit-panel" />}
                 </>
