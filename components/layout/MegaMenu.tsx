@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { MENU, isNavGroup } from '@/lib/catalog/mock';
+import { useActiveConfigurators } from '@/lib/configurateur/useActiveConfigurators';
 
 export function MegaMenu() {
   const [openKey, setOpenKey] = useState<string | null>(null);
   const pathname = usePathname();
+  const { isConfigHidden } = useActiveConfigurators();
 
   // Fermer le menu à chaque navigation
   useEffect(() => { setOpenKey(null); }, [pathname]);
@@ -45,8 +47,9 @@ export function MegaMenu() {
               {item.children && isOpen && (
                 <div className={`mega ${hasGroups ? 'mega-cols' : 'mega-simple'}`}>
 
-                  {/* Liste simple (ex : Tabliers) */}
-                  {!hasGroups && item.children.map((leaf) => (
+                  {/* Liste simple (ex : Configurateur sur mesure) — masque les
+                      configurateurs désactivés (ex. store banne). */}
+                  {!hasGroups && item.children.filter((leaf) => !isConfigHidden(leaf.href)).map((leaf) => (
                     <Link
                       href={leaf.href}
                       key={leaf.href}

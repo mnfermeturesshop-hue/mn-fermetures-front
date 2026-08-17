@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { MENU, isNavGroup } from '@/lib/catalog/mock';
+import { useActiveConfigurators } from '@/lib/configurateur/useActiveConfigurators';
 import { useCartStore } from '@/lib/store/cart';
 import { useAuthStore } from '@/lib/store/auth';
 import { toast } from '@/components/ui/Toast';
@@ -38,6 +39,7 @@ export function MobileMenu({ isOpen, onClose }: Props) {
   const { totalLines, openCart }    = useCartStore();
   const { user, isPro, logout }     = useAuthStore();
   const router = useRouter();
+  const { isConfigHidden } = useActiveConfigurators();
   const count  = totalLines();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -233,7 +235,7 @@ export function MobileMenu({ isOpen, onClose }: Props) {
                       Tout voir — {top.name}
                     </Link>
 
-                    {top.children.map((child) => {
+                    {top.children.filter((child) => !isConfigHidden(child.href)).map((child) => {
                       if (!isNavGroup(child)) {
                         return (
                           <Link key={child.href} href={child.href} className="mob-sub-item" onClick={onClose}>
