@@ -245,15 +245,9 @@ const PDG_TAB = {
   g_independant_55_mn_radio: 'TRAZFA55RADMN',
   g_independant_55_somfy_filaire: 'TRAZFA55FILSO',
   g_independant_55_somfy_radio: 'TRADZFA55RS100SO',
-  // Coffre
-  g_coffre_cd942_mn_filaire: 'TRACTA45FILMN',
-  g_coffre_cd942_mn_radio: 'TRACTA45RADMN',
-  g_coffre_cd942_somfy_filaire: 'TRACTA45FILSO',
-  g_coffre_cd942_somfy_radio: 'TRACTA45RS100SO',
-  g_coffre_56_mn_filaire: 'TRACTA56FILMN',
-  g_coffre_56_mn_radio: 'TRACTA56RADMN',
-  g_coffre_56_somfy_filaire: 'TRACTA56FILSO',
-  g_coffre_56_somfy_radio: 'TRACTA56RS100SO',
+  // NB : les grilles « Coffre » (pose=coffre) sont MORTES (jamais lues : le volet+coffre
+  // 1.1.2 utilise les grilles tc*, le coffre-seul 1.1.3 les barèmes cs_). Elles ne sont
+  // plus générées ; les codes PDG TRACTA45/56 sont appliqués aux grilles VIVANTES tc*.
   // Express
   g_express_cd942_mn_filaire: 'TRAEXA45FILMN',
   g_express_cd942_mn_radio: 'TRAEXA45RADMN',
@@ -263,6 +257,8 @@ const PDG_TAB = {
 const d2 = {};
 const gridTableId = (k, layer) => `g_${k.pose}_${k.lame}_${k.moteur}_${layer}`;
 for (const g of v1.grids) {
+  // Grilles « coffre » héritées = MORTES (doublon inerte des grilles tc*). On les retire.
+  if (g.key.pose === 'coffre') continue;
   for (const [layer, lg] of Object.entries(g.layers)) {
     const id = gridTableId(g.key, layer);
     d2[id] = {
@@ -331,7 +327,12 @@ priceRules.push({ code: 'base', label: 'Prix de base', kind: 'base',
 // par ces anciens ajustements.
 const COFFRE_PVC = ['coffre_briquelite', 'coffre_neothermic', 'coffre_neobric'];
 // somfy_rts (RTS Smoove +55 €) retiré : plus proposé.
-const adjustments = v1.adjustments.filter((a) => !COFFRE_PVC.includes(a.code) && a.code !== 'somfy_rts');
+// Ajustements de scope pose='coffre' retirés : la pose 'coffre' n'existe que pour le
+// coffre-seul (1.1.3), qui neutralise attaches/manœuvre → ces ajustements sont MORTS
+// (barèmes en doublon inerte des versions Indép/tc). Retrait pour supprimer les doublons.
+const adjustments = v1.adjustments.filter(
+  (a) => !COFFRE_PVC.includes(a.code) && a.code !== 'somfy_rts' && (a.scope && a.scope.pose) !== 'coffre',
+);
 const optionalCodes = {}; // code -> [conditions par ajustement]
 adjustments.forEach((adj, i) => {
   const tid = `adj_${i}`;
@@ -780,11 +781,17 @@ const steps = [
 // Grilles + barèmes « Volet + coffre » (1.1.2) fusionnés dans les tables (base tc… + PV).
 Object.assign(d2, tcGrids);
 Object.assign(d1, tcAdjust);
+// Grilles VIVANTES « Volet + coffre » (1.1.2) = les vrais onglets Coffre → codes PDG.
+// + libellés lisibles pour les barèmes PV coffre / sous-face / AR (sinon anonymes).
 Object.assign(tableLabels, {
-  tc42_mn_filaire: 'Volet+coffre L42 · MN Filaire', tc42_mn_radio: 'Volet+coffre L42 · MN Radio',
-  tc42_somfy_filaire: 'Volet+coffre L42 · Somfy Filaire', tc42_somfy_radio: 'Volet+coffre L42 · Somfy Radio',
-  tc56_mn_filaire: 'Volet+coffre L56 · MN Filaire', tc56_mn_radio: 'Volet+coffre L56 · MN Radio',
-  tc56_somfy_filaire: 'Volet+coffre L56 · Somfy Filaire', tc56_somfy_radio: 'Volet+coffre L56 · Somfy Radio',
+  tc42_mn_filaire: 'TRACTA45FILMN', tc42_mn_radio: 'TRACTA45RADMN',
+  tc42_somfy_filaire: 'TRACTA45FILSO', tc42_somfy_radio: 'TRACTA45RS100SO',
+  tc56_mn_filaire: 'TRACTA56FILMN', tc56_mn_radio: 'TRACTA56RADMN',
+  tc56_somfy_filaire: 'TRACTA56FILSO', tc56_somfy_radio: 'TRACTA56RS100SO',
+  pv_briquelite_tc42: 'PV Briquélite L42', pv_neothermic_tc42: 'PV NeoThermic L42',
+  pv_neobric_tc42: 'PV NeoBric L42', pv_sousface_tc42: 'PV sous-face L42', ar_tc42: 'AR moins-value L42',
+  pv_briquelite_tc56: 'PV Briquélite L56', pv_neothermic_tc56: 'PV NeoThermic L56',
+  pv_neobric_tc56: 'PV NeoBric L56', pv_sousface_tc56: 'PV sous-face L56', ar_tc56: 'AR moins-value L56',
 });
 
 const def = {
