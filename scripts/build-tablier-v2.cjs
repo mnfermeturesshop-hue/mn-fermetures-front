@@ -80,6 +80,7 @@ const fields = [
   // Verrouillage : un seul choix (exclusif). Les options dispo dépendent de la lame.
   { id: 'verrouillage', label: 'Attaches & verrouillage', type: 'choice', default: 'souple',
     help: 'Attaches souples incluses. En option (plus-value) : attaches rigides OU verrous automatiques — pas les deux.',
+    helpImage: '/schema-tablier-verrouillage.png',
     options: [
       { value: 'souple', label: 'Attaches souples (incluses)', availableWhen: inSet('lame', LAMES_SOUPLE) },
       { value: 'sans', label: 'Agrafé — sans attache de verrouillage', availableWhen: inSet('lame', LAMES_AGRAFE) },
