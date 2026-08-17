@@ -693,19 +693,21 @@ const def = {
   famille: 'reno', nodeField: 'sous_famille',
   fields, derived, steps, priceRules,
   tables: { d1: renoAdjust, d2: { ...grids, ...renoGrids } },
+  // Libellés d'onglets Excel = nomenclature PDG (renommage valide). Le round-trip
+  // garde l'id (cellule A1) comme ancre — le nom de feuille n'est qu'un affichage.
   tableLabels: {
-    // Minibox
-    g_mn_filaire: 'Minibox · MN Filaire', g_mn_radio: 'Minibox · MN Radio',
-    g_somfy_filaire: 'Minibox · Somfy Ilmo (filaire)', g_somfy_radio: 'Minibox · Somfy RS100 io (radio)',
+    // Minibox (lame alu 37)
+    g_mn_filaire: 'MINIA37FILMN', g_mn_radio: 'MINIA37RADMN',
+    g_somfy_filaire: 'MINIA37FILSO', g_somfy_radio: 'MINIA37RS100SO',
     // Renobox — lame 42 (coffre auto par hauteur)
-    r42_mn_filaire: 'Renobox L42 · MN Filaire', r42_mn_radio: 'Renobox L42 · MN Radio',
-    r42_somfy_filaire: 'Renobox L42 · Somfy Filaire', r42_somfy_radio: 'Renobox L42 · Somfy Radio',
+    r42_mn_filaire: 'RENA45FILMN', r42_mn_radio: 'RENA45RADMN',
+    r42_somfy_filaire: 'RENA45FILSO', r42_somfy_radio: 'RENA45RS100SO',
     // Renobox — lame 56 coffre 205
-    r56_205_mn_filaire: 'Renobox L56 C205 · MN Filaire', r56_205_mn_radio: 'Renobox L56 C205 · MN Radio',
-    r56_205_somfy_filaire: 'Renobox L56 C205 · Somfy Filaire', r56_205_somfy_radio: 'Renobox L56 C205 · Somfy Radio',
-    // Renobox — lame 56 coffre 250
-    r56_250_mn_filaire: 'Renobox L56 C250 · MN Filaire', r56_250_mn_radio: 'Renobox L56 C250 · MN Radio',
-    r56_250_somfy_filaire: 'Renobox L56 C250 · Somfy Filaire', r56_250_somfy_radio: 'Renobox L56 C250 · Somfy Radio',
+    r56_205_mn_filaire: 'RENA56FILMN', r56_205_mn_radio: 'RENA56RADMN',
+    r56_205_somfy_filaire: 'RENA56FILSO', r56_205_somfy_radio: 'RENA56RS100SO',
+    // Renobox — lame 56 coffre 250 (Gros coffre)
+    r56_250_mn_filaire: 'REN25A56FILMN', r56_250_mn_radio: 'REN25A56RADMN',
+    r56_250_somfy_filaire: 'REN25A56FILSO', r56_250_somfy_radio: 'REN25A56RS100SO',
   },
   constraints,
 };
