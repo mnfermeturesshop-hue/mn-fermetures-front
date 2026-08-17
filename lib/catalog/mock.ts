@@ -44,15 +44,14 @@ export const isNavGroup = (item: NavLeaf | NavGroup): item is NavGroup =>
 
 export const MENU: NavTop[] = [
   {
-    name: 'Nos gammes', href: '/gammes', icon: '🗂',
-    subtitle: 'Par nomenclature',
-  },
-  {
-    name: 'Volet sur mesure', href: '/configurateur/volet-roulant-traditionnel', icon: '▦',
+    name: 'Configurateur sur mesure', href: '/configurateur/volet-roulant-traditionnel', icon: '▦',
     subtitle: 'Prix instantané',
-  },
-  {
-    name: 'Tabliers', href: '/configurateur', icon: '▤',
+    children: [
+      { name: 'Volet roulant traditionnel', href: '/configurateur/volet-roulant-traditionnel' },
+      { name: 'Volet roulant rénovation',   href: '/configurateur/volet-roulant-renovation' },
+      { name: 'Store banne',                href: '/configurateur/store-banne' },
+      { name: 'Tablier sur mesure',         href: '/configurateur/tablier-sur-mesure' },
+    ],
   },
   {
     name: 'Kits axes', href: '/catalogue/kits-axes', icon: '⚙',
@@ -126,9 +125,6 @@ export const MENU: NavTop[] = [
       { name: 'Manœuvres manuelles', href: '/catalogue/manoeuvres-manuelles', children: [] },
       { name: 'Aide à la pose',      href: '/catalogue/aide-a-la-pose',       children: [] },
     ],
-  },
-  {
-    name: 'Aide à la pose', href: '/catalogue/aide-a-la-pose',
   },
   {
     name: 'Documentation', href: '/documentation', icon: '📄', subtitle: 'Guides techniques',
