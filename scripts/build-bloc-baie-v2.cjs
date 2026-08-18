@@ -99,7 +99,7 @@ const fields = [
     ] },
 
   { id: 'lamefinale_coloris', label: 'Coloris lame finale (alu)', type: 'choice', default: 'blanc-9010',
-    help: 'Lame finale toujours en aluminium. Coloris hors standard : +18 €/ml largeur + 77 € forfait.',
+    help: 'Lame finale toujours en aluminium. Coloris laqué (hors standard) : +18 €/ml largeur + forfait laquage 77 € par commande (offert dès 2000 € HT).',
     options: [...LF_STD, ...LF_OPT].map((c) => opt(c)) },
 
   // Coulisse : type (selon lame + débord) + débord + coloris + perçage.
@@ -236,8 +236,10 @@ priceRules.push({ code: 'cache_vis', label: 'Cache-vis larges', kind: 'add', whe
 
 // Tablier coloris option (+14 €/m²).
 priceRules.push({ code: 'tablier_col', label: 'Coloris tablier (option)', kind: 'add', when: inSet('tablier_coloris', TAB_ALU_OPT_ALL), amount: round2({ op: '*', args: [14, V('surface_m2')] }) });
-// Lame finale coloris option (+18 €/ml largeur + 77 € forfait).
-priceRules.push({ code: 'lamefinale_col', label: 'Coloris lame finale (option)', kind: 'add', when: inSet('lamefinale_coloris', LF_OPT), amount: round2({ op: '+', args: [perMlLarg(18), 77] }) });
+// Lame finale laquée : +18 €/ml largeur. Le code `color_*_pv` déclenche le FORFAIT LAQUAGE
+// par commande (77 € si total < 2000 € HT, offert au-delà — mécanisme partagé Tradi/Réno,
+// géré par verifyCart), donc PAS de +77 € en dur ici.
+priceRules.push({ code: 'color_lamefinale_pv', label: 'Coloris lame finale (laqué)', kind: 'add', when: inSet('lamefinale_coloris', LF_OPT), amount: perMlLarg(18) });
 
 // Coulisse profil — plus-value €/ml hauteur.
 priceRules.push({ code: 'coulisse_pv18', label: 'Coulisse (plus-value)', kind: 'add', when: inSet('coulisse_type', ['alu53x22-aile', 'alu60x30', 'pvc40x30']), amount: perMlHaut(18) });
