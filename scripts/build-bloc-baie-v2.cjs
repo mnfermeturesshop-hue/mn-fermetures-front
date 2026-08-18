@@ -215,6 +215,15 @@ const derived = [
   { id: 'marque_eff', expr: { op: 'if', cond: eq('manoeuvre', 'manuelle'), then: 'mn', else: V('marque') } },
   { id: 'grid', expr: { op: 'concat', args: ['bb_', V('lame'), '_', V('marque_eff'), '_', V('layer')] } },
   { id: 'surface_m2', expr: { op: '*', args: [{ op: '/', args: [V('largeur'), 1000] }, { op: '/', args: [V('hauteur'), 1000] }] } },
+  // Largeur MINI. Lame 56 → 700 (toutes motorisations). PVC 40 / Alu 42 → bornes basses des
+  // bandes L-mini : manuelle/filaire MN 375 · filaire Somfy 400 · solaire 508 · radio MN 596 · radio Somfy 400.
+  { id: 'l_min', expr: {
+    op: 'if', cond: eq('lame', 'alu56'), then: 700,
+    else: { op: 'if', cond: eq('manoeuvre', 'manuelle'), then: 375,
+      else: { op: 'if', cond: eq('motorisation', 'solaire'), then: 508,
+        else: { op: 'if', cond: eq('motorisation', 'filaire'),
+          then: { op: 'if', cond: eq('marque', 'mn'), then: 375, else: 400 },
+          else: { op: 'if', cond: eq('marque', 'mn'), then: 596, else: 400 } } } } } },
 ];
 
 // ── RÈGLES DE PRIX ──
@@ -281,6 +290,9 @@ for (const lame of ['pvc40', 'alu42', 'alu56']) {
   constraints.push({ requires: ANY([ne('lame', lame), lte('hauteur', H_MAX[lame])]), message: `Hauteur hors plage pour cette lame (max ${H_MAX[lame]} mm).` });
   constraints.push({ requires: ANY([ne('lame', lame), lte('largeur', L_MAX[lame])]), message: `Largeur hors plage pour cette lame (max ${L_MAX[lame]} mm).` });
 }
+// Minimums : hauteur ≥ 850 mm (toutes lames) ; largeur ≥ l_min (selon lame + motorisation).
+constraints.push({ requires: gte('hauteur', 850), message: 'Hauteur minimale : 850 mm.' });
+constraints.push({ requires: { op: 'gte', left: V('largeur'), right: V('l_min') }, message: 'Largeur inférieure au minimum autorisé (dépend de la lame et de la motorisation).' });
 
 // ── ÉTAPES ──
 const steps = [
