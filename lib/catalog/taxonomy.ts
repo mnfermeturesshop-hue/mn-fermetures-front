@@ -40,7 +40,7 @@ const TREE: SeedGamme[] = [
     { name: 'Reno', slug: 'reno', generatorSlug: 'volet-roulant-renovation', children: [
       { name: 'Minibox', slug: 'minibox' }, { name: 'Renobox', slug: 'renobox' }, { name: 'Reno gros coffre', slug: 'reno-gros-coffre' },
     ] },
-    { name: 'Bloc baie', slug: 'bloc-baie', children: [
+    { name: 'Bloc baie', slug: 'bloc-baie', generatorSlug: 'volet-roulant-bloc-baie', children: [
       { name: 'Bloc baie intérieur neuf', slug: 'bloc-baie-int-neuf' }, { name: 'Bloc baie intérieur réno', slug: 'bloc-baie-int-reno' },
       { name: 'Bloc baie extérieur', slug: 'bloc-baie-ext' }, { name: 'Bloc baie ½ linteau', slug: 'bloc-baie-demi-linteau' },
     ] },
