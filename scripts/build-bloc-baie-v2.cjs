@@ -101,7 +101,7 @@ const fields = [
     ] },
 
   { id: 'lamefinale_coloris', label: 'Coloris lame finale (alu)', type: 'choice', default: 'blanc-9010',
-    help: 'Lame finale toujours en aluminium. Coloris laqué (hors standard) : +18 €/ml largeur + forfait laquage 77 € par commande (offert dès 2000 € HT).',
+    help: 'Lame finale toujours en aluminium. Coloris laqué (hors standard) : +18 €/ml largeur + forfait laquage 77 € par commande (offert dès 1500 € HT).',
     options: [...LF_STD, ...LF_OPT].map((c) => opt(c)) },
 
   // Coulisse : type (selon lame + débord) + débord + coloris + perçage.
@@ -293,17 +293,46 @@ const steps = [
   { id: 'recap', title: 'Récapitulatif', fields: [] },
 ];
 
-// coulisse_coloris (barème €/ml hauteur simplifié — PVC vs Alu selon le profil).
-const COUL_PVC = ['pvc60x30', 'pvc40x30'];
+// ── Coloris coulisse (corrections PDG) — 4 schémas de prix selon le profil ──
+//  PVC (60×30/40×30) ; Alu-A (40×30/60×30/53×22-aile) ; Alu-B (45×22/53×22/45×27/66×27) ;
+//  Alu-Z2 (53×22-Z2). Les coloris LAQUÉS (+42 €/ml haut.) déclenchent le forfait laquage
+//  (code color_*_pv, 77 €/commande offert ≥ 1500 €). Le Z2 laque même les coloris standard.
+const COUL_PVC_T = ['pvc60x30', 'pvc40x30'];
+const COUL_A_T = ['alu40x30', 'alu60x30', 'alu53x22-aile'];
+const COUL_B_T = ['alu45x22', 'alu53x22', 'alu45x27', 'alu66x27'];
+const COUL_Z2_T = ['alu53x22-z2'];
+const COUL_ALU_T = [...COUL_A_T, ...COUL_B_T, ...COUL_Z2_T];
+const ALU_STD_C = ['ivoire-1015', 'gris-7035', 'gris-7038', 'gris-7016', 'alu-9006', 'marron-8019'];
+const ALU_LAQUE_C = ['rouge-3004', 'bleu-5011', 'vert-6005', 'vert-6009', 'vert-6021', 'gris-7021', 'gris-7022', 'gris-7039', 'marron-8014', 'noir-9005', 'ral-9007', 'noir-2100-sable', 'gris-2900-sable'];
+
 fields.splice(fields.findIndex((f) => f.id === 'percage'), 0, {
   id: 'coulisse_coloris', label: 'Coloris coulisse', type: 'choice', default: 'blanc-9010',
-  help: 'PVC : +14,3/29 €/ml haut. selon coloris. Alu : +42 €/ml haut. hors blanc.',
-  options: [opt('blanc-9010'), opt('ivoire-1015'), opt('beige-pvc'), opt('gris-7035'), opt('gris-pvc'), opt('gris-7038'), opt('gris-7016'), opt('alu-9006'), opt('marron-8019'), opt('chene-dore')],
+  help: 'PVC : Ivoire/Gris 7035 +14,3 €/ml haut., Gris 7016 +29. Alu : +42 €/ml haut. (coloris laqués : + forfait laquage 77 €/commande).',
+  options: [
+    opt('blanc-9010'), opt('ivoire-1015'), opt('gris-7035'), opt('gris-7016'),
+    opt('gris-7038', { availableWhen: inSet('coulisse_type', COUL_ALU_T) }),
+    opt('alu-9006', { availableWhen: inSet('coulisse_type', COUL_ALU_T) }),
+    opt('marron-8019', { availableWhen: inSet('coulisse_type', COUL_ALU_T) }),
+    ...ALU_LAQUE_C.map((c) => opt(c, { availableWhen: inSet('coulisse_type', COUL_ALU_T) })),
+    opt('chene-dore', { availableWhen: inSet('coulisse_type', COUL_B_T) }),
+  ],
 });
-// PV coulisse coloris : PVC (14,3 / 29) vs Alu (42) €/ml hauteur.
-priceRules.push({ code: 'coul_col_pvc_143', label: 'Coloris coulisse PVC', kind: 'add', when: AND([inSet('coulisse_type', COUL_PVC), inSet('coulisse_coloris', ['ivoire-1015', 'beige-pvc', 'gris-7035', 'gris-pvc'])]), amount: perMlHaut(14.3) });
-priceRules.push({ code: 'coul_col_pvc_29', label: 'Coloris coulisse PVC (foncé/bois)', kind: 'add', when: AND([inSet('coulisse_type', COUL_PVC), inSet('coulisse_coloris', ['gris-7016', 'chene-dore'])]), amount: perMlHaut(29) });
-priceRules.push({ code: 'coul_col_alu_42', label: 'Coloris coulisse alu', kind: 'add', when: AND([{ not: inSet('coulisse_type', COUL_PVC) }, ne('coulisse_coloris', 'blanc-9010')]), amount: perMlHaut(42) });
+// PVC : +14,3 (ivoire/gris7035) / +29 (gris7016).
+priceRules.push({ code: 'coul_col_pvc_143', label: 'Coloris coulisse PVC', kind: 'add', when: AND([inSet('coulisse_type', COUL_PVC_T), inSet('coulisse_coloris', ['ivoire-1015', 'gris-7035'])]), amount: perMlHaut(14.3) });
+priceRules.push({ code: 'coul_col_pvc_29', label: 'Coloris coulisse PVC (foncé)', kind: 'add', when: AND([inSet('coulisse_type', COUL_PVC_T), eq('coulisse_coloris', 'gris-7016')]), amount: perMlHaut(29) });
+// Alu +42 NON laqué (A : standards ; B : alu 9006/marron 8019/chêne doré).
+const std42Coul = ANY([
+  AND([inSet('coulisse_type', COUL_A_T), inSet('coulisse_coloris', ALU_STD_C)]),
+  AND([inSet('coulisse_type', COUL_B_T), inSet('coulisse_coloris', ['alu-9006', 'marron-8019', 'chene-dore'])]),
+]);
+priceRules.push({ code: 'coul_col_42', label: 'Coloris coulisse alu', kind: 'add', when: std42Coul, amount: perMlHaut(42) });
+// Alu +42 LAQUÉ (A/B : options ; Z2 : tout coloris non blanc) → déclenche le forfait laquage.
+const laqueCoul = ANY([
+  AND([inSet('coulisse_type', COUL_A_T), inSet('coulisse_coloris', ALU_LAQUE_C)]),
+  AND([inSet('coulisse_type', COUL_B_T), inSet('coulisse_coloris', ALU_LAQUE_C)]),
+  AND([inSet('coulisse_type', COUL_Z2_T), ne('coulisse_coloris', 'blanc-9010')]),
+]);
+priceRules.push({ code: 'color_coulisse_pv', label: 'Coloris coulisse (laqué)', kind: 'add', when: laqueCoul, amount: perMlHaut(42) });
 
 const def = {
   slug: 'volet-roulant-bloc-baie', name: 'Volet roulant Bloc baie', famille: 'bloc-baie', nodeField: 'sous_famille',
