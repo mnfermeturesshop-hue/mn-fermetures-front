@@ -49,6 +49,7 @@ export const MENU: NavTop[] = [
     children: [
       { name: 'Volet roulant traditionnel', href: '/configurateur/volet-roulant-traditionnel' },
       { name: 'Volet roulant rénovation',   href: '/configurateur/volet-roulant-renovation' },
+      { name: 'Volet roulant bloc baie',    href: '/configurateur/volet-roulant-bloc-baie' },
       { name: 'Store banne',                href: '/configurateur/store-banne' },
       { name: 'Tablier sur mesure',         href: '/configurateur/tablier-sur-mesure' },
     ],
