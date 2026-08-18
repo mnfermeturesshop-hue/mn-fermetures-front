@@ -16,7 +16,7 @@ export const FRANCO_SEUIL_HT = 400;
  * dès `LAQUAGE_FRANCO_HT` de commande nette (tarif fabricant p39).
  */
 export const LAQUAGE_FORFAIT_HT = 77;
-export const LAQUAGE_FRANCO_HT = 1500;
+export const LAQUAGE_FRANCO_HT = 2000;
 
 /** Montant du forfait laquage pour une commande : 0 si aucune ligne laquée ou franco. */
 export function laquageForfaitHT(productsHT: number, hasLaque: boolean): number {

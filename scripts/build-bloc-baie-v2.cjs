@@ -101,7 +101,7 @@ const fields = [
     ] },
 
   { id: 'lamefinale_coloris', label: 'Coloris lame finale (alu)', type: 'choice', default: 'blanc-9010',
-    help: 'Lame finale toujours en aluminium. Coloris laqué (hors standard) : +18 €/ml largeur + forfait laquage 77 € par commande (offert dès 1500 € HT).',
+    help: 'Lame finale toujours en aluminium. Coloris laqué (hors standard) : +18 €/ml largeur + forfait laquage 77 € par commande (offert dès 2000 € HT).',
     options: [...LF_STD, ...LF_OPT].map((c) => opt(c)) },
 
   // Coulisse : type (selon lame + débord) + débord + coloris + perçage.
@@ -296,7 +296,7 @@ const steps = [
 // ── Coloris coulisse (corrections PDG) — 4 schémas de prix selon le profil ──
 //  PVC (60×30/40×30) ; Alu-A (40×30/60×30/53×22-aile) ; Alu-B (45×22/53×22/45×27/66×27) ;
 //  Alu-Z2 (53×22-Z2). Les coloris LAQUÉS (+42 €/ml haut.) déclenchent le forfait laquage
-//  (code color_*_pv, 77 €/commande offert ≥ 1500 €). Le Z2 laque même les coloris standard.
+//  (code color_*_pv, 77 €/commande offert ≥ 2000 €). Le Z2 laque même les coloris standard.
 const COUL_PVC_T = ['pvc60x30', 'pvc40x30'];
 const COUL_A_T = ['alu40x30', 'alu60x30', 'alu53x22-aile'];
 const COUL_B_T = ['alu45x22', 'alu53x22', 'alu45x27', 'alu66x27'];

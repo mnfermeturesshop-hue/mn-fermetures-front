@@ -8,7 +8,7 @@ const TVA = 0.20;
 const FRANCO_SEUIL = 400;
 const FRANCO_FORFAIT = 26;
 const LAQUAGE_FORFAIT = 77;   // forfait laquage RAL par commande…
-const LAQUAGE_FRANCO = 1500;  // …offert dès 1500 € HT de commande
+const LAQUAGE_FRANCO = 2000;  // …offert dès 2000 € HT de commande
 
 interface CartStore {
   lines: CartLine[];
