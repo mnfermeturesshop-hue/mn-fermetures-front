@@ -53,6 +53,8 @@ const LF_STD = ['blanc-9010', 'ivoire-1015', 'gris-7035', 'gris-7038', 'gris-701
 const LF_OPT = ['rouge-3004', 'bleu-5011', 'vert-6005', 'vert-6009', 'vert-6021', 'gris-7011', 'gris-7012', 'gris-7021', 'gris-7022', 'gris-7039', 'marron-8014', 'noir-9005', 'ral-9007', 'noir-2100-sable', 'gris-2900-sable', 'chene-dore'];
 
 const IS_ALU = inSet('lame', ['alu42', 'alu56']);
+const SANS_PA = AND([inSet('lame', ['pvc40', 'alu42']), eq('coulisse_debord', 'sans')]);
+const AVEC_PA = AND([inSet('lame', ['pvc40', 'alu42']), eq('coulisse_debord', 'avec')]);
 // « Coffre = 205 » exprimé en lame + hauteur (pour la DISPONIBILITÉ des options UI, qui ne
 // voit pas la dérivée `coffre`). Équivalent à la dérivée coffre côté prix.
 const COFFRE_205 = ANY([
@@ -105,18 +107,19 @@ const fields = [
   // Coulisse : type (selon lame + débord) + débord + coloris + perçage.
   { id: 'coulisse_debord', label: 'Coulisse — débord', type: 'choice', default: 'sans',
     options: [{ value: 'sans', label: 'Sans débord' }, { value: 'avec', label: 'Avec débord' }] },
-  { id: 'coulisse_type', label: 'Coulisse — profil', type: 'choice', default: 'alu53x22',
+  // Coulisses (corrections PDG) — profil par défaut = base (sans PV), listé en 1er par groupe.
+  { id: 'coulisse_type', label: 'Coulisse — profil', type: 'choice', default: 'pvc60x30',
     options: [
-      // PVC 40 / Alu 42 — sans débord
-      { value: 'alu53x22', label: 'Alu 53×22', availableWhen: AND([inSet('lame', ['pvc40', 'alu42']), eq('coulisse_debord', 'sans')]) },
-      { value: 'alu53x22-aile', label: 'Alu 53×22 à aile (+18 €/ml haut.)', availableWhen: AND([inSet('lame', ['pvc40', 'alu42']), eq('coulisse_debord', 'sans')]) },
-      { value: 'alu53x22-z2', label: 'Alu 53×22 Z2 (+23,9 €/ml haut.)', availableWhen: AND([inSet('lame', ['pvc40', 'alu42']), eq('coulisse_debord', 'sans')]) },
-      { value: 'alu60x30', label: 'Alu 60×30 (+18 €/ml haut.)', availableWhen: AND([inSet('lame', ['pvc40', 'alu42']), eq('coulisse_debord', 'sans')]) },
-      { value: 'pvc60x30', label: 'PVC 60×30', availableWhen: AND([inSet('lame', ['pvc40', 'alu42']), eq('coulisse_debord', 'sans')]) },
-      // PVC 40 / Alu 42 — avec débord
-      { value: 'alu45x22', label: 'Alu 45×22', availableWhen: AND([inSet('lame', ['pvc40', 'alu42']), eq('coulisse_debord', 'avec')]) },
-      { value: 'alu40x30', label: 'Alu 40×30', availableWhen: AND([inSet('lame', ['pvc40', 'alu42']), eq('coulisse_debord', 'avec')]) },
-      { value: 'pvc40x30', label: 'PVC 40×30 (+18 €/ml haut.)', availableWhen: AND([inSet('lame', ['pvc40', 'alu42']), eq('coulisse_debord', 'avec')]) },
+      // PVC 40 / Alu 42 — sans débord : défaut PVC 60×30
+      { value: 'pvc60x30', label: 'PVC 60×30', availableWhen: SANS_PA },
+      { value: 'alu53x22', label: 'Alu 53×22', availableWhen: SANS_PA },
+      { value: 'alu60x30', label: 'Alu 60×30 (+18 €/ml haut.)', availableWhen: SANS_PA },
+      { value: 'alu53x22-aile', label: 'Alu 53×22 à aile (+18 €/ml haut.)', availableWhen: SANS_PA },
+      { value: 'alu53x22-z2', label: 'Alu 53×22 Z2 (+23,9 €/ml haut.)', availableWhen: SANS_PA },
+      // PVC 40 / Alu 42 — avec débord : défaut PVC 40×30
+      { value: 'pvc40x30', label: 'PVC 40×30', availableWhen: AVEC_PA },
+      { value: 'alu45x22', label: 'Alu 45×22', availableWhen: AVEC_PA },
+      { value: 'alu40x30', label: 'Alu 40×30 (+18 €/ml haut.)', availableWhen: AVEC_PA },
       // Alu 56
       { value: 'alu66x27', label: 'Alu 66×27', availableWhen: AND([eq('lame', 'alu56'), eq('coulisse_debord', 'sans')]) },
       { value: 'alu45x27', label: 'Alu 45×27', availableWhen: AND([eq('lame', 'alu56'), eq('coulisse_debord', 'avec')]) },
@@ -242,7 +245,7 @@ priceRules.push({ code: 'tablier_col', label: 'Coloris tablier (option)', kind: 
 priceRules.push({ code: 'color_lamefinale_pv', label: 'Coloris lame finale (laqué)', kind: 'add', when: inSet('lamefinale_coloris', LF_OPT), amount: perMlLarg(18) });
 
 // Coulisse profil — plus-value €/ml hauteur.
-priceRules.push({ code: 'coulisse_pv18', label: 'Coulisse (plus-value)', kind: 'add', when: inSet('coulisse_type', ['alu53x22-aile', 'alu60x30', 'pvc40x30']), amount: perMlHaut(18) });
+priceRules.push({ code: 'coulisse_pv18', label: 'Coulisse (plus-value)', kind: 'add', when: inSet('coulisse_type', ['alu53x22-aile', 'alu60x30', 'alu40x30']), amount: perMlHaut(18) });
 priceRules.push({ code: 'coulisse_pv239', label: 'Coulisse Z2 (plus-value)', kind: 'add', when: eq('coulisse_type', 'alu53x22-z2'), amount: perMlHaut(23.9) });
 
 // Options filaire.
