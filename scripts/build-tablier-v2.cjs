@@ -72,9 +72,11 @@ const fields = [
   { id: 'lame', label: 'Lame', type: 'choice', default: 'alu-cd942',
     options: LAMES.map((l) => ({ value: l.slug, label: l.nom, hint: l.fourniture, availableWhen: eq('matiere', l.matiere) })) },
   { id: 'coloris', label: 'Coloris', type: 'choice', options: colorisOptions },
-  // Aide à la prise de cotes (affichée en tête de l'étape Dimensions).
+  // Aide à la prise de cotes (affichée en tête de l'étape Dimensions) + schéma
+  // « calcul largeur tablier fini » (déduction coulisses) via « Voir le schéma ».
   { id: 'dim_help', label: '', type: 'info',
-    help: '⚠️ Largeur de commande = largeur finie. Hauteur de commande = hauteur finie, enroulement compris (par défaut 100 mm).' },
+    help: '⚠️ Largeur de commande = largeur finie. Hauteur de commande = hauteur finie, enroulement compris (par défaut 100 mm).',
+    helpImage: '/schema-largeur-tablier-fini.png' },
   { id: 'largeur', label: 'Largeur', type: 'dimension', unit: 'mm', min: largeurMin, max: largeurMax, step: 1, default: 1200 },
   { id: 'hauteur', label: 'Hauteur', type: 'dimension', unit: 'mm', min: hauteurMin, max: hauteurMax, step: 1, default: 1500 },
   // Verrouillage : un seul choix (exclusif). Les options dispo dépendent de la lame.

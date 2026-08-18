@@ -176,7 +176,12 @@ export function ConfigurateurProduit({ slug }: Props) {
   const renderField = (f: Field): ReactNode => {
     if (f.type === 'info') {
       const txt = hasTemplate(f.help) ? interpolate(f.help) : (f.help ?? '');
-      return <p className="cfg-dim-hint" key={f.id}>{f.label ? `${f.label} : ${txt}` : txt}</p>;
+      return (
+        <div key={f.id}>
+          <p className="cfg-dim-hint">{f.label ? `${f.label} : ${txt}` : txt}</p>
+          {helpImageBlock(f)}
+        </div>
+      );
     }
 
     if (f.type === 'boolean') {
