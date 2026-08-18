@@ -28,6 +28,7 @@ const perMlHaut = (eur) => round2({ op: '*', args: [eur, { op: '/', args: [V('ha
 const C = {
   'blanc-9010': ['Blanc 9010', '#f4f4f0'], 'blanc-pvc': ['Blanc PVC', '#f4f4f0'],
   'beige-pvc': ['Beige PVC', '#e9ddc4'], 'gris-pvc': ['Gris PVC', '#9aa1a8'],
+  'beige-1015': ['Beige 1015', '#e9ddc4'],
   'ivoire-1015': ['Ivoire 1015', '#efe7d2'], 'gris-7035': ['Gris 7035', '#d2d4cf'],
   'gris-7038': ['Gris 7038', '#b5b8b1'], 'gris-7016': ['Gris 7016', '#3a3f44'],
   'alu-9006': ['Alu AS 9006', '#c7ccd1'], 'marron-8019': ['Marron 8019', '#5a3a25'],
@@ -42,7 +43,7 @@ const C = {
 };
 const opt = (code, extra) => ({ value: code, label: C[code][0], hex: C[code][1], ...(extra || {}) });
 
-const COFFRE_205_51 = ['ivoire-1015', 'beige-pvc', 'gris-7035', 'gris-pvc'];
+const COFFRE_205_51 = ['beige-1015', 'gris-7035'];
 const COFFRE_205_90 = ['gris-7016', 'chene-dore'];
 const TAB_PVC = ['blanc-pvc', 'beige-pvc', 'gris-pvc'];
 const TAB_ALU_STD = ['blanc-9010', 'ivoire-1015', 'gris-7035', 'gris-7038', 'gris-7016', 'alu-9006', 'marron-8019', 'gris-7039', 'noir-9005', 'noir-2100-sable', 'gris-2900-sable'];
