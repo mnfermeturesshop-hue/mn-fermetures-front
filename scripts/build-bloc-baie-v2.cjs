@@ -185,6 +185,8 @@ const fields = [
     options: [{ value: 'non', label: 'Non' }, { value: 'oui', label: 'Oui (+135 €)' }] },
   { id: 'somfy_amy4', label: 'Ajouter Amy 4 IO', type: 'choice', default: 'non', visibleWhen: AND([IS_RADIO_LIKE, eq('marque', 'somfy')]),
     options: [{ value: 'non', label: 'Non' }, { value: 'oui', label: 'Oui (+131 €)' }] },
+  { id: 'somfy_tahoma', label: 'Box domotique TaHoma switch', type: 'choice', default: 'non', visibleWhen: AND([IS_RADIO_LIKE, eq('marque', 'somfy')]),
+    options: [{ value: 'non', label: 'Non' }, { value: 'oui', label: 'Oui (+340 €)' }] },
   { id: 'rts', label: 'Motorisation RTS (au lieu de io)', type: 'choice', default: 'non', visibleWhen: AND([MOTORISEE, eq('motorisation', 'radio'), eq('marque', 'somfy')]),
     options: [{ value: 'non', label: 'Non' }, { value: 'oui', label: 'Oui (+55 €)' }] },
   { id: 'alim_depannage', label: 'Alimentation de dépannage (solaire)', type: 'choice', default: 'non', visibleWhen: AND([MOTORISEE, eq('motorisation', 'solaire')]),
@@ -275,6 +277,7 @@ priceRules.push({ code: 'mn_5canaux', label: 'Émetteur 5 canaux MN', kind: 'add
 priceRules.push({ code: 'somfy_situo1', label: 'Situo IO 1 canal', kind: 'add', when: AND([IS_RADIO_LIKE, eq('marque', 'somfy'), eq('somfy_situo1', 'oui')]), amount: 23 });
 priceRules.push({ code: 'somfy_situo5', label: 'Situo IO 5 Pure 2', kind: 'add', when: AND([IS_RADIO_LIKE, eq('marque', 'somfy'), eq('somfy_situo5', 'oui')]), amount: 135 });
 priceRules.push({ code: 'somfy_amy4', label: 'Amy 4 IO', kind: 'add', when: AND([IS_RADIO_LIKE, eq('marque', 'somfy'), eq('somfy_amy4', 'oui')]), amount: 131 });
+priceRules.push({ code: 'somfy_tahoma', label: 'TaHoma switch', kind: 'add', when: AND([IS_RADIO_LIKE, eq('marque', 'somfy'), eq('somfy_tahoma', 'oui')]), amount: 340 });
 
 // Renfort (option) + mortaise.
 priceRules.push({ code: 'renfort', label: 'Renfort', kind: 'add', when: eq('renfort', 'oui'), amount: { op: 'lookup1d', table: { op: 'concat', args: ['renfort_', V('lame')] }, key: V('largeur') } });
@@ -301,7 +304,7 @@ const steps = [
   { id: 'coffre', title: 'Coffre', fields: ['coffre_coloris', 'cache_vis'] },
   { id: 'tablier', title: 'Tablier & lame finale', fields: ['tablier_coloris', 'lamefinale_coloris'] },
   { id: 'coulisse', title: 'Coulisses', fields: ['coulisse_debord', 'coulisse_type', 'debord_gauche', 'debord_droite', 'coulisse_coloris', 'percage'] },
-  { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'cote_manoeuvre', 'sortie_manoeuvre', 'genouillere_manuelle', 'cote_fil', 'sortie_fil', 'motorisation', 'marque', 'emetteur_type', 'inverseur', 'secours_integre', 'genouillere', 'secours_type', 'mn_5canaux', 'somfy_situo1', 'somfy_situo5', 'somfy_amy4', 'rts', 'alim_depannage'] },
+  { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'cote_manoeuvre', 'sortie_manoeuvre', 'genouillere_manuelle', 'cote_fil', 'sortie_fil', 'motorisation', 'marque', 'emetteur_type', 'inverseur', 'secours_integre', 'genouillere', 'secours_type', 'mn_5canaux', 'somfy_situo1', 'somfy_situo5', 'somfy_amy4', 'somfy_tahoma', 'rts', 'alim_depannage'] },
   { id: 'options', title: 'Options', fields: ['renfort', 'mortaise'] },
   { id: 'recap', title: 'Récapitulatif', fields: [] },
 ];
