@@ -171,6 +171,10 @@ const fields = [
   // Options filaire
   { id: 'inverseur', label: 'Inverseur (en applique ou encastré)', type: 'choice', default: 'non', visibleWhen: IS_FILAIRE,
     options: [{ value: 'non', label: 'Non' }, { value: 'oui', label: 'Oui (+21 €)' }] },
+  { id: 'inverseur_pose', label: 'Inverseur — pose', type: 'choice', default: 'encastre', role: 'spec', visibleWhen: AND([IS_FILAIRE, eq('inverseur', 'oui')]),
+    options: [{ value: 'encastre', label: 'Encastré' }, { value: 'applique', label: 'En applique' }] },
+  { id: 'inverseur_maintien', label: 'Inverseur — contact', type: 'choice', default: 'maintenu', role: 'spec', visibleWhen: AND([IS_FILAIRE, eq('inverseur', 'oui')]),
+    options: [{ value: 'maintenu', label: 'Maintenu' }, { value: 'fixe', label: 'Fixe' }] },
   { id: 'secours_integre', label: 'Commande de secours intégrée', type: 'choice', default: 'non', visibleWhen: IS_FILAIRE,
     options: [{ value: 'non', label: 'Non' }, { value: 'oui', label: 'Oui (+136 €)' }] },
   { id: 'genouillere', label: 'Choix de genouillère', type: 'choice', default: 'app60-non-aim', visibleWhen: AND([IS_FILAIRE, eq('secours_integre', 'oui')]),
@@ -341,7 +345,7 @@ const steps = [
   { id: 'coffre', title: 'Coffre', fields: ['coffre_coloris', 'cache_vis'] },
   { id: 'tablier', title: 'Tablier & lame finale', fields: ['tablier_coloris', 'lamefinale_coloris'] },
   { id: 'coulisse', title: 'Coulisses', fields: ['coulisse_debord', 'coulisse_type', 'debord_gauche', 'debord_droite', 'coulisse_coloris', 'percage'] },
-  { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'cote_manoeuvre', 'sortie_manoeuvre', 'genouillere_manuelle', 'cote_fil', 'sortie_fil', 'motorisation', 'marque', 'emetteur_type', 'inverseur', 'secours_integre', 'genouillere', 'secours_type', 'mn_5canaux', 'somfy_situo1', 'somfy_situo5', 'somfy_amy4', 'somfy_tahoma', 'rts', 'alim_depannage'] },
+  { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'cote_manoeuvre', 'sortie_manoeuvre', 'genouillere_manuelle', 'cote_fil', 'sortie_fil', 'motorisation', 'marque', 'emetteur_type', 'inverseur', 'inverseur_pose', 'inverseur_maintien', 'secours_integre', 'genouillere', 'secours_type', 'mn_5canaux', 'somfy_situo1', 'somfy_situo5', 'somfy_amy4', 'somfy_tahoma', 'rts', 'alim_depannage'] },
   { id: 'options', title: 'Options', fields: ['renfort', 'mortaise', 'cale_epaississeur'] },
   { id: 'recap', title: 'Récapitulatif', fields: [] },
 ];
