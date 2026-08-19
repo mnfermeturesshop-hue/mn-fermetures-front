@@ -9,6 +9,8 @@ const fs = require('fs');
 const path = require('path');
 const grids = require('../lib/configurateur/data/bloc-baie-grids.json');
 const renfort = require('../lib/configurateur/data/bloc-baie-renfort.json');
+const gridsReno = require('../lib/configurateur/data/bloc-baie-reno-grids.json');
+const renfortReno = require('../lib/configurateur/data/bloc-baie-reno-renfort.json');
 
 const V = (name) => ({ var: name });
 const eq = (n, v) => ({ op: 'eq', left: V(n), right: v });
@@ -54,13 +56,16 @@ const LF_STD = ['blanc-9010', 'ivoire-1015', 'gris-7035', 'gris-7038', 'gris-701
 const LF_OPT = ['rouge-3004', 'bleu-5011', 'vert-6005', 'vert-6009', 'vert-6021', 'gris-7011', 'gris-7012', 'gris-7021', 'gris-7022', 'gris-7039', 'marron-8014', 'noir-9005', 'ral-9007', 'noir-2100-sable', 'gris-2900-sable', 'chene-dore'];
 
 const IS_ALU = inSet('lame', ['alu42', 'alu56']);
+const IS_RENO = eq('sous_famille', 'bloc-baie-int-reno');
+const IS_NEUF = eq('sous_famille', 'bloc-baie-int-neuf');
 const SANS_PA = AND([inSet('lame', ['pvc40', 'alu42']), eq('coulisse_debord', 'sans')]);
 const AVEC_PA = AND([inSet('lame', ['pvc40', 'alu42']), eq('coulisse_debord', 'avec')]);
 // « Coffre = 205 » exprimé en lame + hauteur (pour la DISPONIBILITÉ des options UI, qui ne
 // voit pas la dérivée `coffre`). Équivalent à la dérivée coffre côté prix.
 const COFFRE_205 = ANY([
   AND([eq('lame', 'pvc40'), gt('hauteur', 1750)]),
-  AND([eq('lame', 'alu42'), gt('hauteur', 1350), lte('hauteur', 2350)]),
+  AND([eq('lame', 'alu42'), IS_RENO, gt('hauteur', 1350)]),
+  AND([eq('lame', 'alu42'), IS_NEUF, gt('hauteur', 1350), lte('hauteur', 2350)]),
 ]);
 const MOTORISEE = eq('manoeuvre', 'motorisee');
 const IS_FILAIRE = AND([MOTORISEE, eq('motorisation', 'filaire')]);
@@ -69,18 +74,31 @@ const IS_RADIO_LIKE = AND([MOTORISEE, inSet('motorisation', ['radio', 'solaire']
 // ── CHAMPS ──
 const fields = [
   { id: 'sous_famille', label: 'Type de bloc baie', type: 'choice', default: 'bloc-baie-int-neuf',
-    options: [{ value: 'bloc-baie-int-neuf', label: 'Bloc baie intérieur neuf' }] },
+    options: [
+      { value: 'bloc-baie-int-neuf', label: 'Bloc baie intérieur neuf' },
+      { value: 'bloc-baie-int-reno', label: 'Bloc baie intérieur rénovation croqué' },
+    ] },
 
   { id: 'lame', label: 'Type de lame', type: 'choice', default: 'alu42',
     options: [
       { value: 'pvc40', label: 'Lame PVC 40' },
       { value: 'alu42', label: 'Lame aluminium 42' },
-      { value: 'alu56', label: 'Lame aluminium 56' },
+      { value: 'alu56', label: 'Lame aluminium 56', availableWhen: IS_NEUF },
     ] },
 
   { id: 'largeur', label: 'Largeur (dos de coulisse)', type: 'dimension', unit: 'mm', min: 375, max: 3500, step: 1, default: 1200 },
   { id: 'hauteur', label: 'Hauteur (sous coffre)', type: 'dimension', unit: 'mm', min: 850, max: 3000, step: 1, default: 1500 },
   { id: 'coffre_info', label: 'Section de coffre', type: 'info', help: 'Déterminée par la hauteur : {{coffre}} mm (enroulement intérieur).' },
+
+  // Cotes de fabrication « croqué » (réno) — sans impact prix ; le prix reste indexé par
+  // largeur dos de coulisse × hauteur sous coffre.
+  { id: 'largeur_coffre', label: 'Largeur du coffre (mm)', type: 'number', unit: 'mm', min: 0, max: 3600, step: 1, default: 0, role: 'spec', visibleWhen: IS_RENO,
+    help: 'Cote de fabrication (distincte de la largeur dos de coulisse).' },
+  { id: 'croquage_gauche', label: 'Croquage coffre gauche', type: 'choice', default: '30', role: 'spec', visibleWhen: IS_RENO,
+    options: [{ value: '30', label: '30 mm' }, { value: '40', label: '40 mm' }, { value: '60', label: '60 mm' }, { value: '70', label: '70 mm' }] },
+  { id: 'croquage_droite', label: 'Croquage coffre droite', type: 'choice', default: '30', role: 'spec', visibleWhen: IS_RENO,
+    options: [{ value: '30', label: '30 mm' }, { value: '40', label: '40 mm' }, { value: '60', label: '60 mm' }, { value: '70', label: '70 mm' }] },
+  { id: 'profondeur_decoupe_dc', label: 'Profondeur de découpe DC (dormant + coulisse, mm)', type: 'number', unit: 'mm', min: 0, max: 500, step: 1, default: 0, role: 'spec', visibleWhen: IS_RENO },
 
   { id: 'coffre_coloris', label: 'Coloris du coffre', type: 'choice', default: 'blanc-9010',
     help: 'Coffre 168/235 : blanc uniquement. Coffre 205 : coloris en option (plus-value au ml de largeur).',
@@ -198,15 +216,22 @@ const fields = [
     options: [{ value: 'non', label: 'Non' }, { value: 'oui', label: 'Oui' }] },
   { id: 'mortaise', label: 'Mortaise', type: 'choice', default: 'non',
     options: [{ value: 'non', label: 'Non' }, { value: 'oui', label: 'Oui (+12,70 €)' }] },
+  { id: 'cale_epaississeur', label: 'Câle épaississeur coulisse 10 mm (qté / volet)', type: 'number', min: 0, max: 20, step: 1, default: 0, role: 'spec', visibleWhen: IS_RENO,
+    help: 'Sur consultation — compatible coulisses PVC / Alu 60×30. Indiquer la quantité par volet.' },
 ];
 
 // ── DÉRIVÉES ──
+// Coffre = f(lame, hauteur). Réno : pas de 235 (alu 42 → 205 dès H>1350). Neuf : 235 au-delà.
 const coffreExpr = {
   op: 'if', cond: eq('lame', 'pvc40'),
   then: { op: 'if', cond: lte('hauteur', 1750), then: '168', else: '205' },
   else: {
     op: 'if', cond: eq('lame', 'alu56'), then: '235',
-    else: { op: 'if', cond: lte('hauteur', 1350), then: '168', else: { op: 'if', cond: lte('hauteur', 2350), then: '205', else: '235' } },
+    else: {  // alu42
+      op: 'if', cond: lte('hauteur', 1350), then: '168',
+      else: { op: 'if', cond: IS_RENO, then: '205',
+        else: { op: 'if', cond: lte('hauteur', 2350), then: '205', else: '235' } },
+    },
   },
 };
 const derived = [
@@ -215,17 +240,24 @@ const derived = [
   { id: 'layer', expr: { op: 'if', cond: ANY([eq('manoeuvre', 'manuelle'), IS_FILAIRE]), then: 'filaire', else: 'radio' } },
   // Marque effective : manuelle → MN ; sinon la marque choisie.
   { id: 'marque_eff', expr: { op: 'if', cond: eq('manoeuvre', 'manuelle'), then: 'mn', else: V('marque') } },
-  { id: 'grid', expr: { op: 'concat', args: ['bb_', V('lame'), '_', V('marque_eff'), '_', V('layer')] } },
+  { id: 'grid', expr: { op: 'concat', args: [{ op: 'if', cond: IS_RENO, then: 'bbr_', else: 'bb_' }, V('lame'), '_', V('marque_eff'), '_', V('layer')] } },
   { id: 'surface_m2', expr: { op: '*', args: [{ op: '/', args: [V('largeur'), 1000] }, { op: '/', args: [V('hauteur'), 1000] }] } },
-  // Largeur MINI. Lame 56 → 700 (toutes motorisations). PVC 40 / Alu 42 → bornes basses des
-  // bandes L-mini : manuelle/filaire MN 375 · filaire Somfy 400 · solaire 508 · radio MN 596 · radio Somfy 400.
+  // Largeur MINI = borne basse de la bande L-mini. Réno : manuelle/filaire MN 436 · filaire
+  // Somfy 456 · solaire 569 · radio MN 642 · radio Somfy 456. Neuf : lame 56 → 700 ;
+  // manuelle/filaire MN 375 · filaire Somfy 400 · solaire 508 · radio MN 596 · radio Somfy 400.
   { id: 'l_min', expr: {
-    op: 'if', cond: eq('lame', 'alu56'), then: 700,
-    else: { op: 'if', cond: eq('manoeuvre', 'manuelle'), then: 375,
-      else: { op: 'if', cond: eq('motorisation', 'solaire'), then: 508,
+    op: 'if', cond: IS_RENO,
+    then: { op: 'if', cond: eq('manoeuvre', 'manuelle'), then: 436,
+      else: { op: 'if', cond: eq('motorisation', 'solaire'), then: 569,
         else: { op: 'if', cond: eq('motorisation', 'filaire'),
-          then: { op: 'if', cond: eq('marque', 'mn'), then: 375, else: 400 },
-          else: { op: 'if', cond: eq('marque', 'mn'), then: 596, else: 400 } } } } } },
+          then: { op: 'if', cond: eq('marque', 'mn'), then: 436, else: 456 },
+          else: { op: 'if', cond: eq('marque', 'mn'), then: 642, else: 456 } } } },
+    else: { op: 'if', cond: eq('lame', 'alu56'), then: 700,
+      else: { op: 'if', cond: eq('manoeuvre', 'manuelle'), then: 375,
+        else: { op: 'if', cond: eq('motorisation', 'solaire'), then: 508,
+          else: { op: 'if', cond: eq('motorisation', 'filaire'),
+            then: { op: 'if', cond: eq('marque', 'mn'), then: 375, else: 400 },
+            else: { op: 'if', cond: eq('marque', 'mn'), then: 596, else: 400 } } } } } } },
 ];
 
 // ── RÈGLES DE PRIX ──
@@ -280,18 +312,23 @@ priceRules.push({ code: 'somfy_amy4', label: 'Amy 4 IO', kind: 'add', when: AND(
 priceRules.push({ code: 'somfy_tahoma', label: 'TaHoma switch', kind: 'add', when: AND([IS_RADIO_LIKE, eq('marque', 'somfy'), eq('somfy_tahoma', 'oui')]), amount: 340 });
 
 // Renfort (option) + mortaise.
-priceRules.push({ code: 'renfort', label: 'Renfort', kind: 'add', when: eq('renfort', 'oui'), amount: { op: 'lookup1d', table: { op: 'concat', args: ['renfort_', V('lame')] }, key: V('largeur') } });
+priceRules.push({ code: 'renfort', label: 'Renfort', kind: 'add', when: eq('renfort', 'oui'), amount: { op: 'lookup1d', table: { op: 'concat', args: [{ op: 'if', cond: IS_RENO, then: 'renfort_r_', else: 'renfort_' }, V('lame')] }, key: V('largeur') } });
 priceRules.push({ code: 'mortaise', label: 'Mortaise', kind: 'add', when: eq('mortaise', 'oui'), amount: 12.70 });
 
 // ── CONTRAINTES ──
-const SURF_MAX = { pvc40: 4.5, alu42: 8, alu56: 12 };
-const H_MAX = { pvc40: 2450, alu42: 2850, alu56: 2350 };
-const L_MAX = { pvc40: 1700, alu42: 3000, alu56: 3500 };
+// Bornes par sous-famille × lame. Réno : PVC 40 → L max 1600, H max 2450 ; Alu 42 → 3000 / 2450.
+const SF = { neuf: 'bloc-baie-int-neuf', reno: 'bloc-baie-int-reno' };
+const SURF_MAX = { neuf: { pvc40: 4.5, alu42: 8, alu56: 12 }, reno: { pvc40: 4.5, alu42: 8 } };
+const H_MAX = { neuf: { pvc40: 2450, alu42: 2850, alu56: 2350 }, reno: { pvc40: 2450, alu42: 2450 } };
+const L_MAX = { neuf: { pvc40: 1700, alu42: 3000, alu56: 3500 }, reno: { pvc40: 1600, alu42: 3000 } };
 const constraints = [];
-for (const lame of ['pvc40', 'alu42', 'alu56']) {
-  constraints.push({ requires: ANY([ne('lame', lame), lte('surface_m2', SURF_MAX[lame])]), message: `Surface maximale ${String(SURF_MAX[lame]).replace('.', ',')} m² dépassée pour cette lame.` });
-  constraints.push({ requires: ANY([ne('lame', lame), lte('hauteur', H_MAX[lame])]), message: `Hauteur hors plage pour cette lame (max ${H_MAX[lame]} mm).` });
-  constraints.push({ requires: ANY([ne('lame', lame), lte('largeur', L_MAX[lame])]), message: `Largeur hors plage pour cette lame (max ${L_MAX[lame]} mm).` });
+for (const sfk of ['neuf', 'reno']) {
+  for (const lame of Object.keys(SURF_MAX[sfk])) {
+    const guard = (extra) => ANY([ne('sous_famille', SF[sfk]), ne('lame', lame), extra]);
+    constraints.push({ requires: guard(lte('surface_m2', SURF_MAX[sfk][lame])), message: `Surface maximale ${String(SURF_MAX[sfk][lame]).replace('.', ',')} m² dépassée pour cette lame.` });
+    constraints.push({ requires: guard(lte('hauteur', H_MAX[sfk][lame])), message: `Hauteur hors plage pour cette lame (max ${H_MAX[sfk][lame]} mm).` });
+    constraints.push({ requires: guard(lte('largeur', L_MAX[sfk][lame])), message: `Largeur hors plage pour cette lame (max ${L_MAX[sfk][lame]} mm).` });
+  }
 }
 // Minimums : hauteur ≥ 850 mm (toutes lames) ; largeur ≥ l_min (selon lame + motorisation).
 constraints.push({ requires: gte('hauteur', 850), message: 'Hauteur minimale : 850 mm.' });
@@ -300,12 +337,12 @@ constraints.push({ requires: { op: 'gte', left: V('largeur'), right: V('l_min') 
 // ── ÉTAPES ──
 const steps = [
   { id: 'produit', title: 'Type de produit', fields: ['sous_famille', 'lame'] },
-  { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'coffre_info'] },
+  { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'coffre_info', 'largeur_coffre', 'croquage_gauche', 'croquage_droite', 'profondeur_decoupe_dc'] },
   { id: 'coffre', title: 'Coffre', fields: ['coffre_coloris', 'cache_vis'] },
   { id: 'tablier', title: 'Tablier & lame finale', fields: ['tablier_coloris', 'lamefinale_coloris'] },
   { id: 'coulisse', title: 'Coulisses', fields: ['coulisse_debord', 'coulisse_type', 'debord_gauche', 'debord_droite', 'coulisse_coloris', 'percage'] },
   { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'cote_manoeuvre', 'sortie_manoeuvre', 'genouillere_manuelle', 'cote_fil', 'sortie_fil', 'motorisation', 'marque', 'emetteur_type', 'inverseur', 'secours_integre', 'genouillere', 'secours_type', 'mn_5canaux', 'somfy_situo1', 'somfy_situo5', 'somfy_amy4', 'somfy_tahoma', 'rts', 'alim_depannage'] },
-  { id: 'options', title: 'Options', fields: ['renfort', 'mortaise'] },
+  { id: 'options', title: 'Options', fields: ['renfort', 'mortaise', 'cale_epaississeur'] },
   { id: 'recap', title: 'Récapitulatif', fields: [] },
 ];
 
@@ -352,13 +389,16 @@ priceRules.push({ code: 'color_coulisse_pv', label: 'Coloris coulisse (laqué)',
 
 const def = {
   slug: 'volet-roulant-bloc-baie', name: 'Volet roulant Bloc baie', famille: 'bloc-baie', nodeField: 'sous_famille',
-  fields, derived, steps, priceRules, tables: { d1: renfort, d2: grids }, constraints,
+  fields, derived, steps, priceRules,
+  tables: { d1: { ...renfort, ...renfortReno }, d2: { ...grids, ...gridsReno } }, constraints,
   tableLabels: Object.fromEntries([
     ...Object.keys(grids).map((k) => [k, k.replace('bb_', '').replace('_', ' ').toUpperCase()]),
+    ...Object.keys(gridsReno).map((k) => [k, 'RÉNO ' + k.replace('bbr_', '').replace('_', ' ').toUpperCase()]),
     ...Object.keys(renfort).map((k) => [k, 'Renfort ' + k.replace('renfort_', '')]),
+    ...Object.keys(renfortReno).map((k) => [k, 'Renfort réno ' + k.replace('renfort_r_', '')]),
   ]),
 };
 
 const out = path.join(__dirname, '..', 'lib', 'configurateur', 'data', 'volet-roulant-bloc-baie.v2.json');
 fs.writeFileSync(out, JSON.stringify(def), 'utf8');
-console.log(`Écrit ${path.relative(process.cwd(), out)} — ${fields.length} champs, ${priceRules.length} règles, ${Object.keys(grids).length} grilles, ${constraints.length} contraintes.`);
+console.log(`Écrit ${path.relative(process.cwd(), out)} — ${fields.length} champs, ${priceRules.length} règles, ${Object.keys(grids).length + Object.keys(gridsReno).length} grilles (dont ${Object.keys(gridsReno).length} réno), ${constraints.length} contraintes.`);
