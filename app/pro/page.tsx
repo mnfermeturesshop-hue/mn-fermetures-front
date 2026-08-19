@@ -356,6 +356,15 @@ function ProPageContent() {
   const { user, isPro } = useAuthStore();
   const router = useRouter();
 
+  // Session expirée (déconnexion automatique par le middleware) → invite à se reconnecter.
+  const expiredNotified = useRef(false);
+  useEffect(() => {
+    if (searchParams.get('expired') === '1' && !expiredNotified.current) {
+      expiredNotified.current = true;
+      toast.info('Votre session a expiré. Merci de vous reconnecter.');
+    }
+  }, [searchParams]);
+
   if (user && isPro()) {
     router.replace('/compte');
     return null;

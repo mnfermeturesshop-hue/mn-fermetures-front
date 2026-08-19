@@ -2,6 +2,25 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
 
+// ── Durée de session (sécurité, défense en profondeur) ──
+// Déconnexion forcée après une période d'inactivité et un plafond absolu, quoi qu'il arrive.
+// Le back-office (admin/commercial) est plus strict que l'espace client pro. La couche
+// AUTORITATIVE reste Supabase (JWT court + timebox natif) ; ici on protège la navigation et
+// on purge les cookies. cf. procédure dashboard dans README/notes.
+const SESS_START = 'mm_sess_start';   // horodatage (ms) du début de session
+const SESS_SEEN = 'mm_sess_seen';     // horodatage (ms) de la dernière activité
+const MIN = 60_000;
+const HOUR = 3_600_000;
+const LIMITS = {
+  backoffice: { idle: 20 * MIN, max: 8 * HOUR },
+  client: { idle: 30 * MIN, max: 12 * HOUR },
+};
+
+function clearSessionTracking(res: NextResponse) {
+  res.cookies.set(SESS_START, '', { maxAge: 0, path: '/' });
+  res.cookies.set(SESS_SEEN, '', { maxAge: 0, path: '/' });
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -41,17 +60,44 @@ export async function middleware(request: NextRequest) {
   );
 
   // Toujours appeler getUser() pour que le refresh de token se produise
-  const { data: { user } } = await supabase.auth.getUser();
+  let user = (await supabase.auth.getUser()).data.user;
+
+  // ── Contrôle de durée de session ──
+  let sessionExpired = false;
+  if (user) {
+    const now = Date.now();
+    const scope = pathname.startsWith('/admin') ? 'backoffice' : 'client';
+    const { idle, max } = LIMITS[scope];
+    const startRaw = request.cookies.get(SESS_START)?.value;
+    const start = Number(startRaw) || now;
+    const seen = Number(request.cookies.get(SESS_SEEN)?.value) || now;
+    const expired = now - start > max || now - seen > idle;
+    if (expired) {
+      // Révoque la session Supabase (les cookies sb-* effacés arrivent via setAll) puis
+      // purge notre suivi. Les gardes ci-dessous voient alors `user = null`.
+      try { await supabase.auth.signOut(); } catch { /* réseau : on invalide quand même côté cookies */ }
+      clearSessionTracking(supabaseResponse);
+      user = null;
+      sessionExpired = true;
+    } else {
+      const opts = { httpOnly: true, sameSite: 'lax' as const, secure: process.env.NODE_ENV === 'production', path: '/' };
+      if (!startRaw) supabaseResponse.cookies.set(SESS_START, String(now), opts);
+      supabaseResponse.cookies.set(SESS_SEEN, String(now), opts);
+    }
+  } else if (request.cookies.get(SESS_START) || request.cookies.get(SESS_SEEN)) {
+    // Plus de session : on purge le suivi (évite un « début » périmé au prochain login).
+    clearSessionTracking(supabaseResponse);
+  }
 
   // Protège /compte
   if (pathname.startsWith('/compte') && !user) {
-    return NextResponse.redirect(new URL('/pro', request.url));
+    return redirectWithCookies(sessionExpired ? '/pro?expired=1' : '/pro', request, supabaseResponse);
   }
 
   // Protège /admin — réservé au rôle admin
   if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
     if (!user) {
-      return redirectWithCookies('/admin/login', request, supabaseResponse);
+      return redirectWithCookies(sessionExpired ? '/admin/login?expired=1' : '/admin/login', request, supabaseResponse);
     }
 
     // Service role pour vérifier le rôle — bypasse RLS, évite les faux négatifs

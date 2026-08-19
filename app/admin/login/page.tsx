@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function AdminLoginPage() {
@@ -9,6 +9,13 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Session expirée (déconnexion automatique par le middleware) → message d'invite.
+  // Lu côté client (window) pour éviter d'imposer un Suspense boundary à useSearchParams.
+  const [expired, setExpired] = useState(false);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('expired') === '1') setExpired(true);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -44,6 +51,12 @@ export default function AdminLoginPage() {
             <div className="adm-logo-tag">Administration</div>
           </div>
         </div>
+
+        {expired && (
+          <p className="adm-login-error" style={{ background: '#fff7ed', color: '#9a3412', borderColor: '#fed7aa' }}>
+            Votre session a expiré pour raison de sécurité. Merci de vous reconnecter.
+          </p>
+        )}
 
         <form onSubmit={handleSubmit} className="adm-login-form">
           <div className="adm-form-field">
