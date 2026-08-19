@@ -92,13 +92,13 @@ const fields = [
 
   // Cotes de fabrication « croqué » (réno) — sans impact prix ; le prix reste indexé par
   // largeur dos de coulisse × hauteur sous coffre.
-  { id: 'largeur_coffre', label: 'Largeur du coffre (mm)', type: 'number', unit: 'mm', min: 0, max: 3600, step: 1, default: 0, role: 'spec', visibleWhen: IS_RENO,
+  { id: 'largeur_coffre', label: 'Largeur du coffre', type: 'number', unit: 'mm', min: 0, max: 3600, step: 1, default: 0, role: 'spec', visibleWhen: IS_RENO,
     help: 'Cote de fabrication (distincte de la largeur dos de coulisse).' },
   { id: 'croquage_gauche', label: 'Croquage coffre gauche', type: 'choice', default: '30', role: 'spec', visibleWhen: IS_RENO,
     options: [{ value: '30', label: '30 mm' }, { value: '40', label: '40 mm' }, { value: '60', label: '60 mm' }, { value: '70', label: '70 mm' }] },
   { id: 'croquage_droite', label: 'Croquage coffre droite', type: 'choice', default: '30', role: 'spec', visibleWhen: IS_RENO,
     options: [{ value: '30', label: '30 mm' }, { value: '40', label: '40 mm' }, { value: '60', label: '60 mm' }, { value: '70', label: '70 mm' }] },
-  { id: 'profondeur_decoupe_dc', label: 'Profondeur de découpe DC (dormant + coulisse, mm)', type: 'number', unit: 'mm', min: 0, max: 500, step: 1, default: 0, role: 'spec', visibleWhen: IS_RENO },
+  { id: 'profondeur_decoupe_dc', label: 'Profondeur de découpe DC (dormant + coulisse)', type: 'number', unit: 'mm', min: 0, max: 500, step: 1, default: 0, role: 'spec', visibleWhen: IS_RENO },
 
   { id: 'coffre_coloris', label: 'Coloris du coffre', type: 'choice', default: 'blanc-9010',
     help: 'Coffre 168/235 : blanc uniquement. Coffre 205 : coloris en option (plus-value au ml de largeur).',

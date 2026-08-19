@@ -314,7 +314,7 @@ export default function AdminCommandes() {
                                     <tr key={i}>
                                       <td>
                                         <div style={{ fontWeight: 600 }}>{l.name}</div>
-                                        {l.detail && <div className="adm-muted" style={{ fontSize: 12 }}>{l.detail}</div>}
+                                        {l.detail && <div className="adm-muted" style={{ fontSize: 12, whiteSpace: 'pre-line' }}>{l.detail}</div>}
                                       </td>
                                       <td><span className="adm-slug">{l.reference ?? '—'}</span></td>
                                       <td style={{ textAlign: 'center' }}>{l.quantity}</td>

@@ -60,7 +60,7 @@ function buildEmailHtml(payload: OrderPayload): string {
       <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;">
         <div style="font-weight:600;color:#1e3a5f;">${escapeHtml(l.name)}</div>
         ${l.reference ? `<div style="font-size:12px;color:#6b7280;font-family:monospace;">${escapeHtml(l.reference)}</div>` : ''}
-        ${l.detail ? `<div style="font-size:12px;color:#6b7280;">${escapeHtml(l.detail)}</div>` : ''}
+        ${l.detail ? `<div style="font-size:12px;color:#6b7280;white-space:pre-line;">${escapeHtml(l.detail)}</div>` : ''}
       </td>
       <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:center;">${l.quantity}</td>
       <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:600;">${euro(l.unitPriceHT * l.quantity)}&nbsp;HT</td>

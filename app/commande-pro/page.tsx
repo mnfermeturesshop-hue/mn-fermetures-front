@@ -298,7 +298,7 @@ export default function CommandeProPage() {
               <div key={l.key} className="bc-line">
                 <div className="bc-line-name">{l.name}</div>
                 {l.reference && <div className="ref" style={{ fontSize: 11 }}>{l.reference}</div>}
-                {l.detail && <div style={{ fontSize: 11, color: 'var(--muted)' }}>{l.detail}</div>}
+                {l.detail && <div style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'pre-line' }}>{l.detail}</div>}
                 <div className="bc-line-qty-price">
                   <span>{l.quantity} ×</span>
                   <span>{euro(l.unitPriceHT * l.quantity)} HT</span>

@@ -282,28 +282,57 @@ export function ConfigurateurProduit({ slug }: Props) {
 
   // ── Détail + ajout panier (générique) ──
   // Sur mesure : les cotes affichées/enregistrées sont les cotes EXACTES saisies.
-  const buildDetail = (): string => {
-    const parts: string[] = [];
-    for (const f of def.fields) {
-      if (!isVisible(f.visibleWhen, ctx)) continue;
-      const val = values[f.id];
-      if (f.type === 'dimension' || f.type === 'number') {
-        if (val != null && val !== '') parts.push(`${f.label} ${val}${f.unit ? ' ' + f.unit : ''}`);
-      } else if (f.type === 'choice') {
-        const lbl = optionLabel(f, val);
-        // Coloris : préfixé par la nature (Coloris tablier/coulisse/lame finale).
-        if (lbl) parts.push(isColorField(f) ? `${f.label} : ${lbl}` : lbl);
-      } else if (f.type === 'boolean') {
-        if (val === true) parts.push(f.label);
-      } else if (f.type === 'text') {
-        if (val) parts.push(`${f.label} : ${val}`);
-      } else if (f.type === 'info' && hasTemplate(f.help)) {
-        // Info calculée (ex. coulisse par défaut) → remontée au détail/devis/BC.
-        const v = interpolate(f.help);
-        if (v) parts.push(f.label ? `${f.label} : ${v}` : v);
-      }
+  // Texte d'UN champ sélectionné (null si vide / non pertinent).
+  const fieldPart = (f: Field): string | null => {
+    const val = values[f.id];
+    if (f.type === 'dimension' || f.type === 'number') {
+      if (val != null && val !== '') return `${f.label} ${val}${f.unit ? ' ' + f.unit : ''}`;
+    } else if (f.type === 'choice') {
+      const lbl = optionLabel(f, val);
+      // Coloris et cotes de fabrication (role spec : côté/sortie fil, croquage, pose inverseur…)
+      // → préfixés par le libellé du champ, sinon l'option seule serait ambiguë (« Gauche », « 40 mm »).
+      if (lbl) return isColorField(f) || f.role === 'spec' ? `${f.label} : ${lbl}` : lbl;
+    } else if (f.type === 'boolean') {
+      if (val === true) return f.label;
+    } else if (f.type === 'text') {
+      if (val) return `${f.label} : ${val}`;
+    } else if (f.type === 'info' && hasTemplate(f.help)) {
+      // Info calculée (ex. coulisse par défaut) → remontée au détail/devis/BC.
+      const v = interpolate(f.help);
+      if (v) return f.label ? `${f.label} : ${v}` : v;
     }
-    return parts.filter(Boolean).join(' — ');
+    return null;
+  };
+
+  // Détail GROUPÉ par étape (une section par ligne : « Étape : choix · choix … »), pour un
+  // devis / BC lisible plutôt qu'un bloc à plat. Les sections sont séparées par des sauts de
+  // ligne (`\n`) rendus par `white-space: pre-line` côté affichage / PDF.
+  const buildDetail = (): string => {
+    const seen = new Set<string>();
+    const sections: string[] = [];
+    for (const s of def.steps ?? []) {
+      if (s.id === 'recap') continue;
+      const parts: string[] = [];
+      for (const fid of s.fields ?? []) {
+        const f = def.fields.find((x) => x.id === fid);
+        if (!f) continue;
+        seen.add(f.id);
+        if (!isVisible(f.visibleWhen, ctx)) continue;
+        const p = fieldPart(f);
+        if (p) parts.push(p);
+      }
+      // 1ʳᵉ étape (type de produit) = identité produit, sans libellé d'étape.
+      if (parts.length) sections.push(s.id === 'produit' ? parts.join(' · ') : `${s.title} : ${parts.join(' · ')}`);
+    }
+    // Champs hors étape (sécurité) : regroupés en fin.
+    const rest: string[] = [];
+    for (const f of def.fields) {
+      if (seen.has(f.id) || !isVisible(f.visibleWhen, ctx)) continue;
+      const p = fieldPart(f);
+      if (p) rest.push(p);
+    }
+    if (rest.length) sections.push(rest.join(' · '));
+    return sections.join('\n');
   };
 
   const addToCart = () => {
