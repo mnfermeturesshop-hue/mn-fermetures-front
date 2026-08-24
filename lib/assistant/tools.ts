@@ -108,6 +108,7 @@ async function toolDetailProduit(slug: string): Promise<string> {
     nom: p.name,
     description: p.description ?? null,
     categorie: p.categorySlug,
+    famille: p.famille ?? null,
     marque: p.brandSlug ?? null,
     type: labelType(p.pricingType),
     prix_ht_a_partir_de: priceFrom(p) || null,
