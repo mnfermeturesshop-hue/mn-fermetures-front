@@ -24,35 +24,6 @@ export function AuthSync() {
   useEffect(() => {
     const supabase = createClient();
 
-    // Reflète une session dans le store (avec le profil étendu : rôle, remises).
-    async function apply(session: Session | null) {
-      if (!session?.user) {
-        setUser(null);
-        return;
-      }
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('name, role, company, discounts')
-        .eq('id', session.user.id)
-        .single();
-
-      const role = (profile?.role as string) ?? 'b2c';
-      // Un compte en attente d'approbation n'est pas « connecté » côté app.
-      if (role === 'pending') {
-        setUser(null);
-        return;
-      }
-
-      setUser({
-        id: session.user.id,
-        email: session.user.email ?? '',
-        name: profile?.name ?? (session.user.email?.split('@')[0] ?? ''),
-        role: role as UserRole,
-        company: profile?.company ?? undefined,
-        proDiscounts: (profile?.discounts as DiscountMap) ?? {},
-      });
-    }
-
     // Vide panier + tunnel de commande quand une SESSION connectée se termine (prix
     // propres au compte). Ne se déclenche que si un utilisateur était présent, pour ne
     // pas effacer le panier d'un invité à chaque chargement.
@@ -67,6 +38,40 @@ export function AuthSync() {
         useCheckoutStore.getState().reset();
       } catch { /* stores non chargés */ }
     };
+
+    // Reflète une session dans le store (avec le profil étendu : rôle, remises).
+    async function apply(session: Session | null) {
+      // Session absente (expirée, ou révoquée côté serveur par le middleware) : on purge
+      // le panier AVANT de vider l'utilisateur — sinon un panier au tarif d'un compte
+      // survivrait à la déconnexion. Le garde interne épargne le panier d'un invité.
+      if (!session?.user) {
+        await clearSessionStores();
+        setUser(null);
+        return;
+      }
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name, role, company, discounts')
+        .eq('id', session.user.id)
+        .single();
+
+      const role = (profile?.role as string) ?? 'b2c';
+      // Un compte en attente d'approbation n'est pas « connecté » côté app.
+      if (role === 'pending') {
+        await clearSessionStores();
+        setUser(null);
+        return;
+      }
+
+      setUser({
+        id: session.user.id,
+        email: session.user.email ?? '',
+        name: profile?.name ?? (session.user.email?.split('@')[0] ?? ''),
+        role: role as UserRole,
+        company: profile?.company ?? undefined,
+        proDiscounts: (profile?.discounts as DiscountMap) ?? {},
+      });
+    }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
