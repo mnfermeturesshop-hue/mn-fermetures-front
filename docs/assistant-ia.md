@@ -26,6 +26,8 @@ intelligent au-dessus des données du site**.
 | `detail_produit(slug)` | fiche produit | `getProductBySlugDB` |
 | `mes_commandes()` | lister les commandes du client | `orders` filtré `user_id` |
 | `statut_commande(numero)` | statut + documents d'une commande | `orders` (propriété vérifiée) |
+| `capacites_configurateur(slug?)` | faisabilité / dimensions / options exactes | défs `DefV2` (`loadConfiguratorDef`) — limites = messages de contraintes |
+| `rechercher_documentation(question)` | technique / pose / réglage | base `lib/assistant/knowledge.ts` (extraite de /documentation) |
 | `contacter_commercial()` | coordonnées du référent | `profiles.commercial_id` + `auth.getUserById` |
 
 - **UI** : `components/assistant/AssistantWidget.tsx` — widget flottant, **monté seulement pour un
