@@ -15,6 +15,7 @@ import { ToastContainer } from '@/components/ui/Toast';
 import { OrganizationJsonLd } from '@/components/seo/JsonLd';
 import { AuthSync } from '@/components/auth/AuthSync';
 import { SurchargeSync } from '@/components/pricing/SurchargeSync';
+import { AssistantWidget } from '@/components/assistant/AssistantWidget';
 
 const archivo = Archivo({
   subsets: ['latin'],
@@ -72,6 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Footer />
         <CartDrawer />
         <ToastContainer />
+        <AssistantWidget />
         <OrganizationJsonLd />
       </body>
     </html>
