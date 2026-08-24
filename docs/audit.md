@@ -282,5 +282,60 @@ Drapeau central **`lib/config.ts` → `B2C_ENABLED = false`** (réversible en un
 - `/checkout` (tunnel B2C carte/virement) : non-pros redirigés vers `/pro` ; CTA panier/drawer « Commander » remplacés par « Se connecter à l'espace pro » (+ mention « Vente réservée aux professionnels »).
 - APIs fermées en 403 : `POST /api/auth/register`, `POST /api/orders` (commande B2C), `POST /api/stripe/create-payment-intent`.
 - Conservés : catalogue public, devis PDF/mailto du panier, comptes B2C existants (connexion via `/pro` possible, mais plus aucun chemin de commande).
-</content>
-</invoke>
+
+---
+
+## Audit de re-vérification — 19 août 2026
+
+> **Lecture seule.** Passe complète de la surface d'attaque à la demande du PDG (avant mise en
+> production). Périmètre : les **42 routes `app/api/**`** (matrice garde × `service_role` ×
+> contrôle de propriété × méthodes), `middleware.ts`, `lib/auth/guards.ts`, RLS des migrations,
+> buckets Storage, en-têtes `next.config.mjs`, `npm audit`, recherche de fuites de secrets.
+
+### Verdict : posture solide 🟢
+Les correctifs S1–S12 **tiennent tous**, et **toutes les fonctionnalités ajoutées depuis** le
+dernier audit sont correctement protégées. **Aucune faille critique ou élevée au niveau
+applicatif.** Les risques résiduels sont au niveau des **dépendances** et du **durcissement
+optionnel** — dont la correction propre est risquée pour la stabilité (à planifier, pas en hotfix).
+
+### Contrôles confirmés sûrs (à préserver)
+- **`/api/admin/*`** : `requireAdmin`/`requireStaff` sur **toutes** les routes ; le **commercial**
+  est cloisonné à ses clients (`getCommercialClientIds`) dans `mailing`, `dashboard`, `orders`,
+  `comments`, `comments/unread`.
+- **IDOR** : `orders/[id]` (propriétaire|admin), `orders/mine` (filtré `user_id`), `devis/route`
+  (POST session + PATCH propriétaire|admin + whitelist statut), `devis/[number]/convert`,
+  `devis/[number]/reminder`, `devis/[number]/pdf`, `comments` (`resolveAccess`) : **contrôle de
+  propriété/périmètre serveur systématique**.
+- **Paiement** : recalcul serveur du montant + `paymentIntents.retrieve` + **webhook signé**.
+- **Identité** : `user_id`/`email` dérivés de la **session**, jamais du body.
+- **Inscription** : `pro-request` + `register` : rate-limit + Turnstile + SIRET (14 chiffres) +
+  Kbis (type/taille) + CGV clickwrap ; HTML des emails **échappé**.
+- **Cron** `devis-reminders` : `CRON_SECRET` en `Authorization: Bearer`. **Unsubscribe** : HMAC +
+  `timingSafeEqual` (non forgeable).
+- **Données** : RLS activée (orders, devis, profiles, pro_requests + document_comments,
+  comment_reads, mailings, configurators, configurator_versions, taxonomy_nodes) ; buckets
+  `order-documents` / `devis-documents` / `kbis-documents` **privés** + URLs signées 5 min +
+  contrôle de propriété ; aucun secret commité (seul `.env.local.example` suivi) ; aucune fuite
+  `service_role` côté client (Next n'expose que `NEXT_PUBLIC_*`, toutes légitimement publiques) ;
+  JsonLd échappé ; aucun prix « de confiance » client.
+- **Plateforme** : Next **14.2.35** (CVE-2025-29927 bypass middleware corrigée) ; middleware
+  fail-closed en prod ; en-têtes `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
+  `Permissions-Policy`, HSTS.
+- **Session** (ajout août 2026, cf. [[project_session_security]]) : déconnexion par inactivité
+  (20/30 min) + plafond absolu (8/12 h) dans le middleware ; panier vidé à l'expiration (AuthSync).
+
+### Risques résiduels (calibrés)
+| # | Risque | Sévérité | Correctif |
+|---|--------|----------|-----------|
+| R1 | **Advisories Next.js accumulées** (`npm audit` : 4 high + 1 moderate). La plupart **non applicables** (App Router, hébergé Vercel, pas de serveur custom, pas d'i18n Pages Router, pas de nonce CSP) ou **DoS atténués par Vercel**. | 🟠 Moyen | Montée **Next 15/16 = breaking** → branche dédiée **testée** avant prod, pas un hotfix. |
+| R2 | **`xlsx@0.18.5`** (Prototype Pollution + ReDoS, sans patch amont). Usage **import/export admin authentifié uniquement**. | 🟠 Moyen (exposition limitée) | Migrer vers `exceljs`, ou accepter avec mitigation « admin only ». |
+| R3 | **Pas de CSP** (autres en-têtes présents). | 🟡 Faible | CSP en **`report-only`** d'abord (risque de casser Stripe/Turnstile/Supabase/inline). Optionnel. |
+| R4 | `unsubscribe` réutilise `SUPABASE_SERVICE_ROLE_KEY` comme secret HMAC (server-only, non exposé). | 🟢 Très faible | `UNSUBSCRIBE_SECRET` dédié pour cloisonner. |
+
+*(Note perf, non-sécurité : `comments/unread` charge tous les commentaires/devis/commandes en
+mémoire à chaque appel — sans risque, à surveiller quand les volumes monteront.)*
+
+### Recommandation
+Aucun hotfix urgent. Traiter **R1 + R2 + R3 sur une branche dédiée, testés (`typecheck` + `build`),
+avant la mise en production** (aligné avec le passage au plan Supabase Pro). R4 applicable à tout
+moment.
