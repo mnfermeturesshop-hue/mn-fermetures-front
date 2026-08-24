@@ -13,6 +13,9 @@ import { getAllProducts, getAllBrands, getAllCategories, getProductBySlugDB } fr
 import { searchProducts } from '@/lib/catalog/search';
 import { priceFrom } from '@/lib/catalog/resolvePrice';
 import { isUnit, isKit } from '@/lib/catalog/types';
+import { listConfigurators, loadConfiguratorDef } from '@/lib/configurateur/loader';
+import type { DefV2 } from '@/lib/configurateur/v2/types';
+import { rechercherDoc } from '@/lib/assistant/knowledge';
 
 export interface AssistantCtx {
   userId: string;
@@ -73,12 +76,45 @@ export const ASSISTANT_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'capacites_configurateur',
+    description:
+      "Capacités des configurateurs sur mesure (dimensions mini/maxi, options disponibles, limites par type de lame/produit). SANS argument : liste les configurateurs. AVEC `slug` : détail d'un configurateur (choix possibles, plages de dimensions, limites exactes). À utiliser pour TOUTE question de faisabilité, dimension ou option : « jusqu'à quelle largeur… », « quelles motorisations pour… », « peut-on faire… ». Données exactes issues des configurateurs — ne jamais inventer une limite.",
+    input_schema: {
+      type: 'object',
+      properties: { slug: { type: 'string', description: 'Slug du configurateur (optionnel). Vide = liste des configurateurs.' } },
+    },
+  },
+  {
+    name: 'rechercher_documentation',
+    description:
+      "Recherche dans la documentation technique MN Fermetures (calcul de tablier, dimensionnement/réglage moteur Somfy & Gaposa, motorisations, livraison/franco, laquage). À utiliser pour les questions techniques, de pose ou de réglage. Renvoie les fiches pertinentes avec leur lien. Si rien ne correspond, ne pas inventer → escalader.",
+    input_schema: {
+      type: 'object',
+      properties: { question: { type: 'string', description: 'La question technique de l’utilisateur.' } },
+      required: ['question'],
+    },
+  },
+  {
     name: 'contacter_commercial',
     description:
       "Coordonnées du commercial référent du client connecté (nom, téléphone, email). À utiliser dès que tu ne peux pas répondre depuis les autres outils, que la demande sort du périmètre (produit / commande / livraison), ou que l'utilisateur veut un interlocuteur humain.",
     input_schema: { type: 'object', properties: {} },
   },
 ];
+
+/** Résumé compact et fiable des capacités d'un configurateur (pour l'assistant). */
+function summariseDef(def: DefV2) {
+  const nodeField = def.nodeField ? def.fields.find((f) => f.id === def.nodeField) : null;
+  const sous_familles = nodeField?.options?.map((o) => o.label) ?? [];
+  const choix = def.fields
+    .filter((f) => f.type === 'choice' && f.id !== def.nodeField && f.role !== 'spec' && (f.options?.length ?? 0) > 0)
+    .map((f) => ({ intitule: f.label, options: (f.options ?? []).slice(0, 15).map((o) => o.label) }));
+  const dimensions = def.fields
+    .filter((f) => (f.type === 'dimension' || f.type === 'number') && (f.min != null || f.max != null))
+    .map((f) => ({ intitule: f.label, min: f.min ?? null, max: f.max ?? null, unite: f.unit ?? null }));
+  const limites = Array.from(new Set((def.constraints ?? []).map((c) => c.message)));
+  return { slug: def.slug, nom: def.name, famille: def.famille, sous_familles, choix, dimensions, limites };
+}
 
 async function toolRechercherProduit(requete: string): Promise<string> {
   if (requete.trim().length < 2) return JSON.stringify({ resultats: [] });
@@ -179,6 +215,18 @@ async function toolContacterCommercial(userId: string): Promise<string> {
   });
 }
 
+async function toolCapacitesConfigurateur(slug: string): Promise<string> {
+  if (!slug.trim()) {
+    const list = await listConfigurators();
+    return JSON.stringify({
+      configurateurs: list.filter((c) => c.active).map((c) => ({ slug: c.slug, nom: c.name, famille: c.famille })),
+    });
+  }
+  const def = await loadConfiguratorDef(slug.trim());
+  if (!def) return JSON.stringify({ trouve: false });
+  return JSON.stringify({ trouve: true, ...summariseDef(def) });
+}
+
 /** Exécute un outil par nom. Toute erreur est capturée → message d'escalade (jamais de crash). */
 export async function executeTool(name: string, input: unknown, ctx: AssistantCtx): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -189,6 +237,8 @@ export async function executeTool(name: string, input: unknown, ctx: AssistantCt
       case 'detail_produit': return await toolDetailProduit(String(arg.slug ?? ''));
       case 'mes_commandes': return await toolMesCommandes(ctx.userId);
       case 'statut_commande': return await toolStatutCommande(String(arg.numero ?? ''), ctx.userId);
+      case 'capacites_configurateur': return await toolCapacitesConfigurateur(String(arg.slug ?? ''));
+      case 'rechercher_documentation': return JSON.stringify({ fiches: rechercherDoc(String(arg.question ?? '')) });
       case 'contacter_commercial': return await toolContacterCommercial(ctx.userId);
       default: return JSON.stringify({ erreur: 'Outil inconnu.' });
     }
