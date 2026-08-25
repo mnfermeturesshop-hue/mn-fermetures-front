@@ -13,6 +13,8 @@ const CHIPS = [
   'Suivi de ma livraison',
   'Parler à un commercial',
 ];
+// Messages d'attente successifs (rassurent sur les réponses un peu plus longues).
+const WAIT_MSGS = ["L'assistant réfléchit…", 'Je consulte nos données…', 'Encore un instant…'];
 
 const NAVY = '#10314f';
 
@@ -22,11 +24,20 @@ export function AssistantWidget() {
   const [messages, setMessages] = useState<Turn[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [waitIdx, setWaitIdx] = useState(0);
   const threadRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: 'smooth' });
-  }, [messages, loading, open]);
+  }, [messages, loading, waitIdx, open]);
+
+  // Fait évoluer le message d'attente pendant que le bot répond.
+  useEffect(() => {
+    if (!loading) { setWaitIdx(0); return; }
+    const t1 = setTimeout(() => setWaitIdx(1), 4000);
+    const t2 = setTimeout(() => setWaitIdx(2), 9000);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [loading]);
 
   // Réservé aux pros connectés (cohérent avec le pivot B2B).
   if (!user || !isPro()) return null;
@@ -99,7 +110,7 @@ export function AssistantWidget() {
           <div ref={threadRef} style={{ flex: 1, overflowY: 'auto', padding: 14, background: '#f8fafc' }}>
             <Bubble role="assistant" text={GREETING} />
             {messages.map((m, i) => <Bubble key={i} role={m.role} text={m.text} />)}
-            {loading && <Bubble role="assistant" text="…" muted />}
+            {loading && <TypingBubble label={WAIT_MSGS[waitIdx]} />}
 
             {messages.length === 0 && !loading && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
@@ -147,6 +158,27 @@ export function AssistantWidget() {
         </div>
       )}
     </>
+  );
+}
+
+function TypingBubble({ label }: { label: string }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 8 }} aria-live="polite">
+      <div
+        style={{
+          display: 'flex', alignItems: 'center', gap: 9,
+          padding: '9px 13px', borderRadius: 12, borderBottomLeftRadius: 3,
+          background: '#fff', border: '1px solid #e5e7eb',
+        }}
+      >
+        <span style={{ display: 'inline-flex', gap: 4 }}>
+          <span className="assistant-dot" style={{ animationDelay: '0ms' }} />
+          <span className="assistant-dot" style={{ animationDelay: '160ms' }} />
+          <span className="assistant-dot" style={{ animationDelay: '320ms' }} />
+        </span>
+        <span style={{ fontSize: 12.5, color: '#9ca3af' }}>{label}</span>
+      </div>
+    </div>
   );
 }
 
