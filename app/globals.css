@@ -733,10 +733,14 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
   padding-top: 16px; border-top: 1px solid var(--line); }
 
 @media print {
+  /* N'imprimer que le document (devis / bon de commande) : on masque tout le chrome
+     de l'app — header, barre de confiance, footer, tiroir panier, toasts, assistant —
+     qui sont des enfants DIRECTS de <body> ; seul <main> (donc le document) est conservé.
+     La barre de boutons (.no-print), à l'intérieur, est masquée à part. */
+  body > *:not(main) { display: none !important; }
   .no-print { display: none !important; }
-  .devis-page { background: #fff; }
-  .devis-doc { box-shadow: none; margin: 0; padding: 20px; }
-  body { background: #fff; }
+  body, .devis-page, main { background: #fff; margin: 0; padding: 0; }
+  .devis-doc { box-shadow: none; margin: 0 auto; padding: 20px; max-width: none; }
 }
 
 /* =====================================================================
