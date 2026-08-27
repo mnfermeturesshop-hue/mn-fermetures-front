@@ -748,6 +748,13 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
   body, .devis-page, main { background: #fff; margin: 0; padding: 0; }
   /* padding = marge d'impression (puisque @page margin:0) */
   .devis-doc { box-shadow: none; margin: 0 auto; padding: 12mm 14mm; max-width: none; }
+  /* Forcer l'impression des fonds de couleur (bandeau « DÉSIGNATION », barre « Total TTC »,
+     pastilles éco-contribution…) : sinon le navigateur les supprime et le rendu paraît fade.
+     Résultat = impression fidèle au devis à l'écran, comme un PDF. */
+  .devis-doc, .devis-doc * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }
 
 /* =====================================================================
