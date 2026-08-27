@@ -231,6 +231,12 @@ export default function ComptePage() {
       });
   }, [user]);
 
+  // Confirmation avant transformation d'un devis en bon de commande.
+  // ⚠️ Déclaré AVANT le garde `!user` : tous les Hooks doivent être appelés à chaque rendu,
+  // sinon la déconnexion (user → null) rend moins de Hooks → crash « Rendered fewer hooks ».
+  const [confirmConvert, setConfirmConvert] = useState<DevisRow | null>(null);
+  const [converting, setConverting] = useState(false);
+
   if (!user) return null;
 
   const handleSaveProfil = async (e: React.FormEvent) => {
@@ -254,10 +260,6 @@ export default function ComptePage() {
     toast.info('Déconnexion effectuée');
     router.push('/');
   };
-
-  // Confirmation avant transformation d'un devis en bon de commande
-  const [confirmConvert, setConfirmConvert] = useState<DevisRow | null>(null);
-  const [converting, setConverting] = useState(false);
 
   const convertDevisToBc = async (d: DevisRow) => {
     // Devis ERP (PDF importé par nos équipes) : l'acceptation vaut bon de
