@@ -13,6 +13,7 @@ const gridsReno = require('../lib/configurateur/data/bloc-baie-reno-grids.json')
 const renfortReno = require('../lib/configurateur/data/bloc-baie-reno-renfort.json');
 const gridsExt = require('../lib/configurateur/data/bloc-baie-ext-grids.json');
 const renfortExt = require('../lib/configurateur/data/bloc-baie-ext-renfort.json');
+const gridsDL = require('../lib/configurateur/data/bloc-baie-demi-linteau-grids.json');
 
 const V = (name) => ({ var: name });
 const eq = (n, v) => ({ op: 'eq', left: V(n), right: v });
@@ -62,9 +63,14 @@ const IS_RENO = eq('sous_famille', 'bloc-baie-int-reno');
 const IS_NEUF = eq('sous_famille', 'bloc-baie-int-neuf');
 const IS_EXT = eq('sous_famille', 'bloc-baie-ext');
 const NOT_EXT = ne('sous_famille', 'bloc-baie-ext');
-// Coloris tablier/coulisse/lame finale : visibles pour les intérieurs, et pour l'extérieur
-// uniquement en multicouleur (le monocouleur = tout blanc).
-const MULTI_OK = ANY([NOT_EXT, eq('type_coloris', 'multi')]);
+const IS_DL = eq('sous_famille', 'bloc-baie-demi-linteau');
+const NOT_DL = ne('sous_famille', 'bloc-baie-demi-linteau');
+// Intérieurs (neuf/réno) = coffre coloris + cache-vis, pas de choix mono/multi.
+const INT_ONLY = AND([NOT_EXT, NOT_DL]);
+// Extérieur & demi-linteau = choix mono/multi. Coloris tablier/coulisse/lame finale visibles
+// pour les intérieurs, et pour ext/DL uniquement en multicouleur (le monocouleur = tout blanc).
+const IS_EXT_DL = ANY([IS_EXT, IS_DL]);
+const MULTI_OK = ANY([INT_ONLY, eq('type_coloris', 'multi')]);
 const SANS_PA = AND([inSet('lame', ['pvc40', 'alu42']), eq('coulisse_debord', 'sans')]);
 const AVEC_PA = AND([inSet('lame', ['pvc40', 'alu42']), eq('coulisse_debord', 'avec')]);
 // « Coffre = 205 » exprimé en lame + hauteur (pour la DISPONIBILITÉ des options UI, qui ne
@@ -85,22 +91,30 @@ const fields = [
       { value: 'bloc-baie-int-neuf', label: 'Bloc baie intérieur neuf' },
       { value: 'bloc-baie-int-reno', label: 'Bloc baie intérieur rénovation croqué' },
       { value: 'bloc-baie-ext', label: 'Bloc baie extérieur' },
+      { value: 'bloc-baie-demi-linteau', label: 'Bloc baie ½ linteau' },
     ] },
 
   { id: 'lame', label: 'Type de lame', type: 'choice', default: 'alu42',
     options: [
-      { value: 'pvc40', label: 'Lame PVC 40' },
+      { value: 'pvc40', label: 'Lame PVC 40', availableWhen: NOT_DL },
       { value: 'alu42', label: 'Lame aluminium 42' },
       { value: 'alu56', label: 'Lame aluminium 56', availableWhen: IS_NEUF },
     ] },
 
   { id: 'largeur', label: 'Largeur (dos de coulisse)', type: 'dimension', unit: 'mm', min: 375, max: 3500, step: 1, default: 1200 },
   { id: 'hauteur', label: 'Hauteur (sous coffre)', type: 'dimension', unit: 'mm', min: 850, max: 3000, step: 1, default: 1500 },
-  { id: 'coffre_info', label: 'Section de coffre', type: 'info', visibleWhen: NOT_EXT, help: 'Déterminée par la hauteur : {{coffre}} mm (enroulement intérieur).' },
+  { id: 'coffre_info', label: 'Section de coffre', type: 'info', visibleWhen: INT_ONLY, help: 'Déterminée par la hauteur : {{coffre}} mm (enroulement intérieur).' },
 
   // Extérieur : trappe de visite (cote de fabrication, sans prix) = largeur menuiserie + ailes.
   { id: 'largeur_trappe', label: 'Largeur trappe de visite', type: 'number', unit: 'mm', min: 0, max: 4000, step: 1, default: 0, role: 'spec', visibleWhen: IS_EXT,
     help: '= largeur menuiserie + ailes de recouvrement. La hauteur menuiserie = hauteur sous coffre (aucune déduction).' },
+
+  // Demi-linteau : la « Largeur » ci-dessus = largeur tableau fini (indexe le prix) ; la
+  // « Hauteur » = hauteur menuiserie (= hauteur tableau fini + 36). + largeur hors tout (spec).
+  { id: 'dl_dim_info', type: 'info', visibleWhen: IS_DL,
+    help: 'Bloc baie ½ linteau : « Largeur » = largeur tableau fini (indexe le prix) · « Hauteur » = hauteur menuiserie (= hauteur tableau fini + 36).' },
+  { id: 'largeur_hors_tout', label: 'Largeur hors tout menuiserie', type: 'number', unit: 'mm', min: 0, max: 4000, step: 1, default: 0, role: 'spec', visibleWhen: IS_DL,
+    help: 'Cote de fabrication (n\'indexe pas le prix).' },
 
   // Cotes de fabrication « croqué » (réno) — sans impact prix ; le prix reste indexé par
   // largeur dos de coulisse × hauteur sous coffre.
@@ -112,20 +126,20 @@ const fields = [
     options: [{ value: '30', label: '30 mm' }, { value: '40', label: '40 mm' }, { value: '60', label: '60 mm' }, { value: '70', label: '70 mm' }] },
   { id: 'profondeur_decoupe_dc', label: 'Profondeur de découpe DC (dormant + coulisse)', type: 'number', unit: 'mm', min: 0, max: 500, step: 1, default: 0, role: 'spec', visibleWhen: IS_RENO },
 
-  // Extérieur : coloris du volet — monocouleur (tout blanc) ou multicouleur (coffre blanc,
-  // choix des coloris tablier / coulisses / lame finale). Les intérieurs n'ont pas ce choix.
-  { id: 'type_coloris', label: 'Coloris du volet', type: 'choice', default: 'mono', visibleWhen: IS_EXT,
+  // Extérieur & demi-linteau : coloris du volet — monocouleur (tout blanc) ou multicouleur
+  // (coffre blanc, choix des coloris tablier / coulisses / lame finale). Intérieurs : pas ce choix.
+  { id: 'type_coloris', label: 'Coloris du volet', type: 'choice', default: 'mono', visibleWhen: IS_EXT_DL,
     help: 'Monocouleur : tout blanc. Multicouleur : coffre blanc, coloris au choix pour tablier / coulisses / lame finale.',
     options: [{ value: 'mono', label: 'Monocouleur (blanc)' }, { value: 'multi', label: 'Multicouleur' }] },
 
-  { id: 'coffre_coloris', label: 'Coloris du coffre', type: 'choice', default: 'blanc-9010', visibleWhen: NOT_EXT,
+  { id: 'coffre_coloris', label: 'Coloris du coffre', type: 'choice', default: 'blanc-9010', visibleWhen: INT_ONLY,
     help: 'Coffre 168/235 : blanc uniquement. Coffre 205 : coloris en option (plus-value au ml de largeur).',
     options: [
       opt('blanc-9010'),
       ...COFFRE_205_51.map((c) => opt(c, { availableWhen: COFFRE_205 })),
       ...COFFRE_205_90.map((c) => opt(c, { availableWhen: COFFRE_205 })),
     ] },
-  { id: 'cache_vis', label: 'Cache-vis larges', type: 'choice', default: 'non', visibleWhen: NOT_EXT,
+  { id: 'cache_vis', label: 'Cache-vis larges', type: 'choice', default: 'non', visibleWhen: INT_ONLY,
     help: 'Coloris identique au coffre. +18 € HT la paire.',
     options: [{ value: 'non', label: 'Sans' }, { value: 'oui', label: 'Avec (+18 €/paire)' }] },
 
@@ -142,22 +156,23 @@ const fields = [
     options: [...LF_STD, ...LF_OPT].map((c) => opt(c)) },
 
   // Coulisse : type (selon lame + débord) + débord + coloris + perçage.
-  // Extérieur : pas de débord (masqué), seulement PVC 60×30 (défaut) / Alu 60×30 (+18/ml haut.).
-  { id: 'coulisse_debord', label: 'Coulisse — débord', type: 'choice', default: 'sans', visibleWhen: NOT_EXT,
+  // Extérieur : pas de débord, PVC 60×30 (défaut) / Alu 60×30 (+18/ml haut.).
+  // Demi-linteau : pas de débord, PVC 40×30 (défaut) / Alu 40×30 (+18/ml haut.) / Alu 45×22 (sans PV).
+  { id: 'coulisse_debord', label: 'Coulisse — débord', type: 'choice', default: 'sans', visibleWhen: INT_ONLY,
     options: [{ value: 'sans', label: 'Sans débord' }, { value: 'avec', label: 'Avec débord' }] },
   // Coulisses (corrections PDG) — profil par défaut = base (sans PV), listé en 1er par groupe.
   { id: 'coulisse_type', label: 'Coulisse — profil', type: 'choice', default: 'pvc60x30',
     options: [
       // PVC 40 / Alu 42 — sans débord : défaut PVC 60×30
-      { value: 'pvc60x30', label: 'PVC 60×30', availableWhen: SANS_PA },
-      { value: 'alu53x22', label: 'Alu 53×22', availableWhen: AND([SANS_PA, NOT_EXT]) },
-      { value: 'alu60x30', label: 'Alu 60×30 (+18 €/ml haut.)', availableWhen: SANS_PA },
-      { value: 'alu53x22-aile', label: 'Alu 53×22 à aile (+18 €/ml haut.)', availableWhen: AND([SANS_PA, NOT_EXT]) },
-      { value: 'alu53x22-z2', label: 'Alu 53×22 Z2 (+23,9 €/ml haut.)', availableWhen: AND([SANS_PA, NOT_EXT]) },
-      // PVC 40 / Alu 42 — avec débord : défaut PVC 40×30
-      { value: 'pvc40x30', label: 'PVC 40×30', availableWhen: AVEC_PA },
-      { value: 'alu45x22', label: 'Alu 45×22', availableWhen: AVEC_PA },
-      { value: 'alu40x30', label: 'Alu 40×30 (+18 €/ml haut.)', availableWhen: AVEC_PA },
+      { value: 'pvc60x30', label: 'PVC 60×30', availableWhen: AND([SANS_PA, NOT_DL]) },
+      { value: 'alu53x22', label: 'Alu 53×22', availableWhen: AND([SANS_PA, NOT_EXT, NOT_DL]) },
+      { value: 'alu60x30', label: 'Alu 60×30 (+18 €/ml haut.)', availableWhen: AND([SANS_PA, NOT_DL]) },
+      { value: 'alu53x22-aile', label: 'Alu 53×22 à aile (+18 €/ml haut.)', availableWhen: AND([SANS_PA, NOT_EXT, NOT_DL]) },
+      { value: 'alu53x22-z2', label: 'Alu 53×22 Z2 (+23,9 €/ml haut.)', availableWhen: AND([SANS_PA, NOT_EXT, NOT_DL]) },
+      // PVC 40 / Alu 42 — avec débord (int) OU demi-linteau : PVC 40×30 (défaut DL) / Alu 40×30 / Alu 45×22
+      { value: 'pvc40x30', label: 'PVC 40×30', availableWhen: ANY([AVEC_PA, IS_DL]) },
+      { value: 'alu45x22', label: 'Alu 45×22', availableWhen: ANY([AVEC_PA, IS_DL]) },
+      { value: 'alu40x30', label: 'Alu 40×30 (+18 €/ml haut.)', availableWhen: ANY([AVEC_PA, IS_DL]) },
       // Alu 56
       { value: 'alu66x27', label: 'Alu 66×27', availableWhen: AND([eq('lame', 'alu56'), eq('coulisse_debord', 'sans')]) },
       { value: 'alu45x27', label: 'Alu 45×27', availableWhen: AND([eq('lame', 'alu56'), eq('coulisse_debord', 'avec')]) },
@@ -179,9 +194,9 @@ const fields = [
   { id: 'cote_fil', label: 'Côté fil (position moteur)', type: 'choice', default: 'gauche', role: 'spec', visibleWhen: MOTORISEE,
     options: [
       { value: 'gauche', label: 'Gauche' },
-      // BB extérieur : avec commande de secours intégrée, la position à droite est impossible
-      // (réglage des fins de course inaccessible).
-      { value: 'droite', label: 'Droite', availableWhen: ANY([NOT_EXT, ne('secours_integre', 'oui')]) },
+      // BB extérieur & demi-linteau : avec commande de secours intégrée, la position à droite est
+      // impossible (réglage des fins de course inaccessible).
+      { value: 'droite', label: 'Droite', availableWhen: ANY([INT_ONLY, ne('secours_integre', 'oui')]) },
     ] },
   { id: 'sortie_fil', label: 'Sortie fil', type: 'choice', default: 'sous-coffre', role: 'spec', visibleWhen: MOTORISEE,
     options: [{ value: 'sous-coffre', label: 'Sous-coffre' }, { value: 'facade', label: 'Façade' }] },
@@ -239,7 +254,7 @@ const fields = [
     options: [{ value: 'non', label: 'Non' }, { value: 'oui', label: 'Oui (+83 €)' }] },
 
   // Options diverses
-  { id: 'renfort', label: 'Renfort', type: 'choice', default: 'non',
+  { id: 'renfort', label: 'Renfort', type: 'choice', default: 'non', visibleWhen: NOT_DL,
     help: 'Renfort de tablier — plus-value selon la largeur.',
     options: [{ value: 'non', label: 'Non' }, { value: 'oui', label: 'Oui' }] },
   { id: 'mortaise', label: 'Mortaise', type: 'choice', default: 'non',
@@ -252,6 +267,8 @@ const fields = [
 // Coffre = f(lame, hauteur). Extérieur : coffre unique 205 (extérieure) / 186 (intérieure).
 // Réno : pas de 235 (alu 42 → 205 dès H>1350). Neuf : 235 au-delà.
 const coffreExpr = {
+  op: 'if', cond: IS_DL, then: '229',
+  else: {
   op: 'if', cond: IS_EXT, then: '205',
   else: {
   op: 'if', cond: eq('lame', 'pvc40'),
@@ -265,6 +282,7 @@ const coffreExpr = {
     },
   },
   },
+  },
 };
 const derived = [
   { id: 'coffre', expr: coffreExpr },
@@ -272,12 +290,19 @@ const derived = [
   { id: 'layer', expr: { op: 'if', cond: ANY([eq('manoeuvre', 'manuelle'), IS_FILAIRE]), then: 'filaire', else: 'radio' } },
   // Marque effective : manuelle → MN ; sinon la marque choisie.
   { id: 'marque_eff', expr: { op: 'if', cond: eq('manoeuvre', 'manuelle'), then: 'mn', else: V('marque') } },
-  { id: 'grid', expr: { op: 'concat', args: [{ op: 'if', cond: IS_EXT, then: 'bbe_', else: { op: 'if', cond: IS_RENO, then: 'bbr_', else: 'bb_' } }, V('lame'), '_', V('marque_eff'), '_', V('layer')] } },
+  { id: 'grid', expr: { op: 'concat', args: [{ op: 'if', cond: IS_DL, then: 'bbdl_', else: { op: 'if', cond: IS_EXT, then: 'bbe_', else: { op: 'if', cond: IS_RENO, then: 'bbr_', else: 'bb_' } } }, V('lame'), '_', V('marque_eff'), '_', V('layer')] } },
   { id: 'surface_m2', expr: { op: '*', args: [{ op: '/', args: [V('largeur'), 1000] }, { op: '/', args: [V('hauteur'), 1000] }] } },
   // Largeur MINI = borne basse de la bande L-mini. Réno : manuelle/filaire MN 436 · filaire
   // Somfy 456 · solaire 569 · radio MN 642 · radio Somfy 456. Neuf : lame 56 → 700 ;
   // manuelle/filaire MN 375 · filaire Somfy 400 · solaire 508 · radio MN 596 · radio Somfy 400.
   { id: 'l_min', expr: {
+    op: 'if', cond: IS_DL,
+    then: { op: 'if', cond: eq('manoeuvre', 'manuelle'), then: 375,
+      else: { op: 'if', cond: eq('motorisation', 'solaire'), then: 508,
+        else: { op: 'if', cond: eq('motorisation', 'filaire'),
+          then: { op: 'if', cond: eq('marque', 'mn'), then: 375, else: 400 },
+          else: { op: 'if', cond: eq('marque', 'mn'), then: 581, else: 400 } } } },
+    else: {
     op: 'if', cond: ANY([IS_RENO, IS_EXT]),
     then: { op: 'if', cond: eq('manoeuvre', 'manuelle'), then: 436,
       else: { op: 'if', cond: eq('motorisation', 'solaire'), then: 569,
@@ -289,7 +314,7 @@ const derived = [
         else: { op: 'if', cond: eq('motorisation', 'solaire'), then: 508,
           else: { op: 'if', cond: eq('motorisation', 'filaire'),
             then: { op: 'if', cond: eq('marque', 'mn'), then: 375, else: 400 },
-            else: { op: 'if', cond: eq('marque', 'mn'), then: 596, else: 400 } } } } } } },
+            else: { op: 'if', cond: eq('marque', 'mn'), then: 596, else: 400 } } } } } } } },
 ];
 
 // ── RÈGLES DE PRIX ──
@@ -349,12 +374,12 @@ priceRules.push({ code: 'mortaise', label: 'Mortaise', kind: 'add', when: eq('mo
 
 // ── CONTRAINTES ──
 // Bornes par sous-famille × lame. Réno : PVC 40 → L max 1600, H max 2450 ; Alu 42 → 3000 / 2450.
-const SF = { neuf: 'bloc-baie-int-neuf', reno: 'bloc-baie-int-reno', ext: 'bloc-baie-ext' };
-const SURF_MAX = { neuf: { pvc40: 4.5, alu42: 8, alu56: 12 }, reno: { pvc40: 4.5, alu42: 8 }, ext: { pvc40: 4.5, alu42: 8 } };
-const H_MAX = { neuf: { pvc40: 2450, alu42: 2850, alu56: 2350 }, reno: { pvc40: 2450, alu42: 2450 }, ext: { pvc40: 2450, alu42: 2450 } };
-const L_MAX = { neuf: { pvc40: 1700, alu42: 3000, alu56: 3500 }, reno: { pvc40: 1600, alu42: 3000 }, ext: { pvc40: 1600, alu42: 3000 } };
+const SF = { neuf: 'bloc-baie-int-neuf', reno: 'bloc-baie-int-reno', ext: 'bloc-baie-ext', dl: 'bloc-baie-demi-linteau' };
+const SURF_MAX = { neuf: { pvc40: 4.5, alu42: 8, alu56: 12 }, reno: { pvc40: 4.5, alu42: 8 }, ext: { pvc40: 4.5, alu42: 8 }, dl: { alu42: 8 } };
+const H_MAX = { neuf: { pvc40: 2450, alu42: 2850, alu56: 2350 }, reno: { pvc40: 2450, alu42: 2450 }, ext: { pvc40: 2450, alu42: 2450 }, dl: { alu42: 2450 } };
+const L_MAX = { neuf: { pvc40: 1700, alu42: 3000, alu56: 3500 }, reno: { pvc40: 1600, alu42: 3000 }, ext: { pvc40: 1600, alu42: 3000 }, dl: { alu42: 3000 } };
 const constraints = [];
-for (const sfk of ['neuf', 'reno', 'ext']) {
+for (const sfk of ['neuf', 'reno', 'ext', 'dl']) {
   for (const lame of Object.keys(SURF_MAX[sfk])) {
     const guard = (extra) => ANY([ne('sous_famille', SF[sfk]), ne('lame', lame), extra]);
     constraints.push({ requires: guard(lte('surface_m2', SURF_MAX[sfk][lame])), message: `Surface maximale ${String(SURF_MAX[sfk][lame]).replace('.', ',')} m² dépassée pour cette lame.` });
@@ -369,7 +394,7 @@ constraints.push({ requires: { op: 'gte', left: V('largeur'), right: V('l_min') 
 // ── ÉTAPES ──
 const steps = [
   { id: 'produit', title: 'Type de produit', fields: ['sous_famille', 'lame'] },
-  { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur', 'coffre_info', 'largeur_trappe', 'largeur_coffre', 'croquage_gauche', 'croquage_droite', 'profondeur_decoupe_dc'] },
+  { id: 'dim', title: 'Dimensions', fields: ['dl_dim_info', 'largeur', 'largeur_hors_tout', 'hauteur', 'coffre_info', 'largeur_trappe', 'largeur_coffre', 'croquage_gauche', 'croquage_droite', 'profondeur_decoupe_dc'] },
   { id: 'coffre', title: 'Coffre & coloris', fields: ['type_coloris', 'coffre_coloris', 'cache_vis'] },
   { id: 'tablier', title: 'Tablier & lame finale', fields: ['tablier_coloris', 'lamefinale_coloris'] },
   { id: 'coulisse', title: 'Coulisses', fields: ['coulisse_debord', 'coulisse_type', 'debord_gauche', 'debord_droite', 'coulisse_coloris', 'percage'] },
@@ -422,11 +447,12 @@ priceRules.push({ code: 'color_coulisse_pv', label: 'Coloris coulisse (laqué)',
 const def = {
   slug: 'volet-roulant-bloc-baie', name: 'Volet roulant Bloc baie', famille: 'bloc-baie', nodeField: 'sous_famille',
   fields, derived, steps, priceRules,
-  tables: { d1: { ...renfort, ...renfortReno, ...renfortExt }, d2: { ...grids, ...gridsReno, ...gridsExt } }, constraints,
+  tables: { d1: { ...renfort, ...renfortReno, ...renfortExt }, d2: { ...grids, ...gridsReno, ...gridsExt, ...gridsDL } }, constraints,
   tableLabels: Object.fromEntries([
     ...Object.keys(grids).map((k) => [k, k.replace('bb_', '').replace('_', ' ').toUpperCase()]),
     ...Object.keys(gridsReno).map((k) => [k, 'RÉNO ' + k.replace('bbr_', '').replace('_', ' ').toUpperCase()]),
     ...Object.keys(gridsExt).map((k) => [k, 'EXT ' + k.replace('bbe_', '').replace('_', ' ').toUpperCase()]),
+    ...Object.keys(gridsDL).map((k) => [k, '½LINT ' + k.replace('bbdl_', '').replace('_', ' ').toUpperCase()]),
     ...Object.keys(renfort).map((k) => [k, 'Renfort ' + k.replace('renfort_', '')]),
     ...Object.keys(renfortReno).map((k) => [k, 'Renfort réno ' + k.replace('renfort_r_', '')]),
     ...Object.keys(renfortExt).map((k) => [k, 'Renfort ext ' + k.replace('renfort_e_', '')]),
@@ -435,4 +461,4 @@ const def = {
 
 const out = path.join(__dirname, '..', 'lib', 'configurateur', 'data', 'volet-roulant-bloc-baie.v2.json');
 fs.writeFileSync(out, JSON.stringify(def), 'utf8');
-console.log(`Écrit ${path.relative(process.cwd(), out)} — ${fields.length} champs, ${priceRules.length} règles, ${Object.keys(grids).length + Object.keys(gridsReno).length + Object.keys(gridsExt).length} grilles (${Object.keys(gridsReno).length} réno + ${Object.keys(gridsExt).length} ext), ${constraints.length} contraintes.`);
+console.log(`Écrit ${path.relative(process.cwd(), out)} — ${fields.length} champs, ${priceRules.length} règles, ${Object.keys(grids).length + Object.keys(gridsReno).length + Object.keys(gridsExt).length + Object.keys(gridsDL).length} grilles (${Object.keys(gridsReno).length} réno + ${Object.keys(gridsExt).length} ext + ${Object.keys(gridsDL).length} ½lint), ${constraints.length} contraintes.`);
