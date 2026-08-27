@@ -732,11 +732,12 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 .devis-footer { text-align: center; font-size: 10px; color: var(--alu-400);
   padding-top: 16px; border-top: 1px solid var(--line); }
 
-/* Marge de page nulle → supprime l'en-tête / pied de page ajoutés d'office par le
-   navigateur (date, URL, n° de page) : sans marge, il n'a plus d'espace pour les poser.
-   La marge visuelle du document est recréée via le padding de .devis-doc ci-dessous.
-   (Comportement Chrome/Edge/Firefox ; un réglage manuel du navigateur peut le réactiver.) */
-@page { margin: 0; }
+/* Marge de page appliquée à CHAQUE page imprimée (y compris le haut des pages
+   suivantes d'un devis multi-pages) : une marge sur .devis-doc ne vaudrait qu'au
+   début/fin du flux, laissant la page 2 collée en haut. Contrepartie : le navigateur
+   peut réafficher son en-tête/pied (date, URL, n°) — décochable en un clic dans la
+   fenêtre d'impression (« En-têtes et pieds de page »), choix mémorisé par le navigateur. */
+@page { margin: 14mm; }
 
 @media print {
   /* N'imprimer que le document (devis / bon de commande) : on masque tout le chrome
@@ -746,8 +747,8 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
   body > *:not(main) { display: none !important; }
   .no-print { display: none !important; }
   body, .devis-page, main { background: #fff; margin: 0; padding: 0; }
-  /* padding = marge d'impression (puisque @page margin:0) */
-  .devis-doc { box-shadow: none; margin: 0 auto; padding: 12mm 14mm; max-width: none; }
+  /* La marge d'impression est portée par @page (ci-dessus) → padding nul ici. */
+  .devis-doc { box-shadow: none; margin: 0; padding: 0; max-width: none; }
   /* Forcer l'impression des fonds de couleur (bandeau « DÉSIGNATION », barre « Total TTC »,
      pastilles éco-contribution…) : sinon le navigateur les supprime et le rendu paraît fade.
      Résultat = impression fidèle au devis à l'écran, comme un PDF. */
