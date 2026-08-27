@@ -185,12 +185,16 @@ export function ConfigurateurProduit({ slug }: Props) {
     }
 
     if (f.type === 'boolean') {
+      // Rendu harmonisé avec les choix (boutons Oui/Non) : mêmes visuels partout,
+      // plus de mélange case à cocher / bouton entre configurateurs.
+      const on = values[f.id] === true;
       return (
-        <div key={f.id}>
-          <label className="cfg-check">
-            <input type="checkbox" checked={values[f.id] === true} onChange={(e) => setField(f.id, e.target.checked)} />
-            <span>{f.label}</span>
-          </label>
+        <div className="cfg-section" key={f.id}>
+          <h3 className="cfg-title">{f.label}</h3>
+          <div className="cfg-tabs">
+            <button type="button" className={`cfg-tab${!on ? ' active' : ''}`} onClick={() => setField(f.id, false)}>Non</button>
+            <button type="button" className={`cfg-tab${on ? ' active' : ''}`} onClick={() => setField(f.id, true)}>Oui</button>
+          </div>
           {f.help && <p className="cfg-dim-hint">{f.help}</p>}
           {helpImageBlock(f)}
         </div>

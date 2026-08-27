@@ -475,8 +475,11 @@ for (const o of v1.options) {
 // E. Genouillère — MOTORISATION FILAIRE (6 options : sous-coffre / en applique).
 //    Uniquement en filaire (l'arbre radio/solaire n'a pas de genouillère).
 const GENOU_FIL_VIS = AND([eq('manoeuvre', 'motorisee'), eq('commande', 'filaire')]);
+// Le choix de genouillère n'apparaît que si la « Commande de secours intégrée » est cochée
+// (arbre PDG : la genouillère est l'accessoire de cette commande de secours).
+const GENOU_SEC_VIS = AND([GENOU_FIL_VIS, eq('kit_inverseur_secours', true)]);
 fields.push({ id: 'genouillere', label: 'Genouillère', type: 'choice', default: 'sc60_incluse',
-  visibleWhen: GENOU_FIL_VIS,
+  visibleWhen: GENOU_SEC_VIS,
   help: 'Sous-coffre 60° et applique 60° non aimantée sont incluses dans le prix.',
   options: [
     { value: 'sc60_incluse', label: 'Sous-coffre 60° (incluse)' },
@@ -489,7 +492,7 @@ fields.push({ id: 'genouillere', label: 'Genouillère', type: 'choice', default:
 const GENOU_PRICE = { sc60a: 41, app60a: 41, app90: 18, app90a: 59 }; // incluses : sc60_incluse, app60
 for (const [val, price] of Object.entries(GENOU_PRICE)) {
   priceRules.push({ code: `opt_genouillere_${val}`, label: `Genouillère (${val})`, kind: 'add',
-    when: AND([GENOU_FIL_VIS, eq('genouillere', val)]), amount: price });
+    when: AND([GENOU_SEC_VIS, eq('genouillere', val)]), amount: price });
 }
 
 // E'. Genouillère — MANŒUVRE MANUELLE (4 options, libellés capture PDG).
