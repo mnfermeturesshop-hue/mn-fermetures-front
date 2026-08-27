@@ -732,6 +732,12 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 .devis-footer { text-align: center; font-size: 10px; color: var(--alu-400);
   padding-top: 16px; border-top: 1px solid var(--line); }
 
+/* Marge de page nulle → supprime l'en-tête / pied de page ajoutés d'office par le
+   navigateur (date, URL, n° de page) : sans marge, il n'a plus d'espace pour les poser.
+   La marge visuelle du document est recréée via le padding de .devis-doc ci-dessous.
+   (Comportement Chrome/Edge/Firefox ; un réglage manuel du navigateur peut le réactiver.) */
+@page { margin: 0; }
+
 @media print {
   /* N'imprimer que le document (devis / bon de commande) : on masque tout le chrome
      de l'app — header, barre de confiance, footer, tiroir panier, toasts, assistant —
@@ -740,7 +746,8 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
   body > *:not(main) { display: none !important; }
   .no-print { display: none !important; }
   body, .devis-page, main { background: #fff; margin: 0; padding: 0; }
-  .devis-doc { box-shadow: none; margin: 0 auto; padding: 20px; max-width: none; }
+  /* padding = marge d'impression (puisque @page margin:0) */
+  .devis-doc { box-shadow: none; margin: 0 auto; padding: 12mm 14mm; max-width: none; }
 }
 
 /* =====================================================================
