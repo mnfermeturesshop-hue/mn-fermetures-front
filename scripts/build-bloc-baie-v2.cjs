@@ -259,6 +259,17 @@ const fields = [
     options: [{ value: 'non', label: 'Non' }, { value: 'oui', label: 'Oui' }] },
   { id: 'mortaise', label: 'Mortaise', type: 'choice', default: 'non',
     options: [{ value: 'non', label: 'Non' }, { value: 'oui', label: 'Oui (+12,70 €)' }] },
+  // Sous-choix d'usinage de la mortaise (cote de fabrication, sans impact prix : le +12,70 €
+  // s'applique quel que soit le format). Usinage du coffre pour ventilation (non fournie).
+  { id: 'mortaise_type', label: 'Mortaise — usinage', type: 'choice', default: '250x12', role: 'spec', visibleWhen: eq('mortaise', 'oui'),
+    help: 'Usinage du coffre pour ventilation (ventilation non fournie).',
+    options: [
+      { value: '250x12', label: '250 × 12 mm' },
+      { value: '125-10-125x12', label: '125-10-125 × 12 mm' },
+      { value: 'autre', label: 'Autre (préciser les dimensions)' },
+    ] },
+  { id: 'mortaise_dim', label: 'Mortaise — dimensions souhaitées', type: 'text', role: 'spec', visibleWhen: AND([eq('mortaise', 'oui'), eq('mortaise_type', 'autre')]),
+    help: 'Indiquer les dimensions souhaitées de l\'usinage.' },
   { id: 'cale_epaississeur', label: 'Câle épaississeur coulisse 10 mm (qté / volet)', type: 'number', min: 0, max: 20, step: 1, default: 0, role: 'spec', visibleWhen: IS_RENO,
     help: 'Sur consultation — compatible coulisses PVC / Alu 60×30. Indiquer la quantité par volet.' },
 ];
@@ -399,7 +410,7 @@ const steps = [
   { id: 'tablier', title: 'Tablier & lame finale', fields: ['tablier_coloris', 'lamefinale_coloris'] },
   { id: 'coulisse', title: 'Coulisses', fields: ['coulisse_debord', 'coulisse_type', 'debord_gauche', 'debord_droite', 'coulisse_coloris', 'percage'] },
   { id: 'manoeuvre', title: 'Manœuvre', fields: ['manoeuvre', 'cote_manoeuvre', 'sortie_manoeuvre', 'genouillere_manuelle', 'cote_fil', 'sortie_fil', 'motorisation', 'marque', 'emetteur_type', 'inverseur', 'inverseur_pose', 'inverseur_maintien', 'secours_integre', 'genouillere', 'secours_type', 'mn_5canaux', 'somfy_situo1', 'somfy_situo5', 'somfy_amy4', 'somfy_tahoma', 'rts', 'alim_depannage'] },
-  { id: 'options', title: 'Options', fields: ['renfort', 'mortaise', 'cale_epaississeur'] },
+  { id: 'options', title: 'Options', fields: ['renfort', 'mortaise', 'mortaise_type', 'mortaise_dim', 'cale_epaississeur'] },
   { id: 'recap', title: 'Récapitulatif', fields: [] },
 ];
 
