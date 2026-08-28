@@ -251,18 +251,18 @@ priceRules.push({
   amount: { op: 'round', arg: { op: '*', args: [14, V('surface_m2')] } },
 });
 // Coloris COULISSE (indépendant de la lame) : 7 standards + 16 options (Chêne doré inclus).
-// Plus-value option = 40 €/ml de hauteur × 2 coulisses.
+// Plus-value option = 40 €/ml de hauteur (tarif pour la paire de coulisses, pas de ×2).
 const COULISSE_STD = COFFRE_STD;
 const COULISSE_OPT = COFFRE_OPT;
 fields.push({
   id: 'coloris_coulisse_reno', label: 'Coloris coulisses', type: 'choice', default: 'blanc-9010', visibleWhen: MULTI_VIS,
-  help: 'Coloris option : plus-value 40 €/ml de hauteur (× 2 coulisses).',
+  help: 'Coloris option : plus-value 40 €/ml de hauteur.',
   options: [...rOpt(COULISSE_STD), ...rOpt(COULISSE_OPT)],
 });
 priceRules.push({
   code: 'coloris_coulisse_opt', label: 'Coloris coulisses (option)', kind: 'add',
   when: AND([MULTI_VIS, inSet('coloris_coulisse_reno', COULISSE_OPT)]),
-  amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 40, 2] } },
+  amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 40] } },
 });
 // Coloris LAME FINALE (indépendant de la lame) : 7 standards + 16 options (avec Chêne doré).
 // Plus-value option = 18 €/ml de largeur.
@@ -288,11 +288,11 @@ fields.push({
     { value: 'a_aile', label: 'Coulisse à aile (+8,50 €/ml)' },
   ],
 });
-// +value coulisse à aile : 8,5 €/ml de hauteur × 2 coulisses.
+// +value coulisse à aile : 8,5 €/ml de hauteur (tarif pour la paire, pas de ×2).
 priceRules.push({
   code: 'coulisse_aile', label: 'Coulisse à aile', kind: 'add',
   when: AND([IS_MINIBOX, eq('coulisse_type', 'a_aile')]),
-  amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 8.5, 2] } },
+  amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 8.5] } },
 });
 // ── (RENOBOX) Coulisse selon la lame : 42 → 53/22 (+ à aile) · 56 → 66/27 (pas de à aile).
 fields.push({
@@ -310,7 +310,7 @@ fields.push({
 priceRules.push({
   code: 'coulisse_aile_reno', label: 'Coulisse à aile', kind: 'add',
   when: AND([IS_ALU, eq('coulisse_reno', 'a_aile')]),
-  amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 8.5, 2] } },
+  amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 8.5] } },
 });
 
 // ── (RENOBOX) Verrouillage : attaches rigides (AR) / verrous automatiques (DVA).

@@ -396,7 +396,7 @@ priceRules.push({ code: 'color_tablier_pv', label: 'Coloris tablier (option)', k
   amount: { op: 'round', arg: { op: '*', args: [V('surface_m2'), 14] } } });
 priceRules.push({ code: 'color_coulisse_pv', label: 'Coloris coulisse (option)', kind: 'add',
   when: flatOptionCond('color_coulisse'),
-  amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 40, 2] } } }); // ×2 coulisses
+  amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 40] } } }); // 40 €/ml (tarif pour la paire)
 priceRules.push({ code: 'color_lame_finale_pv', label: 'Coloris lame finale (option)', kind: 'add',
   when: flatOptionCond('color_lame_finale'),
   amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('largeur'), 1000] }, 18] } } });
@@ -510,10 +510,10 @@ for (const [val, price] of Object.entries(GENOU_MAN_PRICE)) {
     when: AND([eq('manoeuvre', 'manuelle'), eq('genouillere_manuelle', val)]), amount: price });
 }
 
-// Coulisse Tradi Express « 53×22 à aile » : +8,50 €/ml (hauteur) × 2 coulisses.
+// Coulisse Tradi Express « 53×22 à aile » : +8,50 €/ml (hauteur) — tarif pour la paire.
 priceRules.push({ code: 'coulisse_express_aile', label: 'Coulisse 53×22 à aile', kind: 'add',
   when: AND([eq('gamme_tradi', 'express'), eq('coulisse_express', 'c53x22_aile')]),
-  amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 8.5, 2] } } });
+  amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 8.5] } } });
 
 // champs de fabrication (specFields)
 for (const sf of (v1.specFields ?? [])) {
