@@ -39,7 +39,7 @@ const GLYPHS: Record<string, string> = {
 
 const PILL: Record<string, { cls: string; label: string }> = {
   matrix: { cls: 'matrix', label: 'Sur mesure' },
-  kit:    { cls: 'kit',    label: 'Kit monté' },
+  kit:    { cls: 'kit',    label: "Kit d'axe" },
   unit:   { cls: 'unit',   label: "À l'unité" },
 };
 

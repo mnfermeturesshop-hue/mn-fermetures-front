@@ -13,7 +13,7 @@ const GLYPHS: Record<string, string> = {
 /** Pastille du modèle de prix. */
 function pill(p: Product): { cls: string; label: string } {
   if (isMatrix(p)) return { cls: 'matrix', label: 'Sur mesure' };
-  if (isKit(p)) return { cls: 'kit', label: 'Kit monté' };
+  if (isKit(p)) return { cls: 'kit', label: "Kit d'axe" };
   if (isUnit(p) && p.uom === 'ml') return { cls: 'ml', label: 'Au mètre' };
   if (isUnit(p) && p.uom === 'paire') return { cls: 'paire', label: 'À la paire' };
   return { cls: 'unit', label: "À l'unité" };
