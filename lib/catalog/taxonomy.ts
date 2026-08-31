@@ -44,7 +44,7 @@ const TREE: SeedGamme[] = [
       { name: 'Bloc baie intérieur neuf', slug: 'bloc-baie-int-neuf' }, { name: 'Bloc baie intérieur réno', slug: 'bloc-baie-int-reno' },
       { name: 'Bloc baie extérieur', slug: 'bloc-baie-ext' }, { name: 'Bloc baie ½ linteau', slug: 'bloc-baie-demi-linteau' },
     ] },
-    { name: 'Porte de garage', slug: 'porte-de-garage', children: [
+    { name: 'Porte de garage', slug: 'porte-de-garage', generatorSlug: 'porte-de-garage', children: [
       { name: 'Ecopark', slug: 'ecopark' }, { name: 'Rollpark', slug: 'rollpark' }, { name: 'Primo', slug: 'primo' },
     ] },
   ] },

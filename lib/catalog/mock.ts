@@ -52,6 +52,7 @@ export const MENU: NavTop[] = [
       { name: 'Volet roulant bloc baie',    href: '/configurateur/volet-roulant-bloc-baie' },
       { name: 'Store banne',                href: '/configurateur/store-banne' },
       { name: 'Tablier sur mesure',         href: '/configurateur/tablier-sur-mesure' },
+      { name: 'Porte de garage',            href: '/configurateur/porte-de-garage' },
     ],
   },
   {

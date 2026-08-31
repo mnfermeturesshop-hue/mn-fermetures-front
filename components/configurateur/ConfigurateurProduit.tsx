@@ -292,6 +292,11 @@ export function ConfigurateurProduit({ slug }: Props) {
     if (f.type === 'dimension' || f.type === 'number') {
       if (val != null && val !== '') return `${f.label} ${val}${f.unit ? ' ' + f.unit : ''}`;
     } else if (f.type === 'choice') {
+      const opts = f.options ?? [];
+      // Option Oui/Non → comportement « case cochée » : masquée si « Non », libellé du CHAMP
+      // si « Oui » (ex. « Contact à clé radio » au lieu de « Oui (+148 €) »/« Non »).
+      const isYesNo = opts.length === 2 && opts.some((o) => o.value === 'oui') && opts.some((o) => o.value === 'non');
+      if (isYesNo) return val === 'oui' ? f.label : null;
       const lbl = optionLabel(f, val);
       // Coloris et cotes de fabrication (role spec : côté/sortie fil, croquage, pose inverseur…)
       // → préfixés par le libellé du champ, sinon l'option seule serait ambiguë (« Gauche », « 40 mm »).
@@ -369,7 +374,12 @@ export function ConfigurateurProduit({ slug }: Props) {
         {def.fields.filter((f) => isVisible(f.visibleWhen, ctx)).map((f) => {
           const val = values[f.id];
           let display = '';
-          if (f.type === 'choice') display = optionLabel(f, val);
+          if (f.type === 'choice') {
+            // Option Oui/Non : masquée si « Non » (comme une case décochée).
+            const opts = f.options ?? [];
+            const isYesNo = opts.length === 2 && opts.some((o) => o.value === 'oui') && opts.some((o) => o.value === 'non');
+            display = isYesNo && val !== 'oui' ? '' : optionLabel(f, val);
+          }
           else if (f.type === 'boolean') display = val === true ? 'Oui' : '';
           else if ((f.type === 'dimension' || f.type === 'number')) display = val != null ? `${val} ${f.unit ?? ''}`.trim() : '';
           else if (f.type === 'text') display = String(val ?? '');
