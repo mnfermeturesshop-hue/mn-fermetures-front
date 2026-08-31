@@ -76,7 +76,7 @@ const tables = {
 const steps = [
   { id: 'produit', title: 'Modèle', fields: ['sous_famille', 'info_compo', 'info_homme_present'] },
   { id: 'dim', title: 'Dimensions', fields: ['largeur', 'hauteur'] },
-  { id: 'coloris', title: 'Coloris', fields: ['coloris'] },
+  { id: 'coloris', title: 'Finition', fields: ['coloris'] },
   { id: 'options', title: 'Options', fields: ['contact_cle', 'bouton_poussoir'] },
   { id: 'recap', title: 'Récapitulatif', fields: [] },
 ];
