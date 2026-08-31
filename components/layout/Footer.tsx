@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { ManageCookiesLink } from '@/components/consent/ManageCookiesLink';
 
 export function Footer() {
   return (
@@ -34,9 +35,11 @@ export function Footer() {
         </div>
         <div className="legal">
           Prix HT · Franco de port en Occitanie dès 400 € HT (forfait 26 € HT en deçà).
-          <Link href="/cgv" style={{ marginLeft: 12, color: '#6b8fa8' }}>
-            CGV
-          </Link>
+          <Link href="/cgv" style={{ marginLeft: 12, color: '#6b8fa8' }}>CGV</Link>
+          <Link href="/mentions-legales" style={{ marginLeft: 12, color: '#6b8fa8' }}>Mentions légales</Link>
+          <Link href="/confidentialite" style={{ marginLeft: 12, color: '#6b8fa8' }}>Confidentialité</Link>
+          <Link href="/cookies" style={{ marginLeft: 12, color: '#6b8fa8' }}>Cookies</Link>
+          <span style={{ marginLeft: 12 }}><ManageCookiesLink /></span>
           <Link href="/admin/login" style={{ marginLeft: 12, opacity: 0.4, fontSize: 11, color: '#6b8fa8' }}>
             admin
           </Link>
