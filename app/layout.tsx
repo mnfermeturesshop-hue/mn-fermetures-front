@@ -16,6 +16,7 @@ import { OrganizationJsonLd } from '@/components/seo/JsonLd';
 import { AuthSync } from '@/components/auth/AuthSync';
 import { SurchargeSync } from '@/components/pricing/SurchargeSync';
 import { AssistantWidget } from '@/components/assistant/AssistantWidget';
+import { CookieBanner } from '@/components/consent/CookieBanner';
 
 const archivo = Archivo({
   subsets: ['latin'],
@@ -74,6 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <CartDrawer />
         <ToastContainer />
         <AssistantWidget />
+        <CookieBanner />
         <OrganizationJsonLd />
       </body>
     </html>
