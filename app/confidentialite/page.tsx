@@ -23,8 +23,9 @@ export default function ConfidentialitePage() {
           <h2>1. Responsable de traitement</h2>
           <p>
             MN FERMETURES SAS (Chemin du Mas de Pastrou, 34560 Villeveyrac) est responsable des traitements
-            de données personnelles effectués via ce site. Contact pour toute question relative à vos données :
-            <strong> contact@mnfermetures.fr</strong> (objet « RGPD »).
+            de données personnelles effectués via ce site. Le délégué à la protection des données (DPO) est
+            <strong> M. Cyril Matthieu</strong>. Pour toute question ou demande relative à vos données :
+            <strong> adv@mnfermetures.com</strong>.
           </p>
         </section>
 
@@ -67,7 +68,7 @@ export default function ConfidentialitePage() {
         <section>
           <h2>5. Durées de conservation</h2>
           <ul>
-            <li>Compte : pendant la durée de la relation, puis suppression/anonymisation [durée à préciser].</li>
+            <li>Compte : pendant la durée de la relation commerciale, puis suppression/anonymisation au bout de 3 ans.</li>
             <li>Factures et pièces comptables : 10 ans (obligation légale).</li>
             <li>Prospects non clients : 3 ans à compter du dernier contact.</li>
             <li>Cookies : voir la <a href="/cookies">politique cookies</a> (13 mois maximum pour les traceurs soumis à consentement).</li>
@@ -79,7 +80,7 @@ export default function ConfidentialitePage() {
           <p>
             Conformément au RGPD, vous disposez d'un droit d'accès, de rectification, d'effacement, d'opposition,
             de limitation et de portabilité de vos données. Vous pouvez les exercer à
-            <strong> contact@mnfermetures.fr</strong>. Vous pouvez également introduire une réclamation auprès de la
+            <strong> adv@mnfermetures.com</strong>. Vous pouvez également introduire une réclamation auprès de la
             <strong> CNIL</strong> (cnil.fr).
           </p>
         </section>

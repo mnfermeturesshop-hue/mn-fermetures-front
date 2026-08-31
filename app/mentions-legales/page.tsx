@@ -28,8 +28,8 @@ export default function MentionsLegalesPage() {
             Second site : 2066 Av. Marcel Pagnol — 34470 Pérols<br />
             Téléphone : 04 67 78 06 63 — E-mail : contact@mnfermetures.fr<br />
             SIRET : 790 910 574 00033 — RCS Montpellier 790 910 574 — Code APE 25.12Z<br />
-            Capital social : [à compléter] € — TVA intracommunautaire : [à compléter]<br />
-            Directeur de la publication : [à compléter]
+            Capital social : 581 300 € — TVA intracommunautaire : FR 87 790 910 574<br />
+            Directeur de la publication : Pierre Marques
           </p>
         </section>
 
