@@ -11,6 +11,14 @@ interface Client {
   company: string;
 }
 
+interface DevisLine {
+  name: string;
+  detail?: string;
+  reference?: string;
+  quantity: number;
+  unitPriceHT: number;
+}
+
 interface DevisRow {
   id: string;
   devis_number: string;
@@ -18,6 +26,8 @@ interface DevisRow {
   company: string | null;
   email: string;
   total_ht: number;
+  frais_ht?: number;
+  lines?: DevisLine[];
   status: string;
   source: string;
   pdf_path: string | null;
@@ -39,7 +49,8 @@ export default function AdminDevisPage() {
   const [devis, setDevis]     = useState<DevisRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fil de commentaires déplié (n° de devis) + pastilles non lus
+  // Détail (articles) déplié + fil de commentaires déplié (n° de devis) + pastilles non lus
+  const [openDetail, setOpenDetail] = useState<string | null>(null);
   const [openThread, setOpenThread] = useState<string | null>(null);
   const [unread, setUnread] = useState<Record<string, number>>({});
 
@@ -217,7 +228,16 @@ export default function AdminDevisPage() {
               {filtered.map((d) => (
                 <>
                 <tr key={d.id} className="adm-tr">
-                  <td className="ref">{d.devis_number}</td>
+                  <td className="ref">
+                    <button
+                      type="button"
+                      onClick={() => setOpenDetail((cur) => cur === d.devis_number ? null : d.devis_number)}
+                      title="Voir le détail du devis"
+                      style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit', cursor: 'pointer' }}
+                    >
+                      {openDetail === d.devis_number ? '▾' : '▸'} {d.devis_number}
+                    </button>
+                  </td>
                   <td>
                     {d.company || d.customer_name || '—'}
                     <div style={{ fontSize: 11, color: 'var(--muted)' }}>{d.email}</div>
@@ -253,6 +273,60 @@ export default function AdminDevisPage() {
                     </button>
                   </td>
                 </tr>
+                {openDetail === d.devis_number && (
+                  <tr key={`${d.id}-detail`} className="adm-tr-detail">
+                    <td colSpan={8} style={{ padding: 0 }}>
+                      <div className="adm-order-detail">
+                        <div className="adm-order-detail-section">
+                          <div className="adm-order-detail-title">Articles du devis</div>
+                          {d.source === 'erp' || !d.lines?.length ? (
+                            <p className="adm-muted" style={{ fontSize: 13, margin: 0 }}>
+                              Devis importé (ERP) — le détail figure dans le PDF{d.pdf_path ? ' (bouton ↓ PDF)' : ''}.
+                            </p>
+                          ) : (
+                            <table className="adm-order-lines">
+                              <thead>
+                                <tr>
+                                  <th>Désignation</th>
+                                  <th>Réf.</th>
+                                  <th style={{ textAlign: 'center' }}>Qté</th>
+                                  <th style={{ textAlign: 'right' }}>P.U. HT</th>
+                                  <th style={{ textAlign: 'right' }}>Total HT</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {d.lines.map((l, i) => (
+                                  <tr key={i}>
+                                    <td>
+                                      <div style={{ fontWeight: 600 }}>{l.name}</div>
+                                      {l.detail && <div className="adm-muted" style={{ fontSize: 12, whiteSpace: 'pre-line' }}>{l.detail}</div>}
+                                    </td>
+                                    <td><span className="adm-slug">{l.reference ?? '—'}</span></td>
+                                    <td style={{ textAlign: 'center' }}>{l.quantity}</td>
+                                    <td style={{ textAlign: 'right' }}>{euro(l.unitPriceHT)}</td>
+                                    <td style={{ textAlign: 'right', fontWeight: 600 }}>{euro(l.unitPriceHT * l.quantity)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                              <tfoot>
+                                {Number(d.frais_ht) > 0 && (
+                                  <tr>
+                                    <td colSpan={4} style={{ textAlign: 'right', color: '#6b7280', fontSize: 13 }}>Frais de livraison</td>
+                                    <td style={{ textAlign: 'right' }}>{euro(Number(d.frais_ht))}</td>
+                                  </tr>
+                                )}
+                                <tr>
+                                  <td colSpan={4} style={{ textAlign: 'right', fontWeight: 700 }}>Total HT</td>
+                                  <td style={{ textAlign: 'right', fontWeight: 700 }}>{euro(Number(d.total_ht))}</td>
+                                </tr>
+                              </tfoot>
+                            </table>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
                 {openThread === d.devis_number && (
                   <tr key={`${d.id}-thread`} className="adm-tr-detail">
                     <td colSpan={8} style={{ padding: '0 14px 14px' }}>

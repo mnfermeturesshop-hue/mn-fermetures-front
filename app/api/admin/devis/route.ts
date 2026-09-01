@@ -10,7 +10,7 @@ export async function GET() {
   const supabase = createAdminClient();
   let query = supabase
     .from('devis')
-    .select('id, devis_number, customer_name, company, email, total_ht, status, source, pdf_path, created_at, valid_until')
+    .select('id, devis_number, customer_name, company, email, total_ht, frais_ht, lines, status, source, pdf_path, created_at, valid_until')
     .order('created_at', { ascending: false });
 
   if (guard.role === 'commercial') {
