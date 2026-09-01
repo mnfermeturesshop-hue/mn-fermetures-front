@@ -33,6 +33,26 @@ export async function GET() {
   return NextResponse.json(data ?? []);
 }
 
+// Réinscrire un client (annuler un email_optout — utile en cas de désinscription
+// involontaire déclenchée par un scanner de liens). Commercial : ses clients uniquement.
+export async function PATCH(req: NextRequest) {
+  const guard = await requireStaff();
+  if (!guard.ok) return guard.response;
+
+  const { userId } = await req.json().catch(() => ({})) as { userId?: string };
+  if (!userId) return NextResponse.json({ error: 'userId requis' }, { status: 400 });
+
+  if (guard.role === 'commercial') {
+    const allowed = await getCommercialClientIds(guard.userId);
+    if (!allowed.has(userId)) return NextResponse.json({ error: 'Ce client ne fait pas partie de votre portefeuille.' }, { status: 403 });
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.from('profiles').update({ email_optout: false }).eq('id', userId);
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  return NextResponse.json({ ok: true });
+}
+
 export async function POST(req: NextRequest) {
   const guard = await requireStaff();
   if (!guard.ok) return guard.response;

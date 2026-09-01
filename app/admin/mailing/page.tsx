@@ -32,6 +32,22 @@ export default function AdminMailingPage() {
   const [sending, setSending]   = useState(false);
   const [confirming, setConfirming] = useState(false);
 
+  // Réinscription d'un client désinscrit par erreur (ex. lien scanné par sa messagerie).
+  const resubscribe = async (id: string) => {
+    try {
+      const res = await fetch('/api/admin/mailing', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: id }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? 'Échec');
+      setClients((cs) => cs.map((c) => (c.id === id ? { ...c, emailOptout: false } : c)));
+      toast.success('Client réinscrit aux emails commerciaux');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Échec de la réinscription');
+    }
+  };
+
   const reloadHistory = () => {
     fetch('/api/admin/mailing')
       .then((r) => (r.ok ? r.json() : []))
@@ -183,7 +199,19 @@ export default function AdminMailingPage() {
                     {c.company || c.name}
                     <small>{c.email}</small>
                   </span>
-                  {c.emailOptout && <span className="mailing-optout-tag">désinscrit</span>}
+                  {c.emailOptout && (
+                    <span className="mailing-optout-tag">
+                      désinscrit
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); resubscribe(c.id); }}
+                        title="Réinscrire ce client (ex. désinscription involontaire)"
+                        style={{ marginLeft: 6, background: 'none', border: 'none', padding: 0, color: '#2563eb', textDecoration: 'underline', cursor: 'pointer', font: 'inherit' }}
+                      >
+                        réinscrire
+                      </button>
+                    </span>
+                  )}
                 </label>
               ))}
             </div>
