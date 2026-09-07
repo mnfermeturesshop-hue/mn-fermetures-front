@@ -39,6 +39,9 @@ const TREE: SeedGamme[] = [
     // (nœud de remise/surcharge/éco choisi dynamiquement via `sous_famille`).
     { name: 'Reno', slug: 'reno', generatorSlug: 'volet-roulant-renovation', children: [
       { name: 'Minibox', slug: 'minibox' }, { name: 'Renobox', slug: 'renobox' }, { name: 'Reno gros coffre', slug: 'reno-gros-coffre' },
+      // 1.2.4 Moustibox (moustiquaire) — produit configurable ; son propre configurateur
+      // (generatorSlug) sera renseigné dès réception du tarif + arbre de décision PDG.
+      { name: 'Moustibox', slug: 'moustibox' },
     ] },
     { name: 'Bloc baie', slug: 'bloc-baie', generatorSlug: 'volet-roulant-bloc-baie', children: [
       { name: 'Bloc baie intérieur neuf', slug: 'bloc-baie-int-neuf' }, { name: 'Bloc baie intérieur réno', slug: 'bloc-baie-int-reno' },
