@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { getUserDiscounts } from '@/lib/pricing/discounts';
+import { getUserDiscounts, getUserHiddenNodes } from '@/lib/pricing/discounts';
 import { verifyCartLines } from '@/lib/catalog/verifyCart';
 
 export const runtime = 'nodejs';
@@ -18,8 +18,9 @@ export async function POST(req: NextRequest) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const discounts = user ? await getUserDiscounts(user.id) : {};
+  const hiddenNodes = user ? await getUserHiddenNodes(user.id) : [];
 
-  const verified = await verifyCartLines(body.lines, discounts, { userId: user?.id ?? null });
+  const verified = await verifyCartLines(body.lines, discounts, { userId: user?.id ?? null, hiddenNodes });
   if (!verified.ok) return NextResponse.json({ error: verified.error }, { status: 400 });
 
   return NextResponse.json({ lines: verified.lines }, { headers: { 'Cache-Control': 'no-store' } });

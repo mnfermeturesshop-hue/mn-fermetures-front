@@ -68,6 +68,35 @@ export function resolveB2BDiscountSeed(
 }
 
 /* =====================================================================
+   Masquage produit PAR CLIENT (PDG) — liste de slugs de nœuds masqués sur le
+   profil (`profiles.hidden_nodes`). HÉRITÉ comme les remises : masquer un nœud
+   masque toute sa descendance. Source serveur (jamais le client).
+   ===================================================================== */
+
+/** Le nœud (ou l'un de ses ancêtres : sous-famille → famille → gamme) est-il
+ *  masqué pour ce client ? Tolérant aux anciennes clés de famille. */
+export function isNodeHidden(
+  hidden: string[] | undefined,
+  nodeOrFamille: string | undefined,
+  nodes: TaxonomyNode[],
+): boolean {
+  const node = legacyFamilleToNode(nodeOrFamille);
+  if (!hidden || hidden.length === 0 || !node) return false;
+  const set = new Set(hidden.map((s) => LEGACY_FAMILLE_TO_NODE[s] ?? s));
+  for (const slug of chainSlugs(nodes, node)) if (set.has(slug)) return true;
+  return false;
+}
+
+/** Variante d'affichage client : résout via le SEED de nomenclature. Le blocage
+ *  autoritaire (achat/devis) reste recalculé serveur avec la taxonomie en base. */
+export function isNodeHiddenSeed(
+  hidden: string[] | undefined,
+  nodeOrFamille: string | undefined,
+): boolean {
+  return isNodeHidden(hidden, nodeOrFamille, TAXONOMY_SEED);
+}
+
+/* =====================================================================
    Surcharge temporaire (PDG) — % positif posé sur un nœud, hérité comme les
    remises (la plus précise l'emporte) mais GLOBAL (pas par client). Stocké sur
    les nœuds (`taxonomy_nodes.surcharge`) ; résolu par la même mécanique.

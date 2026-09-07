@@ -9,7 +9,8 @@ import { recomputeCodes, children, chainSlugs, bySlug, type TaxonomyNode } from 
 import { productsInSubtree, generatorsInSubtree } from '@/lib/catalog/taxonomy-nav';
 import { ProductCard } from '@/components/product/ProductCard';
 import { maskProductPrices } from '@/lib/catalog/maskPrices';
-import { pricesVisible } from '@/lib/pricing/visibility';
+import { pricesVisible, getRequestHiddenNodes } from '@/lib/pricing/visibility';
+import { isNodeHidden } from '@/lib/pricing/discount-resolver';
 
 interface Props { params: { path?: string[] } }
 
@@ -37,11 +38,18 @@ export default async function GammesPage({ params }: Props) {
   const current = currentSlug ? map.get(currentSlug) : undefined;
   if (currentSlug && !current) notFound();
 
-  const subNodes = children(nodes, current ? current.slug : null); // actifs, triés
-  const [rawProducts, showPrices] = await Promise.all([getAllProducts(), pricesVisible()]);
+  const [rawProducts, showPrices, hidden] = await Promise.all([getAllProducts(), pricesVisible(), getRequestHiddenNodes()]);
+  // Masquage par client : catégorie courante masquée → 404 discret ; sinon on
+  // retire de l'affichage les sous‑nœuds, produits et configurateurs masqués.
+  if (current && isNodeHidden(hidden, current.slug, nodes)) notFound();
+  const isHidden = (slug: string | undefined) => hidden.length > 0 && isNodeHidden(hidden, slug, nodes);
+
+  const subNodes = children(nodes, current ? current.slug : null).filter((n) => !isHidden(n.slug)); // actifs, triés
   const products = showPrices ? rawProducts : rawProducts.map(maskProductPrices);
-  const nodeProducts = current ? productsInSubtree(products, nodes, current.slug) : [];
-  const generators = current ? generatorsInSubtree(nodes, current.slug) : [];
+  const nodeProducts = (current ? productsInSubtree(products, nodes, current.slug) : [])
+    .filter((p) => !isHidden(p.taxonomySlug ?? p.famille));
+  const generators = (current ? generatorsInSubtree(nodes, current.slug) : [])
+    .filter((g) => !isHidden(g.slug));
 
   const chain = current ? chainSlugs(nodes, current.slug).map((s) => map.get(s)!).reverse() : [];
 

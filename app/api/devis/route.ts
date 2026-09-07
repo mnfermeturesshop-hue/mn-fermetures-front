@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { verifyCartLines } from '@/lib/catalog/verifyCart';
-import { getUserDiscounts } from '@/lib/pricing/discounts';
+import { getUserDiscounts, getUserHiddenNodes } from '@/lib/pricing/discounts';
 import { computeOrderTotals, type ShippingMethod } from '@/lib/pricing/shipping';
 
 export async function POST(req: NextRequest) {
@@ -32,7 +32,8 @@ export async function POST(req: NextRequest) {
   // totaux recalculés à partir du catalogue — jamais les montants du body,
   // qui alimenteraient sinon un bon de commande via /convert (cf. audit devis).
   const discounts = await getUserDiscounts(userId);
-  const verified = await verifyCartLines(body.lines, discounts, { userId });
+  const hiddenNodes = await getUserHiddenNodes(userId);
+  const verified = await verifyCartLines(body.lines, discounts, { userId, hiddenNodes });
   if (!verified.ok) {
     return NextResponse.json({ error: verified.error }, { status: 400 });
   }

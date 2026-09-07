@@ -1,7 +1,12 @@
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { ConfigurateurProduit } from '@/components/configurateur/ConfigurateurProduit';
 import { loadConfiguratorDef } from '@/lib/configurateur/loader';
+import { getRequestHiddenNodes } from '@/lib/pricing/visibility';
+import { getTaxonomy } from '@/lib/catalog/taxonomy-loader';
+import { generatorNode } from '@/lib/catalog/taxonomy';
+import { isNodeHidden } from '@/lib/pricing/discount-resolver';
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const def = await loadConfiguratorDef(params.slug);
@@ -15,6 +20,18 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 export default async function ConfigurateurProduitPage({ params }: { params: { slug: string } }) {
   const def = await loadConfiguratorDef(params.slug);
   const name = def?.name ?? 'Produit';
+
+  // Masquage par client : si le configurateur entier (nœud générateur / famille)
+  // est masqué pour le pro connecté → 404 discret. Le masquage d'une sous-famille
+  // seule ne 404 pas la page : ses options sont filtrées par l'API def.
+  if (def) {
+    const hidden = await getRequestHiddenNodes();
+    if (hidden.length) {
+      const taxonomy = await getTaxonomy();
+      const genNode = generatorNode(taxonomy, def.slug) ?? def.famille;
+      if (isNodeHidden(hidden, genNode, taxonomy)) notFound();
+    }
+  }
 
   return (
     <div className="wrap">

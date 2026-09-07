@@ -20,3 +20,24 @@ export async function getUserDiscounts(userId: string | null): Promise<DiscountM
     return {};
   }
 }
+
+/**
+ * Nœuds de nomenclature MASQUÉS pour un client (`profiles.hidden_nodes`) — lus
+ * côté serveur. Source de vérité pour le blocage (affichage + achat). Renvoie
+ * `[]` pour un invité, en cas d'erreur, ou tant que la colonne n'existe pas
+ * (migration 20260907 non jouée) — donc aucun masquage par défaut.
+ */
+export async function getUserHiddenNodes(userId: string | null): Promise<string[]> {
+  if (!userId || !process.env.SUPABASE_SERVICE_ROLE_KEY) return [];
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from('profiles')
+      .select('hidden_nodes')
+      .eq('id', userId)
+      .single();
+    return Array.isArray(data?.hidden_nodes) ? (data!.hidden_nodes as string[]) : [];
+  } catch {
+    return [];
+  }
+}

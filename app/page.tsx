@@ -1,6 +1,10 @@
 import Link from 'next/link';
 import { listConfigurators } from '@/lib/configurateur/loader';
 import { FEATURED_CONFIGURATORS as CONFIGURATORS } from '@/lib/configurateur/featured';
+import { getRequestHiddenNodes } from '@/lib/pricing/visibility';
+import { getTaxonomy } from '@/lib/catalog/taxonomy-loader';
+import { generatorNode } from '@/lib/catalog/taxonomy';
+import { isNodeHidden } from '@/lib/pricing/discount-resolver';
 
 const QUICK_LINKS = [
   { label: 'Nos gammes', sub: 'Catalogue par nomenclature', href: '/gammes', icon: '🗂' },
@@ -32,7 +36,11 @@ export default async function HomePage() {
   } catch {
     activeSlugs = new Set(CONFIGURATORS.map((c) => c.slug));
   }
-  const configurators = CONFIGURATORS.filter((c) => activeSlugs.has(c.slug));
+  // Masquage par client : retirer les configurateurs dont le nœud générateur est masqué.
+  const [hidden, taxonomy] = await Promise.all([getRequestHiddenNodes(), getTaxonomy()]);
+  const configurators = CONFIGURATORS
+    .filter((c) => activeSlugs.has(c.slug))
+    .filter((c) => !(hidden.length > 0 && isNodeHidden(hidden, generatorNode(taxonomy, c.slug), taxonomy)));
 
   return (
     <>

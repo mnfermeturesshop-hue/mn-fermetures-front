@@ -19,7 +19,9 @@ import { ProductJsonLd, BreadcrumbJsonLd } from '@/components/seo/JsonLd';
 import { ZoomableImage } from '@/components/ui/ZoomableImage';
 import Link from 'next/link';
 import { maskProductPrices } from '@/lib/catalog/maskPrices';
-import { pricesVisible } from '@/lib/pricing/visibility';
+import { pricesVisible, getRequestHiddenNodes } from '@/lib/pricing/visibility';
+import { getTaxonomy } from '@/lib/catalog/taxonomy-loader';
+import { isNodeHidden } from '@/lib/pricing/discount-resolver';
 
 interface Props { params: { slug: string } }
 
@@ -51,6 +53,14 @@ export default async function ProductPage({ params }: Props) {
     pricesVisible(),
   ]);
   if (!rawProduct) notFound();
+
+  // Masquage produit par client : si le nœud du produit (ou un ancêtre) est masqué
+  // pour le pro connecté → 404 discret (le produit n'existe pas pour lui).
+  const hidden = await getRequestHiddenNodes();
+  if (hidden.length) {
+    const taxonomy = await getTaxonomy();
+    if (isNodeHidden(hidden, rawProduct.taxonomySlug ?? rawProduct.famille, taxonomy)) notFound();
+  }
 
   // Prix réservés aux connectés : masqués avant envoi au navigateur
   const product = showPrices ? rawProduct : maskProductPrices(rawProduct);

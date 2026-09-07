@@ -4,7 +4,7 @@ import Stripe from 'stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { verifyCartLines } from '@/lib/catalog/verifyCart';
-import { getUserDiscounts } from '@/lib/pricing/discounts';
+import { getUserDiscounts, getUserHiddenNodes } from '@/lib/pricing/discounts';
 import { computeOrderTotals, type ShippingMethod } from '@/lib/pricing/shipping';
 import { escapeHtml } from '@/lib/security/escapeHtml';
 import { B2C_ENABLED } from '@/lib/config';
@@ -222,7 +222,8 @@ export async function POST(req: NextRequest) {
 
   // Re-tarification autoritaire du panier côté serveur (audit S2)
   const discounts = await getUserDiscounts(trustedUserId);
-  const verified = await verifyCartLines(payload.lines, discounts, { userId: trustedUserId });
+  const hiddenNodes = await getUserHiddenNodes(trustedUserId);
+  const verified = await verifyCartLines(payload.lines, discounts, { userId: trustedUserId, hiddenNodes });
 
   // Détermination du montant et du statut de confiance
   let lines = payload.lines;

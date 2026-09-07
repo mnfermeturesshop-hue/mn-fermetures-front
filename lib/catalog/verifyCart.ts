@@ -2,7 +2,7 @@ import { getAllProducts } from './db';
 import { resolveMatrixPrice } from './resolvePrice';
 import { isMatrix, isUnit, isKit, type Product, type CartLine, type Uom } from './types';
 import { type DiscountMap } from '@/lib/familles';
-import { resolveB2BDiscount, applyDiscount, resolveB2BSurcharge, surchargeMapFromNodes, resolveEco, ecoMapFromNodes } from '@/lib/pricing/discount-resolver';
+import { resolveB2BDiscount, applyDiscount, resolveB2BSurcharge, surchargeMapFromNodes, resolveEco, ecoMapFromNodes, isNodeHidden } from '@/lib/pricing/discount-resolver';
 import { getTaxonomy } from '@/lib/catalog/taxonomy-loader';
 import { generatorNode } from '@/lib/catalog/taxonomy';
 import { laquageForfaitHT } from '@/lib/pricing/shipping';
@@ -54,6 +54,9 @@ const MAX_QTY = 999;
 export interface VerifyContext {
   /** Utilisateur de session (propriétaire attendu des devis référencés). */
   userId?: string | null;
+  /** Nœuds de nomenclature masqués pour ce client (`profiles.hidden_nodes`) —
+   *  toute ligne rattachée à un nœud masqué (ou descendant) est refusée. */
+  hiddenNodes?: string[];
 }
 
 interface DevisRow {
@@ -206,6 +209,14 @@ export async function verifyCartLines(
 
     if (base == null) {
       return { ok: false, error: 'Prix indisponible pour un article (hors abaque ?).' };
+    }
+
+    // Masquage produit par client : une ligne rattachée à un nœud masqué (ou à un
+    // de ses ancêtres) est refusée — garde autoritaire (empêche l'ajout via lien
+    // direct ou panier gardé). Les lignes de devis négociées (node indéfini) ne
+    // sont pas concernées : l'historique reste honoré.
+    if (node && isNodeHidden(ctx.hiddenNodes, node, taxonomy)) {
+      return { ok: false, error: `Ce produit n'est pas disponible pour votre compte.` };
     }
 
     // Produit tarifé à sa base (remise appliquée). La surcharge temporaire est

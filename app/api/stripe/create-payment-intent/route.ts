@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@/lib/supabase/server';
 import { verifyCartLines } from '@/lib/catalog/verifyCart';
-import { getUserDiscounts } from '@/lib/pricing/discounts';
+import { getUserDiscounts, getUserHiddenNodes } from '@/lib/pricing/discounts';
 import { computeOrderTotals, type ShippingMethod } from '@/lib/pricing/shipping';
 import { rateLimit, clientIp } from '@/lib/security/rateLimit';
 import { B2C_ENABLED } from '@/lib/config';
@@ -38,7 +38,8 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   const discounts = await getUserDiscounts(user?.id ?? null);
-  const verified = await verifyCartLines(lines, discounts, { userId: user?.id ?? null });
+  const hiddenNodes = await getUserHiddenNodes(user?.id ?? null);
+  const verified = await verifyCartLines(lines, discounts, { userId: user?.id ?? null, hiddenNodes });
   if (!verified.ok) {
     return NextResponse.json({ error: verified.error }, { status: 400 });
   }

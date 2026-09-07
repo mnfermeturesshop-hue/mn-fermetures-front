@@ -45,6 +45,15 @@ export async function GET() {
       profiles = (fallback ?? []).map((p) => ({ ...p, commercial_id: null, email_optout: false }));
     }
 
+    // Masquage produit par client (colonne `hidden_nodes`) — requête SÉPARÉE et
+    // tolérante : si la migration 20260907 n'est pas jouée, on ignore sans casser
+    // le reste de l'écran (aucun masquage affiché).
+    const hiddenById = new Map<string, string[]>();
+    try {
+      const { data: hn } = await supabase.from('profiles').select('id, hidden_nodes').in('role', ['b2b', 'blocked']);
+      for (const r of hn ?? []) hiddenById.set(r.id, Array.isArray(r.hidden_nodes) ? (r.hidden_nodes as string[]) : []);
+    } catch { /* colonne absente → aucun masquage */ }
+
     const loyaltyYear = new Date().getFullYear();
     const [{ data: { users } }, { data: proRequests }, { data: loyaltyOrders }] = await Promise.all([
       supabase.auth.admin.listUsers({ perPage: 1000 }),
@@ -83,6 +92,7 @@ export async function GET() {
         name: p.name,
         company: p.company || proCompanyByEmail[email] || '',
         discounts: (p.discounts as Record<string, number>) ?? {},
+        hiddenNodes: hiddenById.get(p.id) ?? [],
         lastSignIn: userDataById[p.id]?.lastSignIn ?? null,
         banned: userDataById[p.id]?.banned ?? false,
         loyaltyCaHT: loyaltyCaByUser.get(p.id) ?? 0,
@@ -107,10 +117,11 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json() as {
       id: string;
       discounts?: Record<string, number>;
+      hiddenNodes?: string[];
       action?: 'block' | 'unblock';
       commercialId?: string | null;
     };
-    const { id, action, discounts, commercialId } = body;
+    const { id, action, discounts, hiddenNodes, commercialId } = body;
     if (!id) return NextResponse.json({ error: 'id requis' }, { status: 400 });
 
     const supabase = createAdminClient();
@@ -138,7 +149,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // Mise à jour des remises — un commercial ne touche que SES clients
+    // Mise à jour des remises et/ou du masquage — un commercial ne touche que SES clients
     if (guard.role === 'commercial') {
       const { data: target } = await supabase
         .from('profiles')
@@ -149,7 +160,11 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ error: 'Ce client ne vous est pas assigné.' }, { status: 403 });
       }
     }
-    const { error } = await supabase.from('profiles').update({ discounts }).eq('id', id);
+    const update: Record<string, unknown> = {};
+    if (discounts !== undefined) update.discounts = discounts;
+    if (hiddenNodes !== undefined) update.hidden_nodes = hiddenNodes;
+    if (Object.keys(update).length === 0) return NextResponse.json({ error: 'Rien à mettre à jour.' }, { status: 400 });
+    const { error } = await supabase.from('profiles').update(update).eq('id', id);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ ok: true });
   } catch (err) {

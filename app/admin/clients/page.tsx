@@ -13,6 +13,7 @@ interface Client {
   name: string;
   company: string;
   discounts: Record<string, number>;
+  hiddenNodes: string[];
   lastSignIn: string | null;
   banned: boolean;
   loyaltyCaHT?: number;
@@ -107,23 +108,23 @@ export default function AdminClients() {
     }
   };
 
-  const save = async (client: Client, discounts: Record<string, number>) => {
+  const save = async (client: Client, discounts: Record<string, number>, hiddenNodes: string[]) => {
     setSaving(client.id);
     try {
       const res = await fetch('/api/admin/clients', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: client.id, discounts }),
+        body: JSON.stringify({ id: client.id, discounts, hiddenNodes }),
       });
       if (!res.ok) {
         const { error } = await res.json();
         throw new Error(error);
       }
       setClients((prev) =>
-        prev.map((c) => c.id === client.id ? { ...c, discounts } : c)
+        prev.map((c) => c.id === client.id ? { ...c, discounts, hiddenNodes } : c)
       );
       setEditing(null);
-      toast.success('Remises enregistrées');
+      toast.success('Remises & masquage enregistrés');
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       toast.error(`Erreur : ${msg}`);
@@ -207,8 +208,9 @@ export default function AdminClients() {
             clientLabel={c.company || c.name || c.email}
             nodes={taxNodes}
             initial={c.discounts}
+            initialHidden={c.hiddenNodes ?? []}
             saving={saving === c.id}
-            onSave={(d) => save(c, d)}
+            onSave={(d, h) => save(c, d, h)}
             onClose={() => setEditing(null)}
           />
         );
@@ -303,6 +305,13 @@ export default function AdminClients() {
                     </td>
                     <td>
                       <DiscountSummary discounts={client.discounts} nodes={taxNodes} />
+                      {(client.hiddenNodes?.length ?? 0) > 0 && (
+                        <div style={{ marginTop: 4 }}>
+                          <span style={{ display: 'inline-block', padding: '2px 8px', background: '#fee2e2', color: '#991b1b', borderRadius: 999, fontSize: 12, whiteSpace: 'nowrap' }}>
+                            🚫 {client.hiddenNodes.length} masqué{client.hiddenNodes.length > 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      )}
                     </td>
                     <td className="adm-td-actions">
                       {(

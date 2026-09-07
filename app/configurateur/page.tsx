@@ -3,6 +3,10 @@ import Link from 'next/link';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { listConfigurators } from '@/lib/configurateur/loader';
 import { FEATURED_CONFIGURATORS } from '@/lib/configurateur/featured';
+import { getRequestHiddenNodes } from '@/lib/pricing/visibility';
+import { getTaxonomy } from '@/lib/catalog/taxonomy-loader';
+import { generatorNode } from '@/lib/catalog/taxonomy';
+import { isNodeHidden } from '@/lib/pricing/discount-resolver';
 
 export const metadata: Metadata = {
   title: 'Configurateurs sur mesure — MN Fermetures',
@@ -18,7 +22,11 @@ export default async function ConfigurateursPage() {
   } catch {
     activeSlugs = new Set(FEATURED_CONFIGURATORS.map((c) => c.slug));
   }
-  const configurators = FEATURED_CONFIGURATORS.filter((c) => activeSlugs.has(c.slug));
+  // Masquage par client : retirer les configurateurs dont le nœud générateur est masqué.
+  const [hidden, taxonomy] = await Promise.all([getRequestHiddenNodes(), getTaxonomy()]);
+  const configurators = FEATURED_CONFIGURATORS
+    .filter((c) => activeSlugs.has(c.slug))
+    .filter((c) => !(hidden.length > 0 && isNodeHidden(hidden, generatorNode(taxonomy, c.slug), taxonomy)));
 
   return (
     <div className="wrap">
