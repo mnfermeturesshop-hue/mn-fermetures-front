@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { rateLimit } from '@/lib/security/rateLimit';
 import { ASSISTANT_TOOLS, executeTool } from '@/lib/assistant/tools';
+import { getUserHiddenNodes } from '@/lib/pricing/discounts';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest) {
 
   // 5. Boucle tool-use (outils exécutés avec l'ID de session → propriété respectée)
   const client = new Anthropic();
-  const ctx = { userId: user.id };
+  const ctx = { userId: user.id, hiddenNodes: await getUserHiddenNodes(user.id) };
   try {
     for (let i = 0; i < MAX_ITERS; i++) {
       const res = await client.messages.create({

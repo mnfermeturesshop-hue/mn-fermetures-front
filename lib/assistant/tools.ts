@@ -16,9 +16,15 @@ import { isUnit, isKit } from '@/lib/catalog/types';
 import { listConfigurators, loadConfiguratorDef } from '@/lib/configurateur/loader';
 import type { DefV2 } from '@/lib/configurateur/v2/types';
 import { rechercherDoc } from '@/lib/assistant/knowledge';
+import { getTaxonomy } from '@/lib/catalog/taxonomy-loader';
+import { generatorNode } from '@/lib/catalog/taxonomy';
+import { isNodeHidden } from '@/lib/pricing/discount-resolver';
 
 export interface AssistantCtx {
   userId: string;
+  /** Nœuds de nomenclature masqués pour le client connecté — l'assistant ne doit
+   *  jamais lister/détailler un produit ou configurateur masqué. */
+  hiddenNodes: string[];
 }
 
 const CONTACT_GENERIQUE = { telephone: '04 67 78 06 63', horaires: 'du lundi au vendredi, 8h–17h' };
@@ -116,10 +122,15 @@ function summariseDef(def: DefV2) {
   return { slug: def.slug, nom: def.name, famille: def.famille, sous_familles, choix, dimensions, limites };
 }
 
-async function toolRechercherProduit(requete: string): Promise<string> {
+async function toolRechercherProduit(requete: string, ctx: AssistantCtx): Promise<string> {
   if (requete.trim().length < 2) return JSON.stringify({ resultats: [] });
   const [products, brands, categories] = await Promise.all([getAllProducts(), getAllBrands(), getAllCategories()]);
-  const results = searchProducts(requete, products, brands, categories, 6);
+  let results = searchProducts(requete, products, brands, categories, 6);
+  // Masquage par client : ne jamais proposer un produit masqué.
+  if (ctx.hiddenNodes.length) {
+    const taxonomy = await getTaxonomy();
+    results = results.filter((r) => !isNodeHidden(ctx.hiddenNodes, r.product.taxonomySlug ?? r.product.famille, taxonomy));
+  }
   return JSON.stringify({
     resultats: results.map((r) => ({
       nom: r.product.name,
@@ -136,9 +147,14 @@ async function toolRechercherProduit(requete: string): Promise<string> {
   });
 }
 
-async function toolDetailProduit(slug: string): Promise<string> {
+async function toolDetailProduit(slug: string, ctx: AssistantCtx): Promise<string> {
   const p = await getProductBySlugDB(slug.trim());
   if (!p) return JSON.stringify({ trouve: false });
+  // Masquage par client : un produit masqué est « introuvable » pour l'assistant.
+  if (ctx.hiddenNodes.length) {
+    const taxonomy = await getTaxonomy();
+    if (isNodeHidden(ctx.hiddenNodes, p.taxonomySlug ?? p.famille, taxonomy)) return JSON.stringify({ trouve: false });
+  }
   return JSON.stringify({
     trouve: true,
     nom: p.name,
@@ -215,13 +231,19 @@ async function toolContacterCommercial(userId: string): Promise<string> {
   });
 }
 
-async function toolCapacitesConfigurateur(slug: string): Promise<string> {
+async function toolCapacitesConfigurateur(slug: string, ctx: AssistantCtx): Promise<string> {
+  const taxonomy = ctx.hiddenNodes.length ? await getTaxonomy() : [];
+  const hiddenGen = (s: string) => ctx.hiddenNodes.length > 0 && isNodeHidden(ctx.hiddenNodes, generatorNode(taxonomy, s), taxonomy);
   if (!slug.trim()) {
     const list = await listConfigurators();
     return JSON.stringify({
-      configurateurs: list.filter((c) => c.active).map((c) => ({ slug: c.slug, nom: c.name, famille: c.famille })),
+      configurateurs: list
+        .filter((c) => c.active && !hiddenGen(c.slug))
+        .map((c) => ({ slug: c.slug, nom: c.name, famille: c.famille })),
     });
   }
+  // Configurateur masqué → « introuvable » pour l'assistant.
+  if (hiddenGen(slug.trim())) return JSON.stringify({ trouve: false });
   const def = await loadConfiguratorDef(slug.trim());
   if (!def) return JSON.stringify({ trouve: false });
   return JSON.stringify({ trouve: true, ...summariseDef(def) });
@@ -233,11 +255,11 @@ export async function executeTool(name: string, input: unknown, ctx: AssistantCt
   const arg = (input ?? {}) as any;
   try {
     switch (name) {
-      case 'rechercher_produit': return await toolRechercherProduit(String(arg.requete ?? ''));
-      case 'detail_produit': return await toolDetailProduit(String(arg.slug ?? ''));
+      case 'rechercher_produit': return await toolRechercherProduit(String(arg.requete ?? ''), ctx);
+      case 'detail_produit': return await toolDetailProduit(String(arg.slug ?? ''), ctx);
       case 'mes_commandes': return await toolMesCommandes(ctx.userId);
       case 'statut_commande': return await toolStatutCommande(String(arg.numero ?? ''), ctx.userId);
-      case 'capacites_configurateur': return await toolCapacitesConfigurateur(String(arg.slug ?? ''));
+      case 'capacites_configurateur': return await toolCapacitesConfigurateur(String(arg.slug ?? ''), ctx);
       case 'rechercher_documentation': return JSON.stringify({ fiches: rechercherDoc(String(arg.question ?? '')) });
       case 'contacter_commercial': return await toolContacterCommercial(ctx.userId);
       default: return JSON.stringify({ erreur: 'Outil inconnu.' });
