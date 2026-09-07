@@ -347,8 +347,9 @@ export function ConfigurateurProduit({ slug }: Props) {
   const addToCart = () => {
     if (!result?.ok) return;
     // Forfait laquage (par commande, offert ≥ 2000 €) : Tradi = tout coloris RAL (color_*_pv) ;
-    // Renobox = UNIQUEMENT le coloris coffre en plus-value (coloris_coffre_opt).
-    const laque = result.lineItems.some((li) => (li.code.startsWith('color_') && li.code.endsWith('_pv')) || li.code === 'coloris_coffre_opt');
+    // Reno (Renobox / Gros coffre) = coloris coffre OU lame finale en plus-value RAL
+    // (coffre 300/360 : cf. captures PDG — le « 77 € fixe » = ce forfait laquage).
+    const laque = result.lineItems.some((li) => (li.code.startsWith('color_') && li.code.endsWith('_pv')) || li.code === 'coloris_coffre_opt' || li.code === 'coloris_lamefinale_opt');
     addLine({
       key: `cfg-${slug}-${JSON.stringify(values)}`,
       name: def.name,

@@ -20,6 +20,11 @@ const path = require('path');
 const grids = require('../lib/configurateur/data/reno-minibox-grids.json');
 // Grilles Renobox (parse-reno-renobox.cjs) : r42 / r56_205 / r56_250 × MN/Somfy × filaire/radio.
 const renoGrids = require('../lib/configurateur/data/reno-renobox-grids.json');
+// Grilles Gros coffre lame 77 (parse-reno-gros-coffre.cjs) : r77_300 / r77_360 (Somfy filaire base).
+const grosGrids = require('../lib/configurateur/data/reno-gros-coffre-grids.json');
+// Grilles Gros coffre lame 55 (parse-reno-lame55.cjs) : r55_250 × MN/Somfy × filaire/radio (pas de solaire).
+const lame55Grids = require('../lib/configurateur/data/reno-lame55-grids.json');
+const lame55Adjust = require('../lib/configurateur/data/reno-lame55-adjust.json'); // ar_r55_250 (moins-value AR)
 // Barèmes 1D verrouillage : DVA (plus-value ≤205) / AR (moins-value coffre 250), par largeur.
 const renoAdjust = require('../lib/configurateur/data/reno-renobox-adjust.json');
 
@@ -33,7 +38,8 @@ const lte = (name, n) => ({ op: 'lte', left: V(name), right: n });
 const AND = (cs) => (cs.length === 1 ? cs[0] : { all: cs });
 // Radio/Solaire — exige la MOTORISATION (sinon `commande` garde une valeur résiduelle
 // en manœuvre manuelle et les champs émetteur/centralisation resteraient visibles).
-const RADIO_SOL = { all: [{ op: 'eq', left: V('manoeuvre'), right: 'motorisee' }, inSet('commande', ['radio', 'solaire'])] };
+// Lame 77 exclue : sa motorisation est gérée à part (base Somfy filaire figée + pack).
+const RADIO_SOL = { all: [{ op: 'eq', left: V('manoeuvre'), right: 'motorisee' }, inSet('commande', ['radio', 'solaire']), ne('lame_reno', 'alu77')] };
 // Gating par sous-famille : les champs COMMUNS (dimensions, pose, enroulement, coulisses,
 // perçage, manœuvre + motorisation) restent SANS gate et sont partagés ; seuls les champs
 // réellement spécifiques (coffre, lame, coloris) sont conditionnés à leur sous-famille.
@@ -41,8 +47,12 @@ const IS_MINIBOX = eq('sous_famille', 'minibox');
 const IS_RENOBOX = eq('sous_famille', 'renobox');
 const IS_GROS = eq('sous_famille', 'reno-gros-coffre');
 // Sous-familles à LAME ALU (Renobox 1.2.2 + Gros coffre 1.2.3) — partagent dimensions,
-// coloris, coulisses, manœuvre, grilles ; le Gros coffre = lame 56 + coffre 250 + pan coupé.
+// coloris, coulisses, manœuvre, grilles. Gros coffre : lame 55/56 (coffre 250, pan coupé)
+// OU lame 77 (coffres 300/360, produit « Rollpark », motorisé — base Somfy filaire + packs).
 const IS_ALU = inSet('sous_famille', ['renobox', 'reno-gros-coffre']);
+// Lame 77 = gros coffre coffres 300/360 : motorisé uniquement, grille unique (base Somfy
+// filaire à commande de secours) + un pack, coulisse 95×34, coloris coffre 90 €/ml.
+const IS_L77 = eq('lame_reno', 'alu77');
 const ninSet = (name, set) => ({ op: 'nin', value: V(name), set });
 // « N'enforce QUE pour la sous-famille X » (implication) pour les contraintes globales.
 const onlyFor = (sf, cond) => ({ any: [ne('sous_famille', sf), cond] });
@@ -86,11 +96,15 @@ fields.push({ id: 'lame_info', type: 'info', visibleWhen: IS_MINIBOX, help: 'Lam
 //    disponibles et les limites dimensionnelles. (PVC / Alu 55 non conservés.)
 fields.push({
   id: 'lame_reno', label: 'Lame', type: 'choice', role: 'spec', default: 'alu42',
-  visibleWhen: IS_ALU,   // Gros coffre : seule Alu 56 dispo (verrouillée + schéma)
+  visibleWhen: IS_ALU,   // Renobox : Alu 42 / 56 · Gros coffre : Alu 55/56 (coffre 250) ou 77 (300/360)
   help: 'Choix de la lame selon les dimensions et l’exposition au vent.',
+  // Ordre : alu56 avant alu55/alu77 pour que le gros coffre retombe sur Alu 56 par défaut
+  // (repairValues prend la 1re option disponible quand le défaut alu42 est indisponible).
   options: [
     { value: 'alu42', label: 'Alu 42 (CD942) — L max 3000 mm · surf. max 8 m²', imageUrl: '/schema-lame-alu-42.png', availableWhen: IS_RENOBOX },
     { value: 'alu56', label: 'Alu 56 — L max 4000 mm · surf. max 10 m²', imageUrl: '/schema-lame-alu-56.png' },
+    { value: 'alu55', label: 'Alu 55 (coffre 250)', availableWhen: IS_GROS },
+    { value: 'alu77', label: 'Alu 77 (gros coffre 300/360)', availableWhen: IS_GROS },
   ],
 });
 
@@ -120,7 +134,7 @@ fields.push({
 //    la lame par défaut. Contrainte guide : Alu 42 (CD942) → 150-205 · Alu 56 → 205/250.
 fields.push({
   id: 'coffre_reno_info', type: 'info', visibleWhen: IS_ALU,
-  help: 'Lame 42 : section de coffre déterminée automatiquement par la hauteur (150 ≤ 1350 · 165 ≤ 1750 · 180 ≤ 2250 · 205 au-delà). Lame 56 : coffre 205 (Renobox) ou coffre 250 (Reno gros coffre, pan coupé). Toutes les sections ne sont pas disponibles en pan rond — nous vous renseignerons.',
+  help: 'Lame 42 : section de coffre déterminée automatiquement par la hauteur (150 ≤ 1350 · 165 ≤ 1750 · 180 ≤ 2250 · 205 au-delà). Lame 56 : coffre 205 (Renobox) ou coffre 250 (Reno gros coffre, pan coupé). Lame 77 (gros coffre) : coffre 300 ou 360. Toutes les sections ne sont pas disponibles en pan rond — nous vous renseignerons.',
 });
 // Lame 42 (Renobox) → coffre AUTO par la hauteur. Lame 56 : coffre 205 (Renobox) ou 250
 // (Gros coffre). Le prix de base dépend du couple lame + coffre + moteur + commande.
@@ -136,7 +150,10 @@ fields.push({
     { value: '165', label: 'Coffre 165', availableWhen: AND([eq('lame_reno', 'alu42'), lte('hauteur', 1750)]) },
     { value: '180', label: 'Coffre 180', availableWhen: AND([eq('lame_reno', 'alu42'), lte('hauteur', 2250)]) },
     { value: '205', label: 'Coffre 205', availableWhen: { any: [eq('lame_reno', 'alu42'), AND([eq('lame_reno', 'alu56'), IS_RENOBOX])] } },
-    { value: '250', label: 'Coffre 250', availableWhen: IS_GROS },
+    { value: '250', label: 'Coffre 250', availableWhen: AND([IS_GROS, inSet('lame_reno', ['alu55', 'alu56'])]) },
+    // Gros coffre lame 77 (« Rollpark ») : sections 300 / 360 — grille de prix dédiée.
+    { value: '300', label: 'Coffre 300', availableWhen: AND([IS_GROS, IS_L77]) },
+    { value: '360', label: 'Coffre 360', availableWhen: AND([IS_GROS, IS_L77]) },
   ],
 });
 // Forme de coffre : pan coupé (PC) / pan rond (PR). Gros coffre → pan coupé imposé.
@@ -201,7 +218,7 @@ const rOpt = (keys, extra) => keys.map((k) => ({ value: k, label: RCOL[k][0], he
 
 // Mode coloris.
 fields.push({
-  id: 'coloris_mode_reno', label: 'Coloris', type: 'choice', default: 'mono', visibleWhen: IS_RENOBOX,
+  id: 'coloris_mode_reno', label: 'Coloris', type: 'choice', default: 'mono', visibleWhen: IS_ALU,
   options: [{ value: 'mono', label: 'Monocouleur' }, { value: 'multi', label: 'Multicouleur' }],
 });
 // Monocouleur : 7 standards + Autres (RAL sur consultation) — sans plus-value.
@@ -219,7 +236,7 @@ const COFFRE_STD = ['blanc-9010', 'ivoire-1015', 'gris-7035', 'gris-7038', 'gris
 const COFFRE_OPT = ['rouge-3004', 'bleu-5011', 'vert-6005', 'vert-6009', 'vert-6021', 'gris-7011', 'gris-7012', 'gris-7021', 'gris-7022', 'gris-7039', 'marron-8014', 'noir-9005', 'ral-9007', 'noir-2100-sable', 'gris-2900-sable', 'chene-dore'];
 fields.push({
   id: 'coloris_coffre_reno', label: 'Coloris coffre', type: 'choice', default: 'blanc-9010', visibleWhen: MULTI_VIS,
-  help: 'Coloris option : plus-value au ml de largeur (lame 42 : 44 €/ml coffre 150-165, 54 €/ml 180-205 · lame 56 : 66 €/ml). Un forfait laquage de 77 € s’ajoute par commande (offert dès 2000 € de commande).',
+  help: 'Coloris option : plus-value au ml de largeur (lame 42 : 44 €/ml coffre 150-165, 54 €/ml 180-205 · lame 55/56 : 66 €/ml · lame 77 coffre 300/360 : 90 €/ml). Un forfait laquage de 77 € s’ajoute par commande (offert dès 2000 € de commande).',
   options: [...rOpt(COFFRE_STD), ...rOpt(COFFRE_OPT)],
 });
 // Plus-value coloris coffre au ml de largeur (le forfait laquage 77 € est géré au niveau
@@ -229,25 +246,43 @@ priceRules.push({
   when: AND([MULTI_VIS, inSet('coloris_coffre_reno', COFFRE_OPT)]),
   amount: { op: 'round', arg: { op: '*', args: [V('coffre_color_rate'), { op: '/', args: [V('largeur'), 1000] }] } },
 });
-// Coloris TABLIER (dépend de la lame). Options = +14 €/m².
-const TABLIER_STD = ['blanc-9010', 'ivoire-1015', 'gris-7035', 'gris-7038', 'gris-7016', 'alu-as-9006', 'marron-8019', 'gris-7039', 'noir-9005', 'noir-2100-sable', 'gris-2900-sable'];
-const TABLIER_OPT_BOTH = ['rouge-3004', 'bleu-5011', 'vert-6005', 'vert-6021', 'marron-8014', 'ral-9007', 'chene-dore'];
-const TABLIER_OPT_56 = ['gris-7011', 'gris-7012'];
-const TABLIER_OPT_42 = ['vert-6009', 'gris-7021', 'gris-7022'];
-const TABLIER_OPT_ALL = [...TABLIER_OPT_BOTH, ...TABLIER_OPT_56, ...TABLIER_OPT_42];
+// Coloris TABLIER — listes STANDARD (sans plus-value) et OPTION (+14 €/m²) PAR LAME
+// (captures PDG « TABLIER › COLORIS », lames 55/56/77). Un coloris peut être standard sur
+// une lame et option sur une autre → la plus-value dépend de la lame courante.
+//  - alu42 (Renobox) : inchangé (pas de capture ; reprise de l'existant).
+const TAB = {
+  alu42: {
+    std: ['blanc-9010', 'ivoire-1015', 'gris-7035', 'gris-7038', 'gris-7016', 'alu-as-9006', 'marron-8019', 'gris-7039', 'noir-9005', 'noir-2100-sable', 'gris-2900-sable'],
+    opt: ['rouge-3004', 'bleu-5011', 'vert-6005', 'vert-6021', 'marron-8014', 'ral-9007', 'chene-dore', 'vert-6009', 'gris-7021', 'gris-7022'],
+  },
+  alu55: {
+    std: ['blanc-9010', 'ivoire-1015', 'gris-7035', 'gris-7038', 'gris-7016', 'alu-as-9006', 'marron-8019', 'noir-9005'],
+    opt: ['rouge-3004', 'gris-7011', 'gris-7012', 'marron-8014'],
+  },
+  alu56: {
+    std: ['blanc-9010', 'ivoire-1015', 'gris-7035', 'gris-7038', 'gris-7016', 'alu-as-9006', 'marron-8019', 'gris-7039', 'noir-9005', 'noir-2100-sable', 'gris-2900-sable'],
+    opt: ['rouge-3004', 'bleu-5011', 'vert-6005', 'vert-6021', 'gris-7011', 'gris-7012', 'marron-8014', 'ral-9007', 'chene-dore'],
+  },
+  alu77: {
+    std: ['blanc-9010', 'ivoire-1015', 'gris-7038', 'gris-7016', 'alu-as-9006', 'marron-8019', 'noir-9005'],
+    opt: ['rouge-3004', 'bleu-5011', 'vert-6005', 'vert-6009', 'vert-6021', 'gris-7022', 'gris-7039', 'marron-8014', 'noir-2100-sable', 'gris-2900-sable', 'chene-dore'],
+  },
+};
+const TAB_LAMES = ['alu42', 'alu55', 'alu56', 'alu77'];
+// color -> lames où il apparaît (std∪opt) ; et lames où il est en OPTION (+value).
+const tabPresence = {};
+for (const L of TAB_LAMES) for (const c of [...TAB[L].std, ...TAB[L].opt]) (tabPresence[c] ||= new Set()).add(L);
 fields.push({
   id: 'coloris_tablier_reno', label: 'Coloris tablier', type: 'choice', default: 'blanc-9010', visibleWhen: MULTI_VIS,
-  help: 'Coloris option : plus-value 14 €/m².',
-  options: [
-    ...rOpt(TABLIER_STD),
-    ...rOpt(TABLIER_OPT_BOTH),
-    ...rOpt(TABLIER_OPT_56, { availableWhen: eq('lame_reno', 'alu56') }),
-    ...rOpt(TABLIER_OPT_42, { availableWhen: eq('lame_reno', 'alu42') }),
-  ],
+  help: 'Coloris option : plus-value 14 €/m². Palette selon la lame.',
+  options: Object.keys(RCOL).filter((c) => tabPresence[c]).map((c) => ({
+    value: c, label: RCOL[c][0], hex: RCOL[c][1], availableWhen: inSet('lame_reno', [...tabPresence[c]]),
+  })),
 });
+// Plus-value = +14 €/m² SI le coloris tablier est « option » pour la lame choisie.
 priceRules.push({
   code: 'coloris_tablier_opt', label: 'Coloris tablier (option)', kind: 'add',
-  when: AND([MULTI_VIS, inSet('coloris_tablier_reno', TABLIER_OPT_ALL)]),
+  when: AND([MULTI_VIS, { any: TAB_LAMES.map((L) => AND([eq('lame_reno', L), inSet('coloris_tablier_reno', TAB[L].opt)])) }]),
   amount: { op: 'round', arg: { op: '*', args: [14, V('surface_m2')] } },
 });
 // Coloris COULISSE (indépendant de la lame) : 7 standards + 16 options (Chêne doré inclus).
@@ -298,12 +333,13 @@ priceRules.push({
 fields.push({
   id: 'coulisse_reno', label: 'Coulisses', type: 'choice', role: 'spec', default: 'c53x22',
   visibleWhen: IS_ALU,
-  help: 'Coulisse par défaut : 53/22 (lame 42), 66/27 (lame 56 coffre 205), 75/27 (lame 56 coffre 250). Coulisse à aile : 53/22 uniquement (lame 42).',
+  help: 'Coulisse par défaut : 53/22 (lame 42), 66/27 (lame 56 coffre 205), 75/27 (lame 55/56 coffre 250), 95/34 (lame 77 coffre 300/360). Coulisse à aile : 53/22 uniquement (lame 42).',
   helpImage: '/reno-minibox-coulisse-aile.png',
   options: [
     { value: 'c53x22', label: 'Coulisse 53/22 (par défaut)', availableWhen: eq('lame_reno', 'alu42') },
     { value: 'c66x27', label: 'Coulisse 66/27 (par défaut)', availableWhen: AND([eq('lame_reno', 'alu56'), eq('coffre_reno', '205')]) },
-    { value: 'c75x27', label: 'Coulisse 75/27 (par défaut)', availableWhen: AND([eq('lame_reno', 'alu56'), eq('coffre_reno', '250')]) },
+    { value: 'c75x27', label: 'Coulisse 75/27 (par défaut)', availableWhen: AND([inSet('lame_reno', ['alu55', 'alu56']), eq('coffre_reno', '250')]) },
+    { value: 'c95x34', label: 'Coulisse 95/34 (par défaut)', availableWhen: IS_L77 },
     { value: 'a_aile', label: 'Coulisse à aile (+8,50 €/ml)', availableWhen: eq('lame_reno', 'alu42') },
   ],
 });
@@ -317,7 +353,7 @@ priceRules.push({
 //    Standard coffres ≤205 = AR → DVA en plus-value (barème dva_<groupe> par largeur).
 //    Standard coffre 250 = DVA → AR en moins-value (barème ar_r56_250 par largeur).
 const COFFRE_LE_205 = { any: [eq('lame_reno', 'alu42'), AND([eq('lame_reno', 'alu56'), eq('coffre_reno', '205')])] };
-const COFFRE_250 = AND([eq('lame_reno', 'alu56'), eq('coffre_reno', '250')]);
+const COFFRE_250 = AND([inSet('lame_reno', ['alu55', 'alu56']), eq('coffre_reno', '250')]);
 fields.push({
   id: 'dva_option', label: 'Verrous automatiques (DVA)', type: 'boolean',
   visibleWhen: AND([IS_ALU, COFFRE_LE_205]),
@@ -336,7 +372,8 @@ fields.push({
 priceRules.push({
   code: 'opt_ar', label: 'Attaches rigides (moins-value)', kind: 'add',
   when: AND([IS_ALU, COFFRE_250, eq('ar_option', true)]),
-  amount: { op: 'lookup1d', table: 'ar_r56_250', key: V('largeur') },
+  // Barème AR propre à la lame (55 a le sien ; 56 = ar_r56_250).
+  amount: { op: 'lookup1d', table: { op: 'if', cond: eq('lame_reno', 'alu55'), then: 'ar_r55_250', else: 'ar_r56_250' }, key: V('largeur') },
 });
 fields.push({
   id: 'percage', label: 'Perçage des coulisses', type: 'choice', role: 'spec', default: 'tableau',
@@ -368,7 +405,8 @@ fields.push({
   id: 'manoeuvre', label: 'Type de manœuvre', type: 'choice', default: 'motorisee',
   helpImage: '/schema-manoeuvres.png',
   options: [
-    { value: 'manuelle', label: 'Manuelle' },
+    // Lame 77 (gros coffre 300/360) = motorisé uniquement (produit lourd).
+    { value: 'manuelle', label: 'Manuelle', availableWhen: ne('lame_reno', 'alu77') },
     { value: 'motorisee', label: 'Motorisation' },
   ],
 });
@@ -423,18 +461,19 @@ for (const [val, price] of Object.entries({ g60a: 41, g90: 18, g90a: 59 })) {
 // Motorisation : type (filaire/radio/solaire) + marque (MN/Somfy).
 fields.push({
   id: 'commande', label: 'Motorisation', type: 'choice', default: 'filaire',
-  visibleWhen: eq('manoeuvre', 'motorisee'),
+  visibleWhen: AND([eq('manoeuvre', 'motorisee'), ne('lame_reno', 'alu77')]),
   options: [
     { value: 'filaire', label: 'Filaire' },
     { value: 'radio', label: 'Radio' },
-    { value: 'solaire', label: 'Solaire' },
+    // Lame 55 : pas de motorisation solaire (confirmé PDG).
+    { value: 'solaire', label: 'Solaire', availableWhen: ne('lame_reno', 'alu55') },
   ],
 });
 // ⚠️ Solaire : l'arbre montre MN + Somfy ; à confirmer (pour le Tradi, le PDG a
 //    indiqué que MN ne fait pas de moteur solaire). Ici MN+Somfy laissés dispo.
 fields.push({
   id: 'moteur', label: 'Marque du moteur', type: 'choice', default: 'mn',
-  visibleWhen: eq('manoeuvre', 'motorisee'),
+  visibleWhen: AND([eq('manoeuvre', 'motorisee'), ne('lame_reno', 'alu77')]),
   options: [{ value: 'mn', label: 'Moteur MN' }, { value: 'somfy', label: 'Moteur Somfy' }],
 });
 // Côté de manœuvre (fabrication) — gauche / droite.
@@ -446,7 +485,7 @@ fields.push({
 
 // ── Motorisation FILAIRE : option inverseur +21 € (4 variantes même prix).
 //    Pas de commande de secours en filaire (différence avec le Tradi).
-const filaireVis = AND([eq('manoeuvre', 'motorisee'), eq('commande', 'filaire')]);
+const filaireVis = AND([eq('manoeuvre', 'motorisee'), eq('commande', 'filaire'), ne('lame_reno', 'alu77')]);
 fields.push({ id: 'inverseur', label: 'Inverseur (+21 €)', type: 'boolean', visibleWhen: filaireVis });
 priceRules.push({ code: 'opt_inverseur', label: 'Inverseur', kind: 'add', when: AND([eq('inverseur', true), filaireVis]), amount: 21 });
 fields.push({
@@ -493,12 +532,37 @@ priceRules.push({ code: 'opt_amy_4c_io', label: 'Émetteur Amy 4 IO', kind: 'add
 
 // ── Motorisation SOLAIRE (Somfy RS100 SOLAR IO) : kit solaire +232 € (moteur +
 //    batterie + panneau + émetteur) toujours inclus ; alim de dépannage +83 € en option.
-const SOLAIRE = AND([eq('manoeuvre', 'motorisee'), eq('commande', 'solaire')]);
+const SOLAIRE = AND([eq('manoeuvre', 'motorisee'), eq('commande', 'solaire'), ne('lame_reno', 'alu77')]);
 priceRules.push({ code: 'kit_solaire', label: 'Kit solaire (moteur + batterie + panneau + émetteur)', kind: 'add',
   when: SOLAIRE, amount: 232 });
 fields.push({ id: 'alim_depannage', label: 'Alimentation de dépannage (+83 €)', type: 'boolean', visibleWhen: SOLAIRE });
 priceRules.push({ code: 'opt_alim_depannage', label: 'Alimentation de dépannage', kind: 'add',
   when: AND([eq('alim_depannage', true), SOLAIRE]), amount: 83 });
+
+// ── (GROS COFFRE lame 77) Motorisation « Rollpark » : la grille inclut déjà la base
+//    Somfy filaire à commande de secours ; le client ajoute AU PLUS un pack (confirmé PDG).
+//    Prix des packs relevés sur l'arbre de décision (absents de la grille Excel).
+fields.push({
+  id: 'pack_moto_77', label: 'Motorisation', type: 'choice', default: 'somfy_fil_csi',
+  visibleWhen: IS_L77,
+  help: 'Base incluse : Somfy filaire à commande de secours. Packs en option (au choix).',
+  options: [
+    { value: 'somfy_fil_csi', label: 'Somfy filaire à commande de secours (incluse)' },
+    { value: 'homme_present', label: 'Pack homme présent (+440 €)' },
+    { value: 'radio_mn', label: 'Pack radio MN Fermetures (+690 €)' },
+    { value: 'rollixo_rts', label: 'Pack Rollixo OPTIMO RTS / Axroll RTS Somfy (+770 €)' },
+    { value: 'rollixo_io', label: 'Pack Rollixo io Somfy (+980 €)' },
+  ],
+});
+for (const [val, amt, lbl] of [
+  ['homme_present', 440, 'Pack homme présent'],
+  ['radio_mn', 690, 'Pack radio MN Fermetures'],
+  ['rollixo_rts', 770, 'Pack Rollixo OPTIMO RTS / Axroll RTS Somfy'],
+  ['rollixo_io', 980, 'Pack Rollixo io Somfy'],
+]) {
+  priceRules.push({ code: `pack_moto_${val}`, label: lbl, kind: 'add',
+    when: AND([IS_L77, eq('pack_moto_77', val)]), amount: amt });
+}
 
 // Côté tringle (fabrication) — manœuvre manuelle.
 fields.push({
@@ -598,22 +662,45 @@ const derived = [
         else: { op: 'if', cond: lte('hauteur', 1750), then: 165,
           else: { op: 'if', cond: lte('hauteur', 2250), then: 180, else: 205 } } },
       else: V('coffre_reno') } },
-  { id: 'coffre_color_rate', expr: { op: 'if', cond: eq('lame_reno', 'alu56'), then: 66,
-      else: { op: 'if', cond: lte('coffre_reno_eff', 165), then: 44, else: 54 } } },
+  { id: 'coffre_color_rate', expr: { op: 'if', cond: eq('lame_reno', 'alu77'), then: 90,
+      else: { op: 'if', cond: inSet('lame_reno', ['alu55', 'alu56']), then: 66,
+        else: { op: 'if', cond: lte('coffre_reno_eff', 165), then: 44, else: 54 } } } },
   // (RENOBOX) Sélection de la grille de base = groupe (lame/coffre) × moteur × commande.
   //  - manœuvre manuelle / tirage direct → grille FILAIRE (± moins/plus-value) ;
   //  - solaire → grille SOMFY RADIO (RS100 io) + kit solaire ;
   //  - sinon grille du moteur × commande choisis.
-  { id: 'base_cmd_reno', expr: { op: 'if', cond: eq('manoeuvre', 'manuelle'), then: 'filaire',
-      else: { op: 'if', cond: eq('commande', 'solaire'), then: 'radio', else: V('commande') } } },
-  { id: 'base_moteur_reno', expr: { op: 'if', cond: eq('commande', 'solaire'), then: 'somfy', else: V('moteur') } },
+  // Lame 77 : base figée Somfy filaire (la grille r77_<coffre>_somfy_filaire l'inclut).
+  { id: 'base_cmd_reno', expr: { op: 'if', cond: eq('lame_reno', 'alu77'), then: 'filaire',
+      else: { op: 'if', cond: eq('manoeuvre', 'manuelle'), then: 'filaire',
+        else: { op: 'if', cond: eq('commande', 'solaire'), then: 'radio', else: V('commande') } } } },
+  { id: 'base_moteur_reno', expr: { op: 'if', cond: eq('lame_reno', 'alu77'), then: 'somfy',
+      else: { op: 'if', cond: eq('commande', 'solaire'), then: 'somfy', else: V('moteur') } } },
   { id: 'grid_group_reno', expr: { op: 'if', cond: eq('lame_reno', 'alu42'), then: 'r42',
-      else: { op: 'if', cond: lte('coffre_reno_eff', 205), then: 'r56_205', else: 'r56_250' } } },
+      else: { op: 'if', cond: eq('lame_reno', 'alu77'), then: { op: 'concat', args: ['r77_', V('coffre_reno')] },
+        else: { op: 'if', cond: eq('lame_reno', 'alu55'), then: 'r55_250',
+          else: { op: 'if', cond: lte('coffre_reno_eff', 205), then: 'r56_205', else: 'r56_250' } } } } },
   { id: 'grid_reno', expr: { op: 'concat', args: [V('grid_group_reno'), '_', V('base_moteur_reno'), '_', V('base_cmd_reno')] } },
   // Largeur mini réelle selon la grille : filaire 422 (MN) / 427 (Somfy) ; radio 622 (lame 42) / 628 (lame 56).
-  { id: 'largeur_mini_reno', expr: { op: 'if', cond: eq('base_cmd_reno', 'filaire'),
-      then: { op: 'if', cond: eq('base_moteur_reno', 'somfy'), then: 427, else: 422 },
-      else: { op: 'if', cond: eq('lame_reno', 'alu56'), then: 628, else: 622 } } },
+  { id: 'largeur_mini_reno', expr: { op: 'if', cond: eq('lame_reno', 'alu77'), then: 1800,
+      else: { op: 'if', cond: eq('lame_reno', 'alu55'), then: 1100,   // grille lame 55 : L 1100→4000
+        else: { op: 'if', cond: eq('base_cmd_reno', 'filaire'),
+          then: { op: 'if', cond: eq('base_moteur_reno', 'somfy'), then: 427, else: 422 },
+          else: { op: 'if', cond: eq('lame_reno', 'alu56'), then: 628, else: 622 } } } } },
+  // (LAME 77) Enveloppe valide des grilles : L maxi (coffre 300 → 4000 · 360 → 5000) et
+  // H maxi par largeur (coffre 360 : décroît au-delà de 3900 — seuils = colonnes de grille,
+  // compatibles avec le snap-up des lookups). Sert aux contraintes L77 uniquement.
+  { id: 'l_max_77', expr: { op: 'if', cond: eq('coffre_reno', '300'), then: 4000, else: 5000 } },
+  { id: 'h_max_77', expr: { op: 'if', cond: eq('coffre_reno', '300'), then: 3200,
+      else: { op: 'if', cond: lte('largeur', 3900), then: 3550,
+        else: { op: 'if', cond: lte('largeur', 4100), then: 3450,
+          else: { op: 'if', cond: lte('largeur', 4200), then: 3350,
+            else: { op: 'if', cond: lte('largeur', 4300), then: 3250,
+              else: { op: 'if', cond: lte('largeur', 4500), then: 3150,
+                else: { op: 'if', cond: lte('largeur', 4600), then: 3050,
+                  else: { op: 'if', cond: lte('largeur', 4800), then: 2950,
+                    else: { op: 'if', cond: lte('largeur', 4900), then: 2850, else: 2750 } } } } } } } } } },
+  // (LAME 55) Enveloppe : L 1100-4000, H maxi 2850 (grille · DVA) ou 2520 si largeur > 3500.
+  { id: 'h_max_55', expr: { op: 'if', cond: lte('largeur', 3500), then: 2850, else: 2520 } },
   // Grille de prix retenue = coût de motorisation par marque × commande.
   //  - manuelle → grille MN filaire (− moins-value) ;
   //  - motorisée filaire/radio → g_<moteur>_<commande> ;
@@ -663,8 +750,16 @@ const constraints = [
   { message: 'Surface maximale 10 m² (lame Alu 56)', requires: onlyForAlu({ any: [ne('lame_reno', 'alu56'), lte('surface_m2', 10)] }) },
   // Renobox lame 56 coffre 205 : largeur maximale 3500 mm (le coffre 250 va à 4000).
   { message: 'Coffre 205 (lame 56) : largeur maximale 3500 mm', requires: { any: [ne('sous_famille', 'renobox'), ne('lame_reno', 'alu56'), ne('coffre_reno', '205'), lte('largeur', 3500)] } },
-  // Largeur ≥ largeur mini de la grille (filaire 422/427 · radio 622/628) — Renobox + Gros coffre.
+  // Largeur ≥ largeur mini de la grille (filaire 422/427 · radio 622/628 · lame 77 : 1800) — Renobox + Gros coffre.
   { message: 'Largeur inférieure au minimum pour ce moteur / cette commande', requires: onlyForAlu({ op: 'gte', left: V('largeur'), right: V('largeur_mini_reno') }) },
+  // Gros coffre lame 77 : enveloppe des grilles 300 (L≤4000, H 1850-3200) / 360 (L≤5000, H≤3550
+  // décroissant au-delà de 3900). Non enforcé hors lame 77.
+  { message: 'Lame 77 : largeur maximale dépassée (coffre 300 : 4000 mm · 360 : 5000 mm)', requires: { any: [ne('lame_reno', 'alu77'), { op: 'lte', left: V('largeur'), right: V('l_max_77') }] } },
+  { message: 'Lame 77 : hauteur minimale 1850 mm', requires: { any: [ne('lame_reno', 'alu77'), { op: 'gte', left: V('hauteur'), right: 1850 }] } },
+  { message: 'Lame 77 : hauteur maximale dépassée pour cette largeur', requires: { any: [ne('lame_reno', 'alu77'), { op: 'lte', left: V('hauteur'), right: V('h_max_77') }] } },
+  // Gros coffre lame 55 (coffre 250) : L 1100-4000 · H ≤ 2850 (≤ 2520 si largeur > 3500). Non enforcé hors lame 55.
+  { message: 'Lame 55 : largeur maximale 4000 mm', requires: { any: [ne('lame_reno', 'alu55'), lte('largeur', 4000)] } },
+  { message: 'Lame 55 : hauteur maximale dépassée (2850 mm, ou 2520 mm si largeur > 3500)', requires: { any: [ne('lame_reno', 'alu55'), { op: 'lte', left: V('hauteur'), right: V('h_max_55') }] } },
   // Tirage direct : largeur 630-2000 mm (Renobox + Gros coffre).
   { message: 'Tirage direct : largeur minimale 630 mm', requires: { any: [ninSet('sous_famille', ['renobox', 'reno-gros-coffre']), ne('manoeuvre', 'manuelle'), ne('manoeuvre_type_reno', 'tirage'), { op: 'gte', left: V('largeur'), right: 630 }] } },
   { message: 'Tirage direct : largeur maximale 2000 mm', requires: { any: [ninSet('sous_famille', ['renobox', 'reno-gros-coffre']), ne('manoeuvre', 'manuelle'), ne('manoeuvre_type_reno', 'tirage'), lte('largeur', 2000)] } },
@@ -678,7 +773,7 @@ const steps = [
   { id: 'coloris', title: 'Coloris', fields: ['coloris', 'coloris_mode_reno', 'coloris_mono_reno', 'coloris_coffre_reno', 'coloris_tablier_reno', 'coloris_coulisse_reno', 'coloris_lamefinale_reno'] },
   { id: 'coulisses', title: 'Coulisses', fields: ['coulisse_type', 'coulisse_reno', 'dva_option', 'ar_option', 'percage', 'arrets_bas'] },
   { id: 'manoeuvre', title: 'Manœuvre', fields: [
-    'manoeuvre', 'manoeuvre_type_reno', 'tringle_cote', 'sortie_tringle', 'genouillere_manuelle', 'commande', 'moteur', 'position_moteur', 'sortie_fil', 'emetteur_type',
+    'manoeuvre', 'pack_moto_77', 'manoeuvre_type_reno', 'tringle_cote', 'sortie_tringle', 'genouillere_manuelle', 'commande', 'moteur', 'position_moteur', 'sortie_fil', 'emetteur_type',
     'radio_info', 'centralisation_info', 'inverseur', 'inverseur_pose', 'inverseur_maintien',
     'emetteur_5c', 'situo_io_1c', 'situo_io_5c', 'amy_4c_io', 'alim_depannage',
     // Renobox
@@ -692,7 +787,7 @@ const def = {
   name: 'Volet roulant rénovation (Minibox · Renobox)',
   famille: 'reno', nodeField: 'sous_famille',
   fields, derived, steps, priceRules,
-  tables: { d1: renoAdjust, d2: { ...grids, ...renoGrids } },
+  tables: { d1: { ...renoAdjust, ...lame55Adjust }, d2: { ...grids, ...renoGrids, ...grosGrids, ...lame55Grids } },
   // Libellés d'onglets Excel = nomenclature PDG (renommage valide). Le round-trip
   // garde l'id (cellule A1) comme ancre — le nom de feuille n'est qu'un affichage.
   tableLabels: {
@@ -708,6 +803,12 @@ const def = {
     // Renobox — lame 56 coffre 250 (Gros coffre)
     r56_250_mn_filaire: 'REN25A56FILMN', r56_250_mn_radio: 'REN25A56RADMN',
     r56_250_somfy_filaire: 'REN25A56FILSO', r56_250_somfy_radio: 'REN25A56RS100SO',
+    // Gros coffre lame 77 — coffres 300 / 360 (base Somfy filaire à cde de secours)
+    r77_300_somfy_filaire: 'GROS300A77FILSO', r77_360_somfy_filaire: 'GROS360A77FILSO',
+    // Gros coffre lame 55 — coffre 250
+    r55_250_mn_filaire: 'REN25A55FILMN', r55_250_mn_radio: 'REN25A55RADMN',
+    r55_250_somfy_filaire: 'REN25A55FILSO', r55_250_somfy_radio: 'REN25A55RS100SO',
+    ar_r55_250: 'Attaches rigides · L55 C250',
     // Barèmes de verrouillage (1D) — sinon anonymes (B1/B2/B3) à l'export.
     dva_r42: 'Verrous auto DVA · L42',
     dva_r56_205: 'Verrous auto DVA · L56 C205',
