@@ -101,10 +101,13 @@ for (const sel of v1.selectors) {
   if (sel.id === 'type_volet') {
     fields.push({
       id: 'gamme_tradi', label: 'Type de Tradi', type: 'choice', default: 'standard',
-      help: 'Tradi standard (5 poses, 3 lames) ou Tradi Express (lame CD942 uniquement).',
+      help: 'Tradi standard (5 poses, 3 lames), Tradi Express ou Tradi Optimo ZF (lame CD942 uniquement).',
       options: [
         { value: 'standard', label: 'Tradi standard' },
         { value: 'express', label: 'Tradi Express', setsValues: { pose: 'express' } },
+        // Tradi Optimo ZF : identique à l'Express (mêmes prix/grilles/lame CD942, pose express),
+        // SAUF pas de manœuvre manuelle (motorisé uniquement) — cf. option `manuelle` ci-dessous.
+        { value: 'optimo_zf', label: 'Tradi Optimo ZF', setsValues: { pose: 'express' } },
       ],
     });
     // Sélecteur de SOUS-FAMILLE (pilote étapes + nœud de surcharge/remise, cf.
@@ -154,7 +157,8 @@ for (const sel of v1.selectors) {
     fields.push({
       id: 'manoeuvre', label: 'Type de manœuvre', type: 'choice', default: 'motorisee',
       options: [
-        { value: 'manuelle', label: 'Manuelle', setsValues: { moteur: 'mn', layer: 'filaire' } },
+        // Tradi Optimo ZF = motorisé uniquement : la manœuvre manuelle n'est pas proposée.
+        { value: 'manuelle', label: 'Manuelle', setsValues: { moteur: 'mn', layer: 'filaire' }, availableWhen: ne('gamme_tradi', 'optimo_zf') },
         { value: 'motorisee', label: 'Motorisation' },
       ],
     });
@@ -512,7 +516,7 @@ for (const [val, price] of Object.entries(GENOU_MAN_PRICE)) {
 
 // Coulisse Tradi Express « 53×22 à aile » : +8,50 €/ml (hauteur) — tarif pour la paire.
 priceRules.push({ code: 'coulisse_express_aile', label: 'Coulisse 53×22 à aile', kind: 'add',
-  when: AND([eq('gamme_tradi', 'express'), eq('coulisse_express', 'c53x22_aile')]),
+  when: AND([inSet('gamme_tradi', ['express', 'optimo_zf']), eq('coulisse_express', 'c53x22_aile')]),
   amount: { op: 'round', arg: { op: '*', args: [{ op: '/', args: [V('hauteur'), 1000] }, 8.5] } } });
 
 // champs de fabrication (specFields)
@@ -530,14 +534,14 @@ fields.push({ id: 'percage', label: 'Perçage des coulisses', type: 'choice', ro
 
 // Coulisses spécifiques Tradi Express (choix de profil).
 fields.push({ id: 'coulisse_express', label: 'Coulisses', type: 'choice', default: 'c45x22',
-  visibleWhen: eq('gamme_tradi', 'express'),
+  visibleWhen: inSet('gamme_tradi', ['express', 'optimo_zf']),
   options: [
     { value: 'c45x22', label: 'Coulisse 45×22 (par défaut)' },
     { value: 'c53x22', label: 'Coulisse 53×22 (sans plus-value)' },
     { value: 'c53x22_aile', label: 'Coulisse 53×22 à aile (+8,50 €/ml)' },
   ] });
-fields.push({ id: 'express_attaches_info', type: 'info', visibleWhen: eq('gamme_tradi', 'express'),
-  help: 'Tradi Express : attaches rigides incluses de série.' });
+fields.push({ id: 'express_attaches_info', type: 'info', visibleWhen: inSet('gamme_tradi', ['express', 'optimo_zf']),
+  help: 'Tradi Express / Optimo ZF : attaches rigides incluses de série.' });
 
 // Coulisse par défaut (affichée) — Tradi standard (hors Express) & Tradi + coffre.
 // `{{coulisse_defaut}}` = valeur dérivée interpolée par le wizard (cf. buildDetail).
