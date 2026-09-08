@@ -63,8 +63,7 @@ const TREE: SeedGamme[] = [
     { name: 'Latérales', slug: 'mous-laterales', children: [ { name: 'Zephyr', slug: 'zephyr' }, { name: 'Borée', slug: 'boree' } ] },
     { name: 'Plissées', slug: 'mous-plissees', children: [ { name: 'Calista', slug: 'calista' }, { name: 'Circé', slug: 'circe' } ] },
     { name: 'Fixes', slug: 'mous-fixes', children: [ { name: 'Mylas', slug: 'mylas' } ] },
-    { name: 'Battantes', slug: 'mous-battantes', children: [ { name: 'Sciron', slug: 'sciron' } ] },
-    { name: 'Coulissantes', slug: 'mous-coulissantes', children: [ { name: 'Lapix', slug: 'lapix' } ] },
+    { name: 'Battantes', slug: 'mous-battantes', children: [ { name: 'Lyssa', slug: 'lyssa' } ] },
   ] },
   { name: 'Portails & clôtures', slug: 'portails-clotures', children: [
     { name: 'Alu', slug: 'pc-alu', children: [ { name: 'Portail alu', slug: 'portail-alu' }, { name: 'Clôture alu', slug: 'cloture-alu' } ] },
