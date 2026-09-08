@@ -61,9 +61,7 @@ const colorisOptions = [...colMap.entries()].map(([code, v]) => ({
 }));
 
 // ---- CHAMPS ----
-const largeurMin = Math.min(...LAMES.map((l) => l.largeurs[0]));
 const largeurMax = Math.max(...LAMES.map((l) => l.largeurs[l.largeurs.length - 1]));
-const hauteurMin = Math.min(...LAMES.map((l) => l.hauteurs[0]));
 const hauteurMax = Math.max(...LAMES.map((l) => l.hauteurs[l.hauteurs.length - 1]));
 
 const fields = [
@@ -77,8 +75,9 @@ const fields = [
   { id: 'dim_help', label: '', type: 'info',
     help: '⚠️ Largeur de commande = largeur finie. Hauteur de commande = hauteur finie, enroulement compris (par défaut 100 mm).',
     helpImage: '/schema-largeur-tablier-fini.png' },
-  { id: 'largeur', label: 'Largeur', type: 'dimension', unit: 'mm', min: largeurMin, max: largeurMax, step: 1, default: 1200 },
-  { id: 'hauteur', label: 'Hauteur', type: 'dimension', unit: 'mm', min: hauteurMin, max: hauteurMax, step: 1, default: 1500 },
+  // Pas de minimum (demande PDG) : min:1 (UI) ; sous le plancher grille, prix plancher (snapUp).
+  { id: 'largeur', label: 'Largeur', type: 'dimension', unit: 'mm', min: 1, max: largeurMax, step: 1, default: 1200 },
+  { id: 'hauteur', label: 'Hauteur', type: 'dimension', unit: 'mm', min: 1, max: hauteurMax, step: 1, default: 1500 },
   // Verrouillage : un seul choix (exclusif). Les options dispo dépendent de la lame.
   { id: 'verrouillage', label: 'Attaches & verrouillage', type: 'choice', default: 'souple',
     help: 'Attaches souples incluses. En option (plus-value) : attaches rigides OU verrous automatiques — pas les deux.',
@@ -111,18 +110,21 @@ const steps = [
   { id: 'recap', title: 'Récapitulatif', fields: [] },
 ];
 
-// ---- CONTRAINTES : plage largeur/hauteur PAR LAME (message ciblé si hors plage) ----
+// ---- CONTRAINTES : largeur/hauteur MAXIMALES PAR LAME (message ciblé). PAS de
+//      minimum (demande PDG) : sous le plancher de la grille (L 800 / H 850), le
+//      prix est celui du plancher — le lookup2d snappe déjà vers la borne haute
+//      la plus proche (snapUp), donc une valeur < plancher prend le prix plancher.
 const constraints = [];
 for (const l of LAMES) {
-  const lmin = l.largeurs[0], lmax = l.largeurs[l.largeurs.length - 1];
-  const hmin = l.hauteurs[0], hmax = l.hauteurs[l.hauteurs.length - 1];
+  const lmax = l.largeurs[l.largeurs.length - 1];
+  const hmax = l.hauteurs[l.hauteurs.length - 1];
   constraints.push({
-    requires: { any: [ne('lame', l.slug), { all: [gte('largeur', lmin), lte('largeur', lmax)] }] },
-    message: `Largeur hors plage pour ${l.nom} : ${lmin} à ${lmax} mm.`,
+    requires: { any: [ne('lame', l.slug), lte('largeur', lmax)] },
+    message: `Largeur maximale pour ${l.nom} : ${lmax} mm.`,
   });
   constraints.push({
-    requires: { any: [ne('lame', l.slug), { all: [gte('hauteur', hmin), lte('hauteur', hmax)] }] },
-    message: `Hauteur hors plage pour ${l.nom} : ${hmin} à ${hmax} mm.`,
+    requires: { any: [ne('lame', l.slug), lte('hauteur', hmax)] },
+    message: `Hauteur maximale pour ${l.nom} : ${hmax} mm.`,
   });
 }
 
