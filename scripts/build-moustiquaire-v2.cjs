@@ -67,9 +67,22 @@ fields.push({
   ],
 });
 
-// Coloris STANDARD (sans plus-value pour l'instant). Usuels/spéciaux + PV : plus tard.
+// Eco+ : gamme de coloris STANDARD (grille de base) ou AUTRES COULEURS (grille _autres,
+// plus chère). Les vraies couleurs « autres » seront ajoutées plus tard ; ici on câble le
+// basculement de grille. (Usuels/spéciaux + PV des autres modèles : plus tard.)
+const ECOPLUS_AUTRES = AND([eq('type', 'mous-eco-plus'), eq('coloris_gamme', 'autres')]);
+fields.push({
+  id: 'coloris_gamme', label: 'Gamme de coloris', type: 'choice', default: 'standard',
+  visibleWhen: eq('type', 'mous-eco-plus'),
+  options: [
+    { value: 'standard', label: 'Coloris standard' },
+    { value: 'autres', label: 'Autres couleurs (nous consulter)' },
+  ],
+});
+// Coloris STANDARD (sans plus-value). Masqué quand « autres couleurs » (Eco+) est choisi.
 fields.push({
   id: 'coloris', label: 'Coloris', type: 'choice', default: 'blanc-9010',
+  visibleWhen: { any: [ne('type', 'mous-eco-plus'), ne('coloris_gamme', 'autres')] },
   help: 'Coloris standard (sans plus-value). Accessoires blancs sur moustiquaire blanche, noirs sinon.',
   options: [
     { value: 'blanc-9010', label: 'Blanc 9010', hex: '#f4f4f2' },
@@ -77,6 +90,8 @@ fields.push({
     { value: 'marron-8019', label: 'Marron 8019 (proche)', hex: '#3d3635' },
   ],
 });
+fields.push({ id: 'coloris_autres_info', type: 'info', visibleWhen: ECOPLUS_AUTRES,
+  help: 'Autres couleurs (RAL / structuré) : coloris à préciser à la commande. Tarif « autres couleurs » appliqué.' });
 
 // Options de FABRICATION (sans impact prix) — spécifiques à certains modèles.
 fields.push({ id: 'percage_coulisse', label: 'Perçage coulisse', type: 'choice', role: 'spec', default: 'facade',
@@ -88,18 +103,22 @@ fields.push({ id: 'type_fixation', label: 'Type de fixation', type: 'choice', ro
 fields.push({ id: 'ventaux_mylas', label: 'Ventaux', type: 'choice', role: 'spec', default: '1',
   visibleWhen: eq('type', 'mylas'), help: 'Sans impact sur le prix.',
   options: [{ value: '1', label: '1 vantail' }, { value: '2', label: '2 vantaux' }] });
-// Partie basse pleine (Lyssa) — plus-value bakélite/polycarbonate À TARIFER (spec pour l'instant).
-fields.push({ id: 'partie_basse_pleine', label: 'Partie basse pleine', type: 'choice', role: 'spec', default: 'non',
-  visibleWhen: eq('type', 'lyssa'), help: 'Bakélite ou polycarbonate (plus-value à préciser).',
+// Partie basse pleine (Lyssa) — plus-value bakélite/polycarbonate : 215 € (1 vantail) / 430 € (2 vantaux).
+fields.push({ id: 'partie_basse_pleine', label: 'Partie basse pleine', type: 'choice', default: 'non',
+  visibleWhen: eq('type', 'lyssa'), help: 'Bakélite ou polycarbonate — plus-value 215 € (1 vantail) / 430 € (2 vantaux).',
   options: [{ value: 'non', label: 'Non' }, { value: 'bakelite', label: 'Bakélite' }, { value: 'polycarbonate', label: 'Polycarbonate' }] });
 
 // ---- Dérivées : routage de grille ----
 const derived = [
-  // Grille = mous_<type> ; + _<ventaux> pour les modèles à variantes tarifées (v2/vr).
+  // Grille = mous_<type> ; Eco+ « autres couleurs » → grille _autres ; sinon + _<ventaux>
+  // pour les modèles à variantes tarifées (v2/vr).
   { id: 'grid', expr: {
-      op: 'if', cond: AND([inSet('type', VENTAUX_TYPES), ne('ventaux', 'v1')]),
-      then: { op: 'concat', args: ['mous_', V('type'), '_', V('ventaux')] },
-      else: { op: 'concat', args: ['mous_', V('type')] },
+      op: 'if', cond: ECOPLUS_AUTRES, then: 'mous_mous-eco-plus_autres',
+      else: {
+        op: 'if', cond: AND([inSet('type', VENTAUX_TYPES), ne('ventaux', 'v1')]),
+        then: { op: 'concat', args: ['mous_', V('type'), '_', V('ventaux')] },
+        else: { op: 'concat', args: ['mous_', V('type')] },
+      },
     } },
 ];
 
@@ -107,6 +126,10 @@ const derived = [
 const priceRules = [
   { code: 'base', label: 'Moustiquaire (grille)', kind: 'base',
     amount: { op: 'lookup2d', table: V('grid'), row: V('hauteur'), col: V('largeur') } },
+  // Partie basse pleine (Lyssa) : +215 € (1 vantail) / +430 € (2 vantaux).
+  { code: 'partie_basse_pleine', label: 'Partie basse pleine (bakélite/polycarbonate)', kind: 'add',
+    when: AND([eq('type', 'lyssa'), ne('partie_basse_pleine', 'non')]),
+    amount: { op: 'if', cond: eq('ventaux', 'v2'), then: 430, else: 215 } },
 ];
 
 // ---- Contraintes de bornes : L/H dans la plage de la grille sélectionnée ----
