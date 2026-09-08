@@ -55,7 +55,7 @@ const TREE: SeedGamme[] = [
     { name: 'Panneaux', slug: 'vb-panneaux', children: [ { name: 'Ecotek', slug: 'ecotek' }, { name: 'Novatek', slug: 'novatek' } ] },
     { name: 'Extrudés', slug: 'vb-extrudes' },
   ] },
-  { name: 'Moustiquaires', slug: 'moustiquaires', children: [
+  { name: 'Moustiquaires', slug: 'moustiquaires', generatorSlug: 'moustiquaire', children: [
     { name: 'Verticales', slug: 'mous-verticales', children: [
       { name: 'Eco', slug: 'mous-eco' }, { name: 'Eco+', slug: 'mous-eco-plus' }, { name: 'Aglaé', slug: 'aglae' },
       { name: 'Cecias', slug: 'cecias' }, { name: 'Lips', slug: 'lips' }, { name: 'Aura', slug: 'aura' },

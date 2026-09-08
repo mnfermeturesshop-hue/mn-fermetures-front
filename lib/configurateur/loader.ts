@@ -10,6 +10,7 @@ import renovation from './data/volet-roulant-renovation.v2.json';
 import tablier from './data/tablier-sur-mesure.v2.json';
 import blocBaie from './data/volet-roulant-bloc-baie.v2.json';
 import porteGarage from './data/porte-de-garage.v2.json';
+import moustiquaire from './data/moustiquaire.v2.json';
 
 // Seeds intégrés (repli). Ajouter une famille = ajouter une DONNÉE ici — aucun
 // code moteur/UI à écrire (cf. store banne, tarifé par formule et non par grille).
@@ -20,6 +21,7 @@ const SEEDS: Record<string, DefV2> = {
   [(tablier as unknown as DefV2).slug]: tablier as unknown as DefV2,
   [(blocBaie as unknown as DefV2).slug]: blocBaie as unknown as DefV2,
   [(porteGarage as unknown as DefV2).slug]: porteGarage as unknown as DefV2,
+  [(moustiquaire as unknown as DefV2).slug]: moustiquaire as unknown as DefV2,
 };
 
 const isV2 = (d: unknown): d is DefV2 =>

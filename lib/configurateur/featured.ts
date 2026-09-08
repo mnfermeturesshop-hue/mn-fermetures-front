@@ -15,4 +15,5 @@ export const FEATURED_CONFIGURATORS: FeaturedConfigurator[] = [
   { slug: 'store-banne', name: 'Store banne', desc: 'Monobloc · Semi-coffre · Coffre intégral', href: '/configurateur/store-banne', icon: '☀' },
   { slug: 'tablier-sur-mesure', name: 'Tablier sur mesure', desc: 'PVC & aluminium · prix HT instantané', href: '/configurateur/tablier-sur-mesure', icon: '▥' },
   { slug: 'porte-de-garage', name: 'Porte de garage', desc: 'Ecopark enroulable · pack radio homme présent', href: '/configurateur/porte-de-garage', icon: '▤' },
+  { slug: 'moustiquaire', name: 'Moustiquaire', desc: 'Verticales · Latérales · Plissées · Fixes · Battantes', href: '/configurateur/moustiquaire', icon: '▩' },
 ];

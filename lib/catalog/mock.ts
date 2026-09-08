@@ -53,6 +53,7 @@ export const MENU: NavTop[] = [
       { name: 'Store banne',                href: '/configurateur/store-banne' },
       { name: 'Tablier sur mesure',         href: '/configurateur/tablier-sur-mesure' },
       { name: 'Porte de garage',            href: '/configurateur/porte-de-garage' },
+      { name: 'Moustiquaire',               href: '/configurateur/moustiquaire' },
     ],
   },
   {
