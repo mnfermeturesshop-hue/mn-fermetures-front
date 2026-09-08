@@ -784,7 +784,7 @@ const steps = [
 
 const def = {
   slug: 'volet-roulant-renovation',
-  name: 'Volet roulant rénovation (Minibox · Renobox)',
+  name: 'Volet roulant rénovation',
   famille: 'reno', nodeField: 'sous_famille',
   fields, derived, steps, priceRules,
   tables: { d1: { ...renoAdjust, ...lame55Adjust }, d2: { ...grids, ...renoGrids, ...grosGrids, ...lame55Grids } },
