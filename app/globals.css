@@ -2010,6 +2010,18 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 }
 .cfg-tab.active { border-color: var(--steel-600); background: var(--steel-600); color: #fff; }
 .cfg-tab:not(.active):hover { border-color: var(--steel-600); color: var(--steel-600); }
+
+/* Sélecteur visuel (imageChoice) : grille de vignettes, une par option (ex. modèle). */
+.cfg-modelgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+.cfg-modelcard {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 10px; border: 1.5px solid var(--line); border-radius: 10px;
+  background: #fff; color: var(--ink); cursor: pointer; font: inherit; transition: all .15s;
+}
+.cfg-modelcard img { width: 100%; height: 96px; object-fit: contain; }
+.cfg-modelcard span { font-size: 13px; font-weight: 600; text-align: center; line-height: 1.2; }
+.cfg-modelcard.active { border-color: var(--steel-600); box-shadow: 0 0 0 2px var(--steel-600) inset; }
+.cfg-modelcard:not(.active):hover { border-color: var(--steel-600); }
 .cfg-tab:disabled { opacity: .38; cursor: not-allowed; background: var(--surface-2); }
 .cfg-tab:disabled:hover { border-color: var(--line); color: var(--ink); }
 

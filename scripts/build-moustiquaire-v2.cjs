@@ -45,9 +45,10 @@ const fields = [];
 
 // Famille puis Modèle (nodeField). Le modèle est filtré par la famille.
 fields.push({ id: 'famille_mous', label: 'Type de moustiquaire', type: 'choice', default: 'verticales', options: FAMILLES });
+// Sélecteur visuel : une vignette par modèle (image /moustiquaire-<slug>.png dans public/).
 fields.push({
-  id: 'type', label: 'Modèle', type: 'choice', default: 'mous-eco',
-  options: MODELS.map((m) => ({ value: m.slug, label: m.label, availableWhen: eq('famille_mous', m.famille) })),
+  id: 'type', label: 'Modèle', type: 'choice', default: 'mous-eco', imageChoice: true,
+  options: MODELS.map((m) => ({ value: m.slug, label: m.label, imageUrl: `/moustiquaire-${m.slug}.png`, availableWhen: eq('famille_mous', m.famille) })),
 });
 
 // Dimensions (cotes de commande = largeur dos de coulisse × hauteur coffre compris).

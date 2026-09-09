@@ -234,6 +234,31 @@ export function ConfigurateurProduit({ slug }: Props) {
     // choice
     const avail = availableOptions(def, f, values);
     const opts = f.options ?? [];
+
+    // Sélecteur VISUEL (une vignette par option, via option.imageUrl) — ex. modèle.
+    if (f.imageChoice) {
+      const shown = opts.filter((o) => avail.has(o.value));
+      return (
+        <div className="cfg-section" key={f.id}>
+          <h3 className="cfg-title">{f.label}</h3>
+          <div className="cfg-modelgrid">
+            {shown.map((o) => (
+              <button key={o.value} type="button" title={o.hint}
+                className={`cfg-modelcard${values[f.id] === o.value ? ' active' : ''}`}
+                onClick={() => setField(f.id, o.value)}>
+                {o.imageUrl && (
+                  <img src={o.imageUrl} alt={o.label} loading="lazy"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                )}
+                <span>{o.label}</span>
+              </button>
+            ))}
+          </div>
+          {f.help && <p className="cfg-dim-hint">{f.help}</p>}
+        </div>
+      );
+    }
+
     const isColor = opts.some((o) => o.hex);
     if (isColor) {
       const shown = opts.filter((o) => avail.has(o.value));

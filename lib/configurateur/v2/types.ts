@@ -74,6 +74,9 @@ export interface Field {
   help?: string; helpImage?: string;                      // aide contextuelle (guide)
   /** 'spec' = champ de fabrication (remonté à la prod, sans impact prix). */
   role?: 'spec';
+  /** Champ de choix rendu en grille de vignettes (une image par option, via
+   *  `option.imageUrl`) plutôt qu'en onglets — sélecteur visuel (ex. modèle). */
+  imageChoice?: boolean;
 }
 
 /* ---------- Étapes du wizard (pilotées par données) ---------- */
