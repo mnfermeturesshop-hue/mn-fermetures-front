@@ -216,8 +216,9 @@ fields.push(makeColorField('color_coulisse', 'Coloris coulisse', COL_ALL));
 fields.push(makeColorField('color_lame_finale', 'Coloris lame finale', COL_ALL));
 
 // dimensions
-fields.push({ id: 'largeur', label: 'Largeur dos de coulisse', type: 'dimension', unit: 'mm', default: 1200 });
-fields.push({ id: 'hauteur', label: 'Hauteur sous coffre', type: 'dimension', unit: 'mm', default: 1000 });
+// Dimensions NON pré-remplies : le prix n'apparaît qu'une fois les cotes saisies.
+fields.push({ id: 'largeur', label: 'Largeur dos de coulisse', type: 'dimension', unit: 'mm' });
+fields.push({ id: 'hauteur', label: 'Hauteur sous coffre', type: 'dimension', unit: 'mm' });
 // F. Message de contrôle (surface max admissible par lame).
 fields.push({ id: 'surface_info', type: 'info',
   help: 'Surface maximale admissible : CD942 8 m², Alu 56 10 m², Alu 55 12 m².' });

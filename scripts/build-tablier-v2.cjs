@@ -76,8 +76,9 @@ const fields = [
     help: '⚠️ Largeur de commande = largeur finie. Hauteur de commande = hauteur finie, enroulement compris (par défaut 100 mm).',
     helpImage: '/schema-largeur-tablier-fini.png' },
   // Pas de minimum (demande PDG) : min:1 (UI) ; sous le plancher grille, prix plancher (snapUp).
-  { id: 'largeur', label: 'Largeur', type: 'dimension', unit: 'mm', min: 1, max: largeurMax, step: 1, default: 1200 },
-  { id: 'hauteur', label: 'Hauteur', type: 'dimension', unit: 'mm', min: 1, max: hauteurMax, step: 1, default: 1500 },
+  // Dimensions NON pré-remplies : le prix n'apparaît qu'une fois les cotes saisies.
+  { id: 'largeur', label: 'Largeur', type: 'dimension', unit: 'mm', min: 1, max: largeurMax, step: 1 },
+  { id: 'hauteur', label: 'Hauteur', type: 'dimension', unit: 'mm', min: 1, max: hauteurMax, step: 1 },
   // Verrouillage : un seul choix (exclusif). Les options dispo dépendent de la lame.
   { id: 'verrouillage', label: 'Attaches & verrouillage', type: 'choice', default: 'souple',
     help: 'Attaches souples incluses. En option (plus-value) : attaches rigides OU verrous automatiques — pas les deux.',

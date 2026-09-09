@@ -101,8 +101,9 @@ const fields = [
       { value: 'alu56', label: 'Lame aluminium 56', availableWhen: IS_NEUF },
     ] },
 
-  { id: 'largeur', label: 'Largeur (dos de coulisse)', type: 'dimension', unit: 'mm', min: 375, max: 3500, step: 1, default: 1200 },
-  { id: 'hauteur', label: 'Hauteur (sous coffre)', type: 'dimension', unit: 'mm', min: 850, max: 3000, step: 1, default: 1500 },
+  // Dimensions NON pré-remplies : le prix (grille H×L) n'apparaît qu'une fois les cotes saisies.
+  { id: 'largeur', label: 'Largeur (dos de coulisse)', type: 'dimension', unit: 'mm', min: 375, max: 3500, step: 1 },
+  { id: 'hauteur', label: 'Hauteur (sous coffre)', type: 'dimension', unit: 'mm', min: 850, max: 3000, step: 1 },
   { id: 'coffre_info', label: 'Section de coffre', type: 'info', visibleWhen: INT_ONLY, help: 'Déterminée par la hauteur : {{coffre}} mm (enroulement intérieur).' },
 
   // Extérieur : trappe de visite (cote de fabrication, sans prix) = largeur menuiserie + ailes.

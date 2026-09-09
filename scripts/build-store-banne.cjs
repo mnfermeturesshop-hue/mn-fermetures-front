@@ -24,8 +24,8 @@ const def = {
       { value: 'semi_coffre', label: 'Semi-coffre' },
       { value: 'coffre_integral', label: 'Coffre intégral' },
     ] },
-    { id: 'largeur', label: 'Largeur', type: 'dimension', unit: 'mm', default: 3500 },
-    { id: 'avancee', label: 'Avancée (projection)', type: 'dimension', unit: 'mm', default: 2500 },
+    { id: 'largeur', label: 'Largeur', type: 'dimension', unit: 'mm' },
+    { id: 'avancee', label: 'Avancée (projection)', type: 'dimension', unit: 'mm' },
     { id: 'toile', label: 'Toile', type: 'choice', default: 'ecru', options: [
       { value: 'ecru', label: 'Écru', hex: '#EFE7D6' },
       { value: 'gris', label: 'Gris ardoise', hex: '#5A6470' },

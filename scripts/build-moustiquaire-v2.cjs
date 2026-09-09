@@ -52,8 +52,9 @@ fields.push({
 
 // Dimensions (cotes de commande = largeur dos de coulisse × hauteur coffre compris).
 fields.push({ id: 'dim_help', type: 'info', help: 'Dimensions de commande : largeur = dos de coulisse · hauteur = coffre compris.' });
-fields.push({ id: 'largeur', label: 'Largeur', type: 'dimension', unit: 'mm', min: 500, max: 3500, step: 1, default: 1000 });
-fields.push({ id: 'hauteur', label: 'Hauteur', type: 'dimension', unit: 'mm', min: 550, max: 2550, step: 1, default: 1200 });
+// Dimensions NON pré-remplies : le prix (grille H×L) n'apparaît qu'une fois les cotes saisies.
+fields.push({ id: 'largeur', label: 'Largeur', type: 'dimension', unit: 'mm', min: 500, max: 3500, step: 1 });
+fields.push({ id: 'hauteur', label: 'Hauteur', type: 'dimension', unit: 'mm', min: 550, max: 2550, step: 1 });
 
 // Ventaux (impact prix via grille) — modèles latéraux/plissés/battante.
 const VENTAUX_TYPES = Object.keys(VENTAUX_GRID);
