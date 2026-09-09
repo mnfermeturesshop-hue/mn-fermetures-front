@@ -19,7 +19,7 @@ const wb = XLSX.readFile(path.join(__dirname, '..', 'docs', 'Tarif_MOUSTIQUAIRES
 const A = (name) => XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, blankrows: false, defval: '' });
 const num = (v) => { if (v === '' || v == null) return null; const n = Number(String(v).replace(/[^0-9.\-]/g, '')); return isFinite(n) ? n : null; };
 const isHL = (v) => /^\s*H\s*\/\s*L\s*$/i.test(String(v));
-const isDim = (n) => n != null && n >= 300 && n <= 3500;
+const isDim = (n) => n != null && n >= 300 && n <= 5000;
 const price = (v) => { const n = num(v); return n != null && Number.isInteger(n) && n >= 30 && n <= 6000 ? n : null; };
 
 // Modèle (slug de sous-famille) d'après le nom explicite dans le texte de la feuille.

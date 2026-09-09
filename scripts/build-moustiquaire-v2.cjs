@@ -28,7 +28,7 @@ const MODELS = [
   { slug: 'zephyr', label: 'Zephyr', famille: 'laterales' },
   { slug: 'boree', label: 'Borée', famille: 'laterales' },
   { slug: 'calista', label: 'Calista', famille: 'plissees' },
-  { slug: 'circe', label: 'Circée', famille: 'plissees' },
+  { slug: 'circe', label: 'Circé', famille: 'plissees' },
   { slug: 'mylas', label: 'Mylas', famille: 'fixes' },
   { slug: 'lyssa', label: 'Lyssa', famille: 'battantes' },
 ];
@@ -59,7 +59,7 @@ fields.push({ id: 'hauteur', label: 'Hauteur', type: 'dimension', unit: 'mm', mi
 // Ventaux (impact prix via grille) — modèles latéraux/plissés/battante.
 const VENTAUX_TYPES = Object.keys(VENTAUX_GRID);
 fields.push({
-  id: 'ventaux', label: 'Ventaux', type: 'choice', default: 'v1',
+  id: 'ventaux', label: 'Vantaux', type: 'choice', default: 'v1',
   visibleWhen: inSet('type', VENTAUX_TYPES),
   options: [
     { value: 'v1', label: '1 vantail' },
@@ -83,7 +83,7 @@ fields.push({
 // Coloris STANDARD (sans plus-value). Masqué quand « autres couleurs » (Eco+) est choisi.
 fields.push({
   id: 'coloris', label: 'Coloris', type: 'choice', default: 'blanc-9010',
-  // Masqué pour Eco+ « autres couleurs » ET pour Circée (qui a profilés + toile séparés).
+  // Masqué pour Eco+ « autres couleurs » ET pour Circé (qui a profilés + toile séparés).
   visibleWhen: { all: [{ any: [ne('type', 'mous-eco-plus'), ne('coloris_gamme', 'autres')] }, ne('type', 'circe')] },
   help: 'Coloris standard (sans plus-value). Accessoires blancs sur moustiquaire blanche, noirs sinon.',
   options: [
@@ -94,7 +94,7 @@ fields.push({
 });
 fields.push({ id: 'coloris_autres_info', type: 'info', visibleWhen: ECOPLUS_AUTRES,
   help: 'Autres couleurs (RAL / structuré) : coloris à préciser à la commande. Tarif « autres couleurs » appliqué.' });
-// Circée : deux axes de coloris (capture PDG) — couleur des profilés (standard) + couleur
+// Circé : deux axes de coloris (capture PDG) — couleur des profilés (standard) + couleur
 // de la toile (noire / grise, sans plus-value). Coloris usuels/spéciaux : plus tard.
 fields.push({
   id: 'coloris_profiles', label: 'Couleur des profilés', type: 'choice', default: 'blanc-9010',
@@ -119,7 +119,7 @@ fields.push({ id: 'position_chainette', label: 'Position chaînette', type: 'cho
   visibleWhen: eq('type', 'cecias'), options: [{ value: 'gauche', label: 'Gauche' }, { value: 'droite', label: 'Droite' }] });
 fields.push({ id: 'type_fixation', label: 'Type de fixation', type: 'choice', role: 'spec', default: 'aimants',
   visibleWhen: eq('type', 'mylas'), options: [{ value: 'aimants', label: 'Aimants' }, { value: 'equerres', label: 'Équerres' }] });
-fields.push({ id: 'ventaux_mylas', label: 'Ventaux', type: 'choice', role: 'spec', default: '1',
+fields.push({ id: 'ventaux_mylas', label: 'Vantaux', type: 'choice', role: 'spec', default: '1',
   visibleWhen: eq('type', 'mylas'), help: 'Sans impact sur le prix.',
   options: [{ value: '1', label: '1 vantail' }, { value: '2', label: '2 vantaux' }] });
 // Partie basse pleine (Lyssa) — plus-value bakélite/polycarbonate : 215 € (1 vantail) / 430 € (2 vantaux).

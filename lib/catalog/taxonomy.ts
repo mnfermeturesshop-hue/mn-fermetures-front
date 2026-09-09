@@ -61,7 +61,7 @@ const TREE: SeedGamme[] = [
       { name: 'Cecias', slug: 'cecias' }, { name: 'Lips', slug: 'lips' }, { name: 'Aura', slug: 'aura' },
     ] },
     { name: 'Latérales', slug: 'mous-laterales', children: [ { name: 'Zephyr', slug: 'zephyr' }, { name: 'Borée', slug: 'boree' } ] },
-    { name: 'Plissées', slug: 'mous-plissees', children: [ { name: 'Calista', slug: 'calista' }, { name: 'Circée', slug: 'circe' } ] },
+    { name: 'Plissées', slug: 'mous-plissees', children: [ { name: 'Calista', slug: 'calista' }, { name: 'Circé', slug: 'circe' } ] },
     { name: 'Fixes', slug: 'mous-fixes', children: [ { name: 'Mylas', slug: 'mylas' } ] },
     { name: 'Battantes', slug: 'mous-battantes', children: [ { name: 'Lyssa', slug: 'lyssa' } ] },
   ] },
