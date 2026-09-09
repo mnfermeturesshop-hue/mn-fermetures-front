@@ -59,6 +59,10 @@ export function ConfigurateurProduit({ slug }: Props) {
   const [stepIdx, setStepIdx] = useState(0);
   // Schémas d'aide (helpImage) affichés à la demande, par champ (repliés par défaut).
   const [shownImages, setShownImages] = useState<Record<string, boolean>>({});
+  // Prix affiché à 0 € tant que l'utilisateur n'a rien configuré (évite d'afficher un
+  // prix basé sur les valeurs par défaut). Passe à true à la 1re interaction / avance
+  // d'étape / reprise d'un brouillon.
+  const [touched, setTouched] = useState(false);
 
   // Chargement de la définition (réservé aux connectés : prix = donnée pro).
   // Dépend de l'ID utilisateur (et pas de l'objet `user`) : un simple re-sync de
@@ -92,6 +96,7 @@ export function ConfigurateurProduit({ slug }: Props) {
           setValues(repairValues(d, init));
           setStepIdx(0);
         }
+        setTouched(!!saved);   // brouillon repris = déjà configuré → prix affiché ; sinon 0 €
         setStatus('ok');
       })
       .catch(() => { if (alive) setStatus('error'); });
@@ -118,6 +123,8 @@ export function ConfigurateurProduit({ slug }: Props) {
   const ecoContribHT = node ? resolveEcoSeed(ecoMap, node) : 0;
   const split = result?.ok ? splitB2BPrice(result.total, surchargePct, discountPct) : null;
   const unitNet = split ? split.productNet + split.surchargeNet + ecoContribHT : 0;
+  // Prix « réel » à afficher : uniquement après une 1re interaction (sinon 0 €).
+  const priced = touched && !!result?.ok;
 
   // ── États de garde ──
   if (status === 'gated') {
@@ -135,7 +142,7 @@ export function ConfigurateurProduit({ slug }: Props) {
   if (status === 'error' || !def) return <p className="cfg-error" style={{ padding: 24 }}>Configurateur indisponible.</p>;
 
   const ctx = withDerivedValues(def, values);                 // valeurs + axes dérivés (setsValues)
-  const setField = (id: string, val: Primitive) => setValues((v) => repairValues(def, { ...v, [id]: val }));
+  const setField = (id: string, val: Primitive) => { setTouched(true); setValues((v) => repairValues(def, { ...v, [id]: val })); };
   const fieldById = (id: string) => def.fields.find((f) => f.id === id);
   const visibleFields = (ids: string[]): Field[] =>
     ids.map(fieldById).filter((f): f is Field => !!f && isVisible(f.visibleWhen, ctx));
@@ -282,7 +289,7 @@ export function ConfigurateurProduit({ slug }: Props) {
   // La progression bloque tant que le prix n'est pas calculable (dimensions / récap).
   const stepBlocked = (step.hasDim || step.isRecap) && !result?.ok;
   const primaryDisabled = isLast ? !result?.ok : stepBlocked;
-  const onPrimary = () => { if (isLast) addToCart(); else setStepIdx(cur + 1); };
+  const onPrimary = () => { if (isLast) addToCart(); else { setTouched(true); setStepIdx(cur + 1); } };
 
   // ── Détail + ajout panier (générique) ──
   // Sur mesure : les cotes affichées/enregistrées sont les cotes EXACTES saisies.
@@ -397,7 +404,7 @@ export function ConfigurateurProduit({ slug }: Props) {
           <button type="button" onClick={() => setQty(qty + 1)}>+</button>
         </div>
       </div>
-      {result?.ok && <div className="cfg-total"><span>Total HT</span><strong>{euro(unitNet * qty)}</strong></div>}
+      {result?.ok && <div className="cfg-total"><span>Total HT</span><strong>{euro((priced ? unitNet : 0) * qty)}</strong></div>}
     </section>
   );
 
@@ -436,7 +443,7 @@ export function ConfigurateurProduit({ slug }: Props) {
         <div className="cfg-summary">
           <div className="cfg-summary-head"><span>Votre produit</span></div>
           <div className="cfg-summary-lame"><strong>{def.name}</strong></div>
-          {result?.ok ? (
+          {touched && result?.ok ? (
             <>
               <div className="cfg-price-breakdown">
                 {result.lineItems.map((li) => (
@@ -463,6 +470,11 @@ export function ConfigurateurProduit({ slug }: Props) {
                 </div>
               )}
             </>
+          ) : !touched ? (
+            <>
+              <div className="cfg-total"><span>Prix unitaire HT</span><strong>{euro(0)}</strong></div>
+              <div className="cfg-summary-empty">Faites vos choix : le prix se met à jour automatiquement.</div>
+            </>
           ) : (
             <div className="cfg-summary-empty">
               {result && result.errors.length > 0 ? result.errors[0] : 'Renseignez les dimensions pour le prix'}
@@ -474,7 +486,7 @@ export function ConfigurateurProduit({ slug }: Props) {
 
       {/* ── Barre de prix collante (mobile) ── */}
       <div className="cfg-mobar">
-        <div className="cfg-mobar-price">{result?.ok ? `${euro(unitNet)} HT` : '—'}</div>
+        <div className="cfg-mobar-price">{priced ? `${euro(unitNet)} HT` : (touched ? '—' : `${euro(0)} HT`)}</div>
         <button type="button" className="btn solid" disabled={primaryDisabled} onClick={onPrimary}>
           {isLast ? 'Ajouter' : 'Suivant →'}
         </button>
