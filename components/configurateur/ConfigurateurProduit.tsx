@@ -96,7 +96,10 @@ export function ConfigurateurProduit({ slug }: Props) {
           setValues(repairValues(d, init));
           setStepIdx(0);
         }
-        setTouched(!!saved);   // brouillon repris = déjà configuré → prix affiché ; sinon 0 €
+        // Toujours démarrer à 0 € à l'ouverture — même si un brouillon est repris (ses
+        // valeurs sont restaurées, mais le prix ne s'affiche qu'à la 1re interaction /
+        // au passage à l'étape suivante). Évite d'afficher un prix dès le chargement.
+        setTouched(false);
         setStatus('ok');
       })
       .catch(() => { if (alive) setStatus('error'); });

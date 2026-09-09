@@ -31,9 +31,10 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
   const [width, setWidth]   = useState(initW);
   const [opts, setOpts]     = useState<string[]>([]);
   const [color, setColor]   = useState(product.colors?.[0]?.code ?? '');
-  // Prix affiché à 0 € tant que l'utilisateur n'a pas choisi ses dimensions/options
-  // (true d'emblée si on arrive avec des cotes en URL = config partagée / devis).
-  const [touched, setTouched] = useState<boolean>(() => searchParams.has('h') || searchParams.has('w'));
+  // Prix affiché à 0 € tant que l'utilisateur n'a pas choisi ses dimensions/options.
+  // Toujours 0 € à l'ouverture (le composant réécrit h/w dans l'URL au montage, donc
+  // on ne peut pas s'y fier) — le prix apparaît à la 1re interaction.
+  const [touched, setTouched] = useState(false);
   const { addLine, openCart, showTTC } = useCartStore();
   const { user } = useAuthStore();
   const TVA = 0.20;
