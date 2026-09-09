@@ -31,6 +31,9 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
   const [width, setWidth]   = useState(initW);
   const [opts, setOpts]     = useState<string[]>([]);
   const [color, setColor]   = useState(product.colors?.[0]?.code ?? '');
+  // Prix affiché à 0 € tant que l'utilisateur n'a pas choisi ses dimensions/options
+  // (true d'emblée si on arrive avec des cotes en URL = config partagée / devis).
+  const [touched, setTouched] = useState<boolean>(() => searchParams.has('h') || searchParams.has('w'));
   const { addLine, openCart, showTTC } = useCartStore();
   const { user } = useAuthStore();
   const TVA = 0.20;
@@ -43,8 +46,10 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
     router.replace(`?${params.toString()}`, { scroll: false });
   }, [height, width]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const toggle = (code: string) =>
+  const toggle = (code: string) => {
+    setTouched(true);
     setOpts((cur) => (cur.includes(code) ? cur.filter((c) => c !== code) : [...cur, code]));
+  };
 
   const price = useMemo(
     () => resolveMatrixPrice(product, height, width, opts),
@@ -56,6 +61,8 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
   const ecoContribHT = resolveEcoSeed(useSurchargeStore((s) => s.eco), node);
   const split = price === null ? null : splitB2BPrice(price, surchargePct, discountPct);
   const finalPrice = split === null ? null : split.productNet + split.surchargeNet + ecoContribHT;
+  // Prix « réel » à afficher : uniquement après une 1re interaction (sinon 0 €).
+  const priced = touched && finalPrice !== null;
 
   const handleAdd = () => {
     if (finalPrice === null) return;
@@ -97,7 +104,7 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
       <div className="body">
         <div className="field">
           <label htmlFor="cfgH">Hauteur finie (mm)</label>
-          <select id="cfgH" value={height} onChange={(e) => setHeight(Number(e.target.value))}>
+          <select id="cfgH" value={height} onChange={(e) => { setTouched(true); setHeight(Number(e.target.value)); }}>
             {product.heights.map((h) => (
               <option key={h} value={h}>{h} mm</option>
             ))}
@@ -105,7 +112,7 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
         </div>
         <div className="field">
           <label htmlFor="cfgW">Largeur finie (mm)</label>
-          <select id="cfgW" value={width} onChange={(e) => setWidth(Number(e.target.value))}>
+          <select id="cfgW" value={width} onChange={(e) => { setTouched(true); setWidth(Number(e.target.value)); }}>
             {product.widths.map((w) => (
               <option key={w} value={w}>{w} mm</option>
             ))}
@@ -123,7 +130,7 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
                   className={`color-swatch ${c.code === color ? 'active' : ''}`}
                   style={{ background: c.hex }}
                   title={c.label}
-                  onClick={() => setColor(c.code)}
+                  onClick={() => { setTouched(true); setColor(c.code); }}
                   aria-label={c.label}
                 />
               ))}
@@ -164,21 +171,22 @@ export function TablierConfigurator({ product }: { product: MatrixProduct }) {
         <div className="price-out">
           <div>
             <div className="eyebrow">Prix indicatif</div>
-            {discountPct > 0 && finalPrice !== null && (
+            {priced && discountPct > 0 && (
               <div className="unit-discount-badge">−{discountPct}% pro</div>
             )}
             <div className="big">
               {finalPrice === null
                 ? '—'
+                : !priced ? (showTTC ? <>{euro(0)} <small>TTC</small></> : <>{euro(0)} <small>HT</small></>)
                 : showTTC ? <>{euro(finalPrice * (1 + TVA))} <small>TTC</small></> : <>{euro(finalPrice)} <small>HT</small></>
               }
             </div>
-            {discountPct > 0 && price !== null && (
+            {priced && discountPct > 0 && price !== null && (
               <div className="unit-uprice unit-uprice--crossed">
                 {showTTC ? <>{euro(price * (1 + TVA))} TTC</> : <>{euro(price)} HT</>}
               </div>
             )}
-            {split && (surchargePct > 0 || ecoContribHT > 0) && (
+            {priced && split && (surchargePct > 0 || ecoContribHT > 0) && (
               <div className="price-breakdown">
                 <div className="pb-row"><span>Produit HT</span><span>{euro(split.productNet)}</span></div>
                 {surchargePct > 0 && (
