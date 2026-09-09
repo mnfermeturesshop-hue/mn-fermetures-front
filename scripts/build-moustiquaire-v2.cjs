@@ -28,7 +28,7 @@ const MODELS = [
   { slug: 'zephyr', label: 'Zephyr', famille: 'laterales' },
   { slug: 'boree', label: 'Borée', famille: 'laterales' },
   { slug: 'calista', label: 'Calista', famille: 'plissees' },
-  { slug: 'circe', label: 'Circé', famille: 'plissees' },
+  { slug: 'circe', label: 'Circée', famille: 'plissees' },
   { slug: 'mylas', label: 'Mylas', famille: 'fixes' },
   { slug: 'lyssa', label: 'Lyssa', famille: 'battantes' },
 ];
@@ -83,7 +83,8 @@ fields.push({
 // Coloris STANDARD (sans plus-value). Masqué quand « autres couleurs » (Eco+) est choisi.
 fields.push({
   id: 'coloris', label: 'Coloris', type: 'choice', default: 'blanc-9010',
-  visibleWhen: { any: [ne('type', 'mous-eco-plus'), ne('coloris_gamme', 'autres')] },
+  // Masqué pour Eco+ « autres couleurs » ET pour Circée (qui a profilés + toile séparés).
+  visibleWhen: { all: [{ any: [ne('type', 'mous-eco-plus'), ne('coloris_gamme', 'autres')] }, ne('type', 'circe')] },
   help: 'Coloris standard (sans plus-value). Accessoires blancs sur moustiquaire blanche, noirs sinon.',
   options: [
     { value: 'blanc-9010', label: 'Blanc 9010', hex: '#f4f4f2' },
@@ -93,6 +94,23 @@ fields.push({
 });
 fields.push({ id: 'coloris_autres_info', type: 'info', visibleWhen: ECOPLUS_AUTRES,
   help: 'Autres couleurs (RAL / structuré) : coloris à préciser à la commande. Tarif « autres couleurs » appliqué.' });
+// Circée : deux axes de coloris (capture PDG) — couleur des profilés (standard) + couleur
+// de la toile (noire / grise, sans plus-value). Coloris usuels/spéciaux : plus tard.
+fields.push({
+  id: 'coloris_profiles', label: 'Couleur des profilés', type: 'choice', default: 'blanc-9010',
+  visibleWhen: eq('type', 'circe'),
+  help: 'Coloris standard des profilés (sans plus-value).',
+  options: [
+    { value: 'blanc-9010', label: 'Blanc 9010', hex: '#f4f4f2' },
+    { value: 'gris-7016', label: 'Gris anthracite 7016', hex: '#383e42' },
+    { value: 'marron-8019', label: 'Marron 8019 (proche)', hex: '#3d3635' },
+  ],
+});
+fields.push({
+  id: 'coloris_toile', label: 'Couleur de la toile', type: 'choice', role: 'spec', default: 'noire',
+  visibleWhen: eq('type', 'circe'),
+  options: [{ value: 'noire', label: 'Noire', hex: '#1a1a1a' }, { value: 'grise', label: 'Grise', hex: '#8a8a8a' }],
+});
 
 // Options de FABRICATION (sans impact prix) — spécifiques à certains modèles.
 fields.push({ id: 'percage_coulisse', label: 'Perçage coulisse', type: 'choice', role: 'spec', default: 'facade',
@@ -160,7 +178,7 @@ for (const m of MODELS) {
 const steps = [
   { id: 'modele', title: 'Modèle', fields: ['famille_mous', 'type', 'ventaux'] },
   { id: 'dim', title: 'Dimensions', fields: ['dim_help', 'largeur', 'hauteur'] },
-  { id: 'coloris', title: 'Coloris', fields: ['coloris'] },
+  { id: 'coloris', title: 'Coloris', fields: ['coloris_gamme', 'coloris', 'coloris_autres_info', 'coloris_profiles', 'coloris_toile'] },
   { id: 'options', title: 'Options', fields: ['percage_coulisse', 'position_chainette', 'type_fixation', 'ventaux_mylas', 'partie_basse_pleine'] },
   { id: 'recap', title: 'Récapitulatif', fields: [] },
 ];
