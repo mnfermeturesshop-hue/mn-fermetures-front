@@ -3031,36 +3031,57 @@ html { -webkit-text-size-adjust: 100%; }
 .vt-hero-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 56px; align-items: center; padding: 84px 32px 80px; }
 .vt-hero h1 { color: #fff; font-size: 46px; line-height: 1.08; font-weight: 800; text-wrap: balance; }
 .vt-hero-lead { color: #c7d5e2; font-size: 18px; line-height: 1.6; max-width: 520px; }
-.vt-hero-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.vt-tile { aspect-ratio: 1; border-radius: 14px; display: flex; align-items: flex-end; padding: 16px; box-shadow: 0 12px 30px rgba(0,0,0,.25); }
+/* Visuel hero unique (emplacement d'une photo produit) — remplace les tuiles répétées */
+.vt-hero-visual { position: relative; min-height: 460px; border-radius: 16px; overflow: hidden;
+  background: linear-gradient(155deg, #2e6c98 0%, #163a5f 55%, #0e2f4c 100%);
+  border: 1px solid rgba(255,255,255,.08); box-shadow: 0 24px 60px rgba(0,0,0,.30); }
+.vt-hero-visual::before { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.05) 0 1px, transparent 1px 26px); }
+.vt-hero-visual .vt-mono { position: absolute; right: -8px; bottom: -46px; user-select: none;
+  font-family: var(--font-display); font-weight: 800; font-size: 250px; line-height: 1;
+  letter-spacing: -.05em; color: rgba(255,255,255,.055); }
 
 /* Sections */
 .vt-sec { padding: 76px 0; }
 .vt-sec.alt { background: var(--bg); }
 .vt-sec-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 34px; }
-.vt-two { display: grid; grid-template-columns: 1.1fr .9fr; gap: 56px; align-items: center; }
-.vt-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.vt-stat { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
-.vt-stat .n { font-family: var(--font-display); font-weight: 800; font-size: 34px; color: var(--navy-700); }
-.vt-stat .l { color: var(--muted); font-size: 14px; }
+.vt-lead { max-width: 780px; display: flex; flex-direction: column; gap: 16px; }
+.vt-lead .vt-lead-p { color: var(--muted); font-size: 17px; line-height: 1.65; max-width: 65ch; }
+.vt-lead .vt-lead-strong { color: var(--navy-700); font-size: 18px; font-weight: 600; }
+/* Stats en ligne divisée (pas de cartes) */
+.vt-stats-row { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 40px; border-top: 1px solid var(--line); padding-top: 28px; }
+.vt-stats-row > div { padding: 0 28px; border-left: 1px solid var(--line); }
+.vt-stats-row > div:first-child { border-left: none; padding-left: 0; }
+.vt-stats-row .n { font-family: var(--font-display); font-weight: 800; font-size: 36px; color: var(--navy-700); line-height: 1.05; }
+.vt-stats-row .l { color: var(--muted); font-size: 14px; margin-top: 6px; }
 
-/* Produits */
+/* Produits — 6 gammes de fabrication (grille) */
 .vt-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 22px; }
 .vt-card { background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
 .vt-card-media { height: 150px; display: flex; align-items: center; justify-content: center; }
 .vt-card-body { padding: 20px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
 .vt-card-body h3 { font-size: 19px; }
 .vt-card-body p { color: var(--muted); font-size: 14px; flex: 1; }
+/* Accessoires & pièces — cartes horizontales (autre famille de layout) */
+.vt-subhead { font-size: 13px; font-weight: 700; letter-spacing: .04em; color: var(--muted); text-transform: uppercase; margin: 44px 0 16px; }
+.vt-acc { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.vt-acc-card { display: flex; gap: 18px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px 24px; }
+.vt-acc-ic { width: 60px; height: 60px; border-radius: 12px; flex: none; display: flex; align-items: center; justify-content: center; background: linear-gradient(145deg, #2e6c98, #163a5f); }
+.vt-acc-card h3 { font-size: 18px; }
+.vt-acc-card p { color: var(--muted); font-size: 14px; margin-top: 4px; }
 
-/* Réassurance */
-.vt-reassure { background: var(--navy-800); color: #fff; padding: 28px 0; }
-.vt-reassure-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 22px; }
-.vt-reassure-item { display: flex; align-items: center; gap: 12px; font-weight: 600; }
+/* Réassurance — bandeau clair divisé, sous le hero */
+.vt-reassure { background: var(--surface-2); color: var(--ink); padding: 22px 0; border-bottom: 1px solid var(--line); }
+.vt-reassure-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 18px 28px; }
+.vt-reassure-item { display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--navy-700); font-size: 14px; }
+.vt-reassure-item svg { stroke: var(--steel-600); }
 
-/* Ouverture de compte */
-.vt-account { background: linear-gradient(120deg, var(--surface-2), #fff); border: 1px solid var(--line); border-radius: 16px; padding: 44px; display: grid; grid-template-columns: 1.3fr .7fr; gap: 40px; align-items: center; }
-.vt-account ul { list-style: none; padding: 0; margin: 6px 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.vt-account li { display: flex; gap: 8px; align-items: center; color: var(--navy-700); font-weight: 500; font-size: 14px; }
+/* Ouverture de compte — bandeau centré (une seule famille « split » sur la page) */
+.vt-account { background: var(--surface-2); border: 1px solid var(--line); border-radius: 16px; padding: 48px 44px; text-align: center; }
+.vt-account-head { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.vt-account .vt-perks { list-style: none; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 28px; margin: 24px 0 26px; }
+.vt-account .vt-perks li { display: flex; gap: 8px; align-items: center; color: var(--navy-700); font-weight: 500; font-size: 14px; }
+.vt-account-cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 
 /* Contact */
 .vt-contact-grid { display: grid; grid-template-columns: 1fr 1fr .8fr; gap: 22px; align-items: start; }
@@ -3090,10 +3111,14 @@ html { -webkit-text-size-adjust: 100%; }
 
 /* Responsive */
 @media (max-width: 900px) {
-  .vt-hero-grid, .vt-two, .vt-account { grid-template-columns: 1fr; gap: 32px; }
-  .vt-hero-tiles { max-width: 380px; }
+  .vt-hero-grid { grid-template-columns: 1fr; gap: 32px; }
+  .vt-hero-visual { min-height: 300px; order: -1; }
   .vt-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .vt-acc { grid-template-columns: 1fr; }
   .vt-contact-grid { grid-template-columns: 1fr; }
+  .vt-stats-row { grid-template-columns: 1fr 1fr; gap: 24px 0; }
+  .vt-stats-row > div { padding: 0 24px; }
+  .vt-stats-row > div:nth-child(3) { border-left: none; padding-left: 0; }
 }
 @media (max-width: 720px) {
   .vitrine .vt-wrap { padding: 0 20px; }
@@ -3102,6 +3127,6 @@ html { -webkit-text-size-adjust: 100%; }
   .vt-hero h1 { font-size: 32px; }
   .vt-sec { padding: 44px 0; }
   .vt-grid { grid-template-columns: 1fr; }
-  .vt-account { padding: 28px; }
-  .vt-account ul { grid-template-columns: 1fr; }
+  .vt-account { padding: 32px 22px; }
+  .vt-stats-row > div { padding: 0 16px; }
 }

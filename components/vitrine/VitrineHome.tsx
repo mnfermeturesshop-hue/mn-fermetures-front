@@ -119,42 +119,44 @@ export function VitrineHome() {
               <a href="#compte" className="btn ghost-inv lg">Ouvrir un compte</a>
             </div>
           </div>
-          <div className="vt-hero-tiles">
-            <div className="vt-tile" style={{ background: 'linear-gradient(150deg,#2e6c98,#163a5f)' }}><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.6" opacity=".92"><rect x="4" y="3" width="16" height="18" rx="1" /><path d="M4 8h16M4 12h16M4 16h16" /></svg></div>
-            <div className="vt-tile" style={{ background: 'linear-gradient(150deg,#6f93ad,#2e6c98)', marginTop: 26 }}><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.6" opacity=".92"><rect x="4" y="4" width="7" height="16" rx="1" /><rect x="13" y="4" width="7" height="16" rx="1" /></svg></div>
-            <div className="vt-tile" style={{ background: 'linear-gradient(150deg,#8b97a3,#6f93ad)' }}><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.6" opacity=".92"><rect x="3" y="5" width="18" height="14" rx="1" /><path d="M3 9h18M3 13h18" /></svg></div>
-            <div className="vt-tile" style={{ background: 'linear-gradient(150deg,#1d4e7a,#0e2f4c)', marginTop: 26 }}><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.6" opacity=".92"><path d="M4 20V8l8-4 8 4v12" /><path d="M4 12h16M4 16h16" /></svg></div>
+          {/* Emplacement du visuel produit (photo à intégrer). Panneau marque en attendant. */}
+          <div className="vt-hero-visual" aria-hidden="true">
+            <span className="vt-mono">mn</span>
           </div>
+        </div>
+      </section>
+
+      {/* RÉASSURANCE (bandeau clair, sous le hero) */}
+      <section className="vt-reassure">
+        <div className="vt-wrap vt-reassure-row">
+          {REASSURE.map((r) => (
+            <div className="vt-reassure-item" key={r.label}>{r.icon}<span>{r.label}</span></div>
+          ))}
         </div>
       </section>
 
       {/* PRÉSENTATION */}
       <section className="vt-sec">
-        <div className="vt-wrap vt-two">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <h2 style={{ fontSize: 32, lineHeight: 1.15 }}>Fabricant de solutions de fermeture sur mesure</h2>
-            <p style={{ color: 'var(--muted)', fontSize: 16 }}>
+        <div className="vt-wrap">
+          <div className="vt-lead">
+            <h2 style={{ fontSize: 34, lineHeight: 1.12 }}>Fabricant de solutions de fermeture sur mesure</h2>
+            <p className="vt-lead-p">
               MN Fermetures est un fabricant de volets roulants, blocs baie, volets battants, volets coulissants
               ainsi que de portes de garage enroulables, de portails, portillons et clôtures en aluminium ou PVC
               et de moustiquaires.
             </p>
-            <p style={{ color: 'var(--navy-700)', fontSize: 17, fontWeight: 600 }}>
-              Réactivité, innovation et qualité sont au cœur de nos engagements.
-            </p>
-            <p style={{ color: 'var(--muted)', fontSize: 15 }}>
+            <p className="vt-lead-strong">Réactivité, innovation et qualité sont au cœur de nos engagements.</p>
+            <p className="vt-lead-p">
               Basés en Occitanie, nous accompagnons les professionnels de l&apos;
               <strong style={{ color: 'var(--navy-700)', fontWeight: 600 }}>Hérault (34), du Gard (30), de l&apos;Aude (11), des Pyrénées-Orientales (66) et du Vaucluse (84)</strong>
               , avec un commercial dédié par secteur.
             </p>
           </div>
-          <div className="vt-stats">
-            <div className="vt-stat"><div className="n">40 ans</div><div className="l">d&apos;expérience à vos côtés</div></div>
-            <div className="vt-stat"><div className="n">8</div><div className="l">familles de produits</div></div>
-            <div className="vt-stat"><div className="n">2 sites</div><div className="l">de production en Occitanie</div></div>
-            <div className="vt-stat" style={{ background: 'var(--navy-700)', border: 'none', color: '#fff' }}>
-              <div className="n" style={{ color: '#fff', fontSize: 22 }}>100&nbsp;% B2B</div>
-              <div className="l" style={{ color: '#c7d5e2' }}>réservé aux professionnels</div>
-            </div>
+          <div className="vt-stats-row">
+            <div><div className="n">40 ans</div><div className="l">d&apos;expérience à vos côtés</div></div>
+            <div><div className="n">8</div><div className="l">familles de produits</div></div>
+            <div><div className="n">2 sites</div><div className="l">de production en Occitanie</div></div>
+            <div><div className="n">100&nbsp;%</div><div className="l">réservé aux professionnels</div></div>
           </div>
         </div>
       </section>
@@ -169,7 +171,7 @@ export function VitrineHome() {
             <Link href="/pro" style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>Configurer dans l&apos;espace pro →</Link>
           </div>
           <div className="vt-grid">
-            {PRODUCTS.map((p) => (
+            {PRODUCTS.slice(0, 6).map((p) => (
               <div className="vt-card" key={p.title}>
                 <div className="vt-card-media" style={{ background: p.bg }}>{p.icon}</div>
                 <div className="vt-card-body">
@@ -179,15 +181,19 @@ export function VitrineHome() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
 
-      {/* RÉASSURANCE */}
-      <section className="vt-reassure">
-        <div className="vt-wrap vt-reassure-row">
-          {REASSURE.map((r) => (
-            <div className="vt-reassure-item" key={r.label}>{r.icon}<span>{r.label}</span></div>
-          ))}
+          <div className="vt-subhead">Accessoires &amp; pièces détachées</div>
+          <div className="vt-acc">
+            {PRODUCTS.slice(6).map((p) => (
+              <div className="vt-acc-card" key={p.title}>
+                <div className="vt-acc-ic">{p.icon}</div>
+                <div>
+                  <h3>{p.title}</h3>
+                  <p>{p.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -195,26 +201,26 @@ export function VitrineHome() {
       <section className="vt-sec" id="compte">
         <div className="vt-wrap">
           <div className="vt-account">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <h2 style={{ fontSize: 28 }}>Ouvrez votre compte professionnel</h2>
-              <p style={{ color: 'var(--muted)', fontSize: 16, maxWidth: 560 }}>
+            <div className="vt-account-head">
+              <h2 style={{ fontSize: 30 }}>Ouvrez votre compte professionnel</h2>
+              <p style={{ color: 'var(--muted)', fontSize: 16 }}>
                 Accédez à vos tarifs préférentiels HT, générez vos devis, suivez vos commandes et échangez
                 avec votre commercial dédié. Validation de votre compte sous 24&nbsp;h ouvrées.
               </p>
-              <ul>
-                {ACCOUNT_PERKS.map((perk) => (
-                  <li key={perk}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-                    {perk}
-                  </li>
-                ))}
-              </ul>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <Link href="/pro?tab=register" className="btn solid lg full">Ouvrir un compte pro</Link>
-              <Link href="/pro" className="btn ghost lg full">J&apos;ai déjà un compte</Link>
-              <p style={{ textAlign: 'center', color: 'var(--muted)', fontSize: 13, marginTop: 4 }}>Une question ? 04 67 78 06 63</p>
+            <ul className="vt-perks">
+              {ACCOUNT_PERKS.map((perk) => (
+                <li key={perk}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                  {perk}
+                </li>
+              ))}
+            </ul>
+            <div className="vt-account-cta">
+              <Link href="/pro?tab=register" className="btn solid lg">Ouvrir un compte pro</Link>
+              <Link href="/pro" className="btn ghost lg">J&apos;ai déjà un compte</Link>
             </div>
+            <p style={{ textAlign: 'center', color: 'var(--muted)', fontSize: 13, marginTop: 18 }}>Une question ? 04 67 78 06 63</p>
           </div>
         </div>
       </section>
