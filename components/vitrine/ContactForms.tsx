@@ -99,17 +99,19 @@ function ContactForm({ audience }: { audience: Audience }) {
         <textarea id={`${audience}-message`} rows={3} value={message} onChange={(e) => setMessage(e.target.value)} placeholder={isPro ? 'Votre besoin, vos volumes…' : 'Décrivez votre projet…'} required />
       </div>
 
-      {siteKey && (
-        <div style={{ marginBottom: 14 }}>
-          <TurnstileWidget onVerify={setToken} onExpire={() => setToken('')} onError={() => setError('Erreur de vérification anti-robot.')} />
-        </div>
-      )}
+      <div className="vt-form-foot">
+        {siteKey && (
+          <div style={{ marginBottom: 14 }}>
+            <TurnstileWidget onVerify={setToken} onExpire={() => setToken('')} onError={() => setError('Erreur de vérification anti-robot.')} />
+          </div>
+        )}
 
-      {error && <div className="form-error" style={{ marginBottom: 12 }}>{error}</div>}
+        {error && <div className="form-error" style={{ marginBottom: 12 }}>{error}</div>}
 
-      <button className={`btn ${isPro ? 'solid' : 'ghost'} full`} type="submit" disabled={loading}>
-        {loading ? 'Envoi…' : isPro ? 'Envoyer ma demande' : 'Être recontacté'}
-      </button>
+        <button className={`btn ${isPro ? 'solid' : 'ghost'} full`} type="submit" disabled={loading}>
+          {loading ? 'Envoi…' : isPro ? 'Envoyer ma demande' : 'Être recontacté'}
+        </button>
+      </div>
     </form>
   );
 }

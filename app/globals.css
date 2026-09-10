@@ -3088,8 +3088,9 @@ html { -webkit-text-size-adjust: 100%; }
 .vt-account-cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 
 /* Contact */
-.vt-contact-grid { display: grid; grid-template-columns: 1fr 1fr .8fr; gap: 22px; align-items: start; }
-.vt-form { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 26px; }
+.vt-contact-grid { display: grid; grid-template-columns: 1fr 1fr .8fr; gap: 22px; align-items: stretch; }
+.vt-form { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 26px; display: flex; flex-direction: column; height: 100%; }
+.vt-form-foot { margin-top: auto; }
 .vt-form .field { margin-bottom: 14px; }
 .vt-form .field:last-of-type { margin-bottom: 16px; }
 .vt-form label { display: block; font-size: 13px; font-weight: 600; color: var(--navy-700); margin-bottom: 6px; }
