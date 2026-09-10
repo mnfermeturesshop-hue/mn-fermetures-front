@@ -5,41 +5,47 @@ import { ContactForms } from '@/components/vitrine/ContactForms';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.mmfermetures.fr';
 
-const PRODUCTS: { title: string; desc: string; bg: string; icon: React.ReactNode }[] = [
+const PRODUCTS: { title: string; desc: string; bg: string; img?: string; icon: React.ReactNode }[] = [
   {
     title: 'Volets roulants',
     desc: 'MN Fermetures vous accompagne sur vos projets volet roulant en neuf et rénovation grâce à ses produits manuels, filaires, radio et solaires.',
     bg: 'linear-gradient(145deg,#2e6c98,#163a5f)',
+    img: '/vitrine/volet-roulant.jpg',
     icon: (<svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.5"><rect x="4" y="3" width="16" height="18" rx="1" /><path d="M4 8h16M4 11h16M4 14h16M4 17h16" /></svg>),
   },
   {
     title: 'Volets battants & coulissants',
     desc: "En panneau isolé ou profils extrudés, les volets battants et coulissants en neuf et rénovation s'adaptent à toutes vos envies et configurations.",
     bg: 'linear-gradient(145deg,#6f93ad,#2e6c98)',
+    img: '/vitrine/volets-battants.jpg',
     icon: (<svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.5"><rect x="3" y="4" width="8" height="16" rx="1" /><rect x="13" y="4" width="8" height="16" rx="1" /><path d="M6 4v16M16 4v16" /></svg>),
   },
   {
     title: 'Porte de garage enroulable',
     desc: "Protégeant l'habitat, la porte de garage enroulable offre un passage optimal. Sans encombrement au plafond ni au mur, tout le garage reste accessible.",
     bg: 'linear-gradient(145deg,#8b97a3,#6f93ad)',
+    img: '/vitrine/porte-garage.jpg',
     icon: (<svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.5"><path d="M3 20V9l9-5 9 5v11" /><path d="M3 11h18M3 14h18M3 17h18" /></svg>),
   },
   {
     title: 'Moustiquaires',
     desc: 'Limitez les intrusions de moustiques et autres insectes indésirables grâce à notre large gamme : moustiquaire éco, plissée, enroulable verticale et latérale, fixe…',
     bg: 'linear-gradient(145deg,#1d4e7a,#0e2f4c)',
+    img: '/vitrine/moustiquaire.jpg',
     icon: (<svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.5"><rect x="4" y="4" width="16" height="16" rx="1" /><path d="M8 4v16M12 4v16M16 4v16M4 8h16M4 12h16M4 16h16" opacity=".8" /></svg>),
   },
   {
     title: 'Portails & clôtures',
     desc: 'Alu ou PVC, adaptez vos offres portail battant, coulissant, portillon et clôture à toutes les demandes avec nos produits.',
     bg: 'linear-gradient(145deg,#2e6c98,#1d4e7a)',
+    img: '/vitrine/portails-clotures.jpg',
     icon: (<svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.5"><path d="M3 20V9l4-2 5 2 5-2 4 2v11" /><path d="M3 20h18M8 9v11M12 8v12M16 9v11" /></svg>),
   },
   {
     title: 'Bloc baie',
     desc: 'Le bloc baie associe menuiserie et volet roulant en un ensemble monobloc prêt à poser, pour un chantier plus rapide en neuf comme en rénovation.',
     bg: 'linear-gradient(145deg,#163a5f,#0e2f4c)',
+    img: '/vitrine/bloc-baie.jpg',
     icon: (<svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.5"><rect x="4" y="3" width="16" height="5" rx="1" /><rect x="4" y="9" width="16" height="12" rx="1" /><path d="M12 9v12" /></svg>),
   },
   {
@@ -119,10 +125,12 @@ export function VitrineHome() {
               <a href="#compte" className="btn ghost-inv lg">Ouvrir un compte</a>
             </div>
           </div>
-          {/* Emplacement du visuel produit (photo à intégrer). Panneau marque en attendant. */}
-          <div className="vt-hero-visual" aria-hidden="true">
-            <span className="vt-mono">mn</span>
-          </div>
+          {/* Visuel hero (photo produit) avec repli dégradé marque si le fichier est absent. */}
+          <div
+            className="vt-hero-visual"
+            aria-hidden="true"
+            style={{ background: "linear-gradient(120deg, rgba(16,49,79,.28), rgba(14,47,76,.08)), url('/vitrine/bloc-baie.jpg') center / cover no-repeat, linear-gradient(155deg,#2e6c98 0%,#163a5f 55%,#0e2f4c 100%)" }}
+          />
         </div>
       </section>
 
@@ -173,7 +181,14 @@ export function VitrineHome() {
           <div className="vt-grid">
             {PRODUCTS.slice(0, 6).map((p) => (
               <div className="vt-card" key={p.title}>
-                <div className="vt-card-media" style={{ background: p.bg }}>{p.icon}</div>
+                <div
+                  className="vt-card-media"
+                  style={p.img
+                    ? { background: `linear-gradient(0deg, rgba(14,47,76,.10), rgba(14,47,76,.10)), url('${p.img}') center / cover no-repeat, ${p.bg}` }
+                    : { background: p.bg }}
+                >
+                  {p.img ? null : p.icon}
+                </div>
                 <div className="vt-card-body">
                   <h3>{p.title}</h3>
                   <p>{p.desc}</p>

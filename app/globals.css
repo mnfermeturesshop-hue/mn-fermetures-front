@@ -3032,14 +3032,10 @@ html { -webkit-text-size-adjust: 100%; }
 .vt-hero h1 { color: #fff; font-size: 46px; line-height: 1.08; font-weight: 800; text-wrap: balance; }
 .vt-hero-lead { color: #c7d5e2; font-size: 18px; line-height: 1.6; max-width: 520px; }
 /* Visuel hero unique (emplacement d'une photo produit) — remplace les tuiles répétées */
-.vt-hero-visual { position: relative; min-height: 460px; border-radius: 16px; overflow: hidden;
+.vt-hero-visual { min-height: 460px; border-radius: 16px; overflow: hidden;
   background: linear-gradient(155deg, #2e6c98 0%, #163a5f 55%, #0e2f4c 100%);
+  background-size: cover; background-position: center;
   border: 1px solid rgba(255,255,255,.08); box-shadow: 0 24px 60px rgba(0,0,0,.30); }
-.vt-hero-visual::before { content: ""; position: absolute; inset: 0; pointer-events: none;
-  background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.05) 0 1px, transparent 1px 26px); }
-.vt-hero-visual .vt-mono { position: absolute; right: -8px; bottom: -46px; user-select: none;
-  font-family: var(--font-display); font-weight: 800; font-size: 250px; line-height: 1;
-  letter-spacing: -.05em; color: rgba(255,255,255,.055); }
 
 /* Sections */
 .vt-sec { padding: 76px 0; }
@@ -3058,7 +3054,7 @@ html { -webkit-text-size-adjust: 100%; }
 /* Produits — 6 gammes de fabrication (grille) */
 .vt-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 22px; }
 .vt-card { background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
-.vt-card-media { height: 150px; display: flex; align-items: center; justify-content: center; }
+.vt-card-media { height: 170px; display: flex; align-items: center; justify-content: center; background-size: cover; background-position: center; }
 .vt-card-body { padding: 20px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
 .vt-card-body h3 { font-size: 19px; }
 .vt-card-body p { color: var(--muted); font-size: 14px; flex: 1; }
