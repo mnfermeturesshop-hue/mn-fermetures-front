@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 /** En-tête minimal du site vitrine (public) — sans recherche, panier ni méga-menu. */
 export function VitrineHeader() {
@@ -6,7 +7,7 @@ export function VitrineHeader() {
     <header className="vt-header">
       <div className="vt-wrap vt-header-in">
         <Link href="#top" className="vt-logo" aria-label="MN Fermetures — accueil">
-          <b>mn</b><span>FERMETURES</span>
+          <Image src="/logo.png" alt="MN Fermetures" width={150} height={58} priority style={{ objectFit: 'contain', height: 'auto' }} />
         </Link>
         <nav className="vt-nav">
           <a className="vt-link" href="#produits">Produits</a>
