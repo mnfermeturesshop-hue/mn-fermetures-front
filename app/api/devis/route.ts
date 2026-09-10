@@ -22,6 +22,8 @@ export async function POST(req: NextRequest) {
     company?: string;
     lines: unknown[];
     shippingMethod?: ShippingMethod;
+    referenceClient?: string;
+    referenceChantier?: string;
   };
 
   if (!body.devisNumber?.trim()) {
@@ -40,8 +42,11 @@ export async function POST(req: NextRequest) {
   const method: ShippingMethod = body.shippingMethod === 'express' ? 'express' : 'standard';
   const totals = computeOrderTotals(verified.productsHT, method, verified.laquageHT);
 
+  const refClient   = body.referenceClient?.trim()   || null;
+  const refChantier = body.referenceChantier?.trim() || null;
+
   const adminClient = createAdminClient();
-  const { error } = await adminClient.from('devis').insert({
+  const baseRow = {
     devis_number:  body.devisNumber.trim(),
     user_id:       userId,
     email,
@@ -51,7 +56,18 @@ export async function POST(req: NextRequest) {
     total_ht:      totals.totalHT,
     total_ttc:     totals.totalTTC,
     frais_ht:      totals.fraisHT,
+  };
+
+  let { error } = await adminClient.from('devis').insert({
+    ...baseRow,
+    reference_client:   refClient,
+    reference_chantier: refChantier,
   });
+  // Tolérant : tant que la migration 20260910 n'est pas jouée, on réinsère
+  // sans les références (elles seront prises en compte une fois la colonne créée).
+  if (error && /reference_(client|chantier)/.test(error.message)) {
+    ({ error } = await adminClient.from('devis').insert(baseRow));
+  }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ ok: true });

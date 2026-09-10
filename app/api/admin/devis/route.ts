@@ -8,18 +8,27 @@ export async function GET() {
   if (!guard.ok) return guard.response;
 
   const supabase = createAdminClient();
-  let query = supabase
-    .from('devis')
-    .select('id, devis_number, customer_name, company, email, total_ht, frais_ht, lines, status, source, pdf_path, created_at, valid_until')
-    .order('created_at', { ascending: false });
+  const BASE_COLS = 'id, devis_number, customer_name, company, email, total_ht, frais_ht, lines, status, source, pdf_path, created_at, valid_until';
 
+  // Un commercial ne voit que les devis de SES clients
+  let clientIds: string[] | null = null;
   if (guard.role === 'commercial') {
-    const clientIds = await getCommercialClientIds(guard.userId);
-    if (clientIds.size === 0) return NextResponse.json([]);
-    query = query.in('user_id', [...clientIds]);
+    const ids = await getCommercialClientIds(guard.userId);
+    if (ids.size === 0) return NextResponse.json([]);
+    clientIds = [...ids];
   }
 
-  const { data, error } = await query;
+  const run = (cols: string) => {
+    let q = supabase.from('devis').select(cols).order('created_at', { ascending: false });
+    if (clientIds) q = q.in('user_id', clientIds);
+    return q;
+  };
+
+  // Références client/chantier si la migration 20260910 est jouée, sinon repli
+  let { data, error } = await run(`${BASE_COLS}, reference_client, reference_chantier`);
+  if (error && /reference_(client|chantier)/.test(error.message)) {
+    ({ data, error } = await run(BASE_COLS));
+  }
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json(data ?? []);
 }

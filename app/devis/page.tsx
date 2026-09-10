@@ -26,6 +26,8 @@ interface SavedDevis {
   created_at: string;
   valid_until: string;
   status: string;
+  reference_client: string | null;
+  reference_chantier: string | null;
 }
 
 interface OrderData {
@@ -56,6 +58,9 @@ function DevisContent() {
   const [saving, setSaving]             = useState(false);
   const [alreadySaved, setAlreadySaved] = useState(false);
   const [savingPdf, setSavingPdf]       = useState(false);
+  // Références facultatives saisies par le pro (mode panier) — s'affichent sur le devis
+  const [refClient, setRefClient]       = useState('');
+  const [refChantier, setRefChantier]   = useState('');
   // Numéro de devis stable pour toute la durée de la page (ne se régénère pas)
   const [cartDevisNum]                  = useState(genDevisNumber);
 
@@ -69,7 +74,12 @@ function DevisContent() {
       .eq('devis_number', savedDevisNum)
       .single()
       .then(({ data }) => {
-        if (data) { setSavedDevis(data as SavedDevis); setAlreadySaved(true); }
+        if (data) {
+          setSavedDevis(data as SavedDevis);
+          setAlreadySaved(true);
+          setRefClient((data as SavedDevis).reference_client ?? '');
+          setRefChantier((data as SavedDevis).reference_chantier ?? '');
+        }
       });
   }, [savedDevisNum]);
 
@@ -111,6 +121,8 @@ function DevisContent() {
   const isOrderMode  = !!orderId && !!orderData;
   // Mode devis sauvegardé (chargé depuis compte)
   const isSavedMode  = !!savedDevisNum && !!savedDevis;
+  // Références saisissables uniquement à la génération depuis le panier (pas en facture/devis figé)
+  const refsEditable = !isOrderMode && !isSavedMode && isPro();
 
   // Données à afficher selon le mode
   const devisLines   = isSavedMode ? savedDevis!.lines
@@ -161,6 +173,8 @@ function DevisContent() {
           totalHT:      devisTotalHT,
           totalTTC:     devisTotalTTC,
           fraisHT:      devisFraisHT,
+          referenceClient:   refClient.trim() || null,
+          referenceChantier: refChantier.trim() || null,
         }),
       });
       if (!res.ok) {
@@ -233,6 +247,32 @@ function DevisContent() {
         </div>
       </div>
 
+      {refsEditable && (
+        <div className="devis-refs-edit no-print">
+          <span className="devis-refs-edit-label">Références (facultatif) — s&apos;affichent sur le devis :</span>
+          <label>
+            Réf. client
+            <input
+              type="text"
+              value={refClient}
+              onChange={(e) => setRefClient(e.target.value)}
+              placeholder="Votre n° de dossier / commande"
+              maxLength={80}
+            />
+          </label>
+          <label>
+            Réf. chantier
+            <input
+              type="text"
+              value={refChantier}
+              onChange={(e) => setRefChantier(e.target.value)}
+              placeholder="Nom / adresse du chantier"
+              maxLength={80}
+            />
+          </label>
+        </div>
+      )}
+
       <div className="devis-doc">
         {/* En-tête */}
         <div className="devis-header">
@@ -252,6 +292,8 @@ function DevisContent() {
                 <tr><td>N°</td><td><strong className="ref">{devisNum}</strong></td></tr>
                 <tr><td>Date</td><td>{devisDate}</td></tr>
                 {!isOrderMode && <tr><td>Valable jusqu&apos;au</td><td>{validUntil}</td></tr>}
+                {refClient.trim()   ? <tr><td>Réf. client</td><td>{refClient.trim()}</td></tr> : null}
+                {refChantier.trim() ? <tr><td>Réf. chantier</td><td>{refChantier.trim()}</td></tr> : null}
               </tbody>
             </table>
           </div>

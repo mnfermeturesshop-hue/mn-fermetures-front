@@ -33,6 +33,8 @@ interface DevisRow {
   pdf_path: string | null;
   created_at: string;
   valid_until: string;
+  reference_client?: string | null;
+  reference_chantier?: string | null;
 }
 
 const euro = (n: number) =>
@@ -95,7 +97,9 @@ export default function AdminDevisPage() {
         d.devis_number?.toLowerCase().includes(q) ||
         d.email?.toLowerCase().includes(q) ||
         d.customer_name?.toLowerCase().includes(q) ||
-        d.company?.toLowerCase().includes(q)
+        d.company?.toLowerCase().includes(q) ||
+        d.reference_client?.toLowerCase().includes(q) ||
+        d.reference_chantier?.toLowerCase().includes(q)
       );
     }
     return list;
@@ -277,6 +281,22 @@ export default function AdminDevisPage() {
                   <tr key={`${d.id}-detail`} className="adm-tr-detail">
                     <td colSpan={8} style={{ padding: 0 }}>
                       <div className="adm-order-detail">
+                        {(d.reference_client || d.reference_chantier) && (
+                          <div className="adm-order-detail-section" style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
+                            {d.reference_client && (
+                              <div>
+                                <div className="adm-order-detail-title">Réf. client</div>
+                                <div style={{ fontWeight: 600 }}>{d.reference_client}</div>
+                              </div>
+                            )}
+                            {d.reference_chantier && (
+                              <div>
+                                <div className="adm-order-detail-title">Réf. chantier</div>
+                                <div style={{ fontWeight: 600 }}>{d.reference_chantier}</div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                         <div className="adm-order-detail-section">
                           <div className="adm-order-detail-title">Articles du devis</div>
                           {d.source === 'erp' || !d.lines?.length ? (
