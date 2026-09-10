@@ -129,7 +129,7 @@ export function VitrineHome() {
           <div
             className="vt-hero-visual"
             aria-hidden="true"
-            style={{ background: "linear-gradient(120deg, rgba(16,49,79,.28), rgba(14,47,76,.08)), url('/vitrine/bloc-baie.jpg') center / cover no-repeat, linear-gradient(155deg,#2e6c98 0%,#163a5f 55%,#0e2f4c 100%)" }}
+            style={{ background: "linear-gradient(120deg, rgba(16,49,79,.28), rgba(14,47,76,.08)), url('/vitrine/vue_generale.jpg') center / cover no-repeat, linear-gradient(155deg,#2e6c98 0%,#163a5f 55%,#0e2f4c 100%)" }}
           />
         </div>
       </section>
