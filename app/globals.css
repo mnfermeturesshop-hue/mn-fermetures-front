@@ -3027,8 +3027,8 @@ html { -webkit-text-size-adjust: 100%; }
 .vt-nav a.vt-link:hover { color: var(--steel-600); }
 
 /* Hero */
-.vt-hero { background: radial-gradient(1200px 500px at 80% -10%, #1d4e7a 0%, rgba(29,78,122,0) 60%), linear-gradient(180deg, #10314f 0%, #0e2f4c 100%); color: #fff; overflow: hidden; }
-.vt-hero-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 56px; align-items: center; padding: 104px 32px 100px; }
+.vt-hero { background: radial-gradient(1200px 500px at 80% -10%, #1d4e7a 0%, rgba(29,78,122,0) 60%), linear-gradient(180deg, #10314f 0%, #0e2f4c 100%); color: #fff; overflow: hidden; padding: 100px 0 96px; }
+.vt-hero-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 56px; align-items: center; }
 .vt-hero h1 { color: #fff; font-size: 46px; line-height: 1.08; font-weight: 800; text-wrap: balance; }
 .vt-hero-lead { color: #c7d5e2; font-size: 18px; line-height: 1.6; max-width: 520px; }
 /* Visuel hero unique (emplacement d'une photo produit) — remplace les tuiles répétées */
@@ -3129,7 +3129,7 @@ html { -webkit-text-size-adjust: 100%; }
 @media (max-width: 720px) {
   .vitrine .vt-wrap { padding: 0 20px; }
   .vt-nav .vt-link { display: none; }
-  .vt-hero-grid { padding: 56px 20px 56px; }
+  .vt-hero { padding: 56px 0; }
   .vt-hero h1 { font-size: 32px; }
   .vt-sec { padding: 44px 0; }
   .vt-grid { grid-template-columns: 1fr; }
