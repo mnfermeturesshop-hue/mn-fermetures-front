@@ -3050,6 +3050,14 @@ html { -webkit-text-size-adjust: 100%; }
 .vt-stats-row > div:first-child { border-left: none; padding-left: 0; }
 .vt-stats-row .n { font-family: var(--font-display); font-weight: 800; font-size: 36px; color: var(--navy-700); line-height: 1.05; }
 .vt-stats-row .l { color: var(--muted); font-size: 14px; margin-top: 6px; }
+/* Présentation avec carte des 2 sites (texte + carte) */
+.vt-two-map { display: grid; grid-template-columns: 1.05fr .95fr; gap: 48px; align-items: center; }
+.vt-two-map .vt-lead { max-width: none; }
+.vt-map { border-radius: 16px; overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); line-height: 0; }
+.vt-map img { width: 100%; height: auto; display: block; }
+.vt-map-legend { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-top: 16px; }
+.vt-map-legend span { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: var(--navy-700); }
+.vt-map-legend svg { stroke: var(--steel-600); flex: none; }
 
 /* Produits — 6 gammes de fabrication (grille) */
 .vt-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 22px; }
@@ -3109,6 +3117,7 @@ html { -webkit-text-size-adjust: 100%; }
 @media (max-width: 900px) {
   .vt-hero-grid { grid-template-columns: 1fr; gap: 32px; }
   .vt-hero-visual { min-height: 300px; order: -1; }
+  .vt-two-map { grid-template-columns: 1fr; gap: 28px; }
   .vt-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
   .vt-acc { grid-template-columns: 1fr; }
   .vt-contact-grid { grid-template-columns: 1fr; }

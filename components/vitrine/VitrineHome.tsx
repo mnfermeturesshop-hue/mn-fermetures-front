@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { VitrineHeader } from '@/components/vitrine/VitrineHeader';
 import { VitrineFooter } from '@/components/vitrine/VitrineFooter';
 import { ContactForms } from '@/components/vitrine/ContactForms';
@@ -146,6 +147,7 @@ export function VitrineHome() {
       {/* PRÉSENTATION */}
       <section className="vt-sec">
         <div className="vt-wrap">
+          <div className="vt-two-map">
           <div className="vt-lead">
             <h2 style={{ fontSize: 34, lineHeight: 1.12 }}>Fabricant de solutions de fermeture sur mesure</h2>
             <p className="vt-lead-p">
@@ -159,6 +161,16 @@ export function VitrineHome() {
               <strong style={{ color: 'var(--navy-700)', fontWeight: 600 }}>Hérault (34), du Gard (30), de l&apos;Aude (11), des Pyrénées-Orientales (66) et du Vaucluse (84)</strong>
               , avec un commercial dédié par secteur.
             </p>
+          </div>
+          <div className="vt-map-col">
+            <div className="vt-map">
+              <Image src="/vitrine/plan-site.png" alt="Carte des deux sites de production MN Fermetures en Occitanie : Villeveyrac (34560) et Pérols (34470)" width={1536} height={1024} sizes="(max-width: 900px) 100vw, 540px" />
+            </div>
+            <div className="vt-map-legend">
+              <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>Villeveyrac (34560)</span>
+              <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>Pérols (34470)</span>
+            </div>
+          </div>
           </div>
           <div className="vt-stats-row">
             <div><div className="n">40 ans</div><div className="l">d&apos;expérience à vos côtés</div></div>
