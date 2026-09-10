@@ -352,7 +352,8 @@ function ProPageContent() {
   const searchParams = useSearchParams();
   // Mode « particulier » masqué tant que l'offre est B2B uniquement
   const particulier = B2C_ENABLED && searchParams.get('type') === 'particulier';
-  const [tab, setTab] = useState<Tab>('login');
+  // Deep-link depuis la vitrine : /pro?tab=register ouvre directement « Ouvrir un compte pro »
+  const [tab, setTab] = useState<Tab>(searchParams.get('tab') === 'register' ? 'register' : 'login');
   const { user, isPro } = useAuthStore();
   const router = useRouter();
 

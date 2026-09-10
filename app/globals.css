@@ -3000,3 +3000,108 @@ html { -webkit-text-size-adjust: 100%; }
 .gam-products { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
 .gam-empty { text-align: center; padding: 48px 20px; color: var(--muted); }
 .gam-empty-sub { font-size: 13px; }
+
+/* ============================================================
+   VITRINE — page d'accueil publique (site vitrine minimaliste)
+   Charte : design-tokens.css (marine / acier / alu, accent Somfy).
+   ============================================================ */
+.vitrine { background: var(--surface); color: var(--ink); }
+.vitrine .vt-wrap { max-width: 1160px; margin: 0 auto; padding: 0 32px; }
+.vitrine .eyebrow { font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--steel-600); font-weight: 700; }
+.vitrine h1, .vitrine h2, .vitrine h3 { font-family: var(--font-display); color: var(--navy-700); letter-spacing: -.01em; margin: 0; }
+.vitrine p { margin: 0; }
+.vitrine .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; text-decoration: none; }
+.vitrine .btn.gold { background: var(--somfy); color: var(--navy-900); border-color: var(--somfy); }
+.vitrine .btn.gold:hover { filter: brightness(.95); }
+.vitrine .btn.ghost-inv { background: transparent; color: #fff; border-color: rgba(255,255,255,.35); }
+.vitrine .btn.ghost-inv:hover { border-color: #fff; }
+
+/* Header vitrine */
+.vt-header { position: sticky; top: 0; z-index: 40; background: rgba(255,255,255,.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.vt-header-in { display: flex; align-items: center; justify-content: space-between; height: 74px; gap: 24px; }
+.vt-logo { display: flex; align-items: baseline; gap: 8px; }
+.vt-logo b { font-family: var(--font-display); font-weight: 800; font-size: 26px; color: var(--navy-900); letter-spacing: -.02em; }
+.vt-logo span { font-family: var(--font-display); font-weight: 700; font-size: 13px; color: var(--steel-600); letter-spacing: .22em; }
+.vt-nav { display: flex; align-items: center; gap: 30px; }
+.vt-nav a.vt-link { color: var(--navy-700); font-weight: 500; }
+.vt-nav a.vt-link:hover { color: var(--steel-600); }
+
+/* Hero */
+.vt-hero { background: radial-gradient(1200px 500px at 80% -10%, #1d4e7a 0%, rgba(29,78,122,0) 60%), linear-gradient(180deg, #10314f 0%, #0e2f4c 100%); color: #fff; overflow: hidden; }
+.vt-hero-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 56px; align-items: center; padding: 84px 32px 80px; }
+.vt-hero h1 { color: #fff; font-size: 46px; line-height: 1.08; font-weight: 800; text-wrap: balance; }
+.vt-hero-lead { color: #c7d5e2; font-size: 18px; line-height: 1.6; max-width: 520px; }
+.vt-hero-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.vt-tile { aspect-ratio: 1; border-radius: 14px; display: flex; align-items: flex-end; padding: 16px; box-shadow: 0 12px 30px rgba(0,0,0,.25); }
+
+/* Sections */
+.vt-sec { padding: 76px 0; }
+.vt-sec.alt { background: var(--bg); }
+.vt-sec-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 34px; }
+.vt-two { display: grid; grid-template-columns: 1.1fr .9fr; gap: 56px; align-items: center; }
+.vt-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.vt-stat { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
+.vt-stat .n { font-family: var(--font-display); font-weight: 800; font-size: 34px; color: var(--navy-700); }
+.vt-stat .l { color: var(--muted); font-size: 14px; }
+
+/* Produits */
+.vt-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 22px; }
+.vt-card { background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+.vt-card-media { height: 150px; display: flex; align-items: center; justify-content: center; }
+.vt-card-body { padding: 20px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.vt-card-body h3 { font-size: 19px; }
+.vt-card-body p { color: var(--muted); font-size: 14px; flex: 1; }
+
+/* Réassurance */
+.vt-reassure { background: var(--navy-800); color: #fff; padding: 28px 0; }
+.vt-reassure-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 22px; }
+.vt-reassure-item { display: flex; align-items: center; gap: 12px; font-weight: 600; }
+
+/* Ouverture de compte */
+.vt-account { background: linear-gradient(120deg, var(--surface-2), #fff); border: 1px solid var(--line); border-radius: 16px; padding: 44px; display: grid; grid-template-columns: 1.3fr .7fr; gap: 40px; align-items: center; }
+.vt-account ul { list-style: none; padding: 0; margin: 6px 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.vt-account li { display: flex; gap: 8px; align-items: center; color: var(--navy-700); font-weight: 500; font-size: 14px; }
+
+/* Contact */
+.vt-contact-grid { display: grid; grid-template-columns: 1fr 1fr .8fr; gap: 22px; align-items: start; }
+.vt-form { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 26px; }
+.vt-form .field { margin-bottom: 14px; }
+.vt-form .field:last-of-type { margin-bottom: 16px; }
+.vt-form label { display: block; font-size: 13px; font-weight: 600; color: var(--navy-700); margin-bottom: 6px; }
+.vt-form input, .vt-form textarea { width: 100%; font-family: var(--font-body); font-size: 14px; color: var(--ink); padding: 11px 13px; border: 1px solid var(--line); border-radius: 9px; background: #fff; }
+.vt-form input:focus, .vt-form textarea:focus { outline: 2px solid var(--steel-400); border-color: var(--steel-600); }
+.vt-form-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.vt-badge { font-size: 11px; font-weight: 700; letter-spacing: .08em; padding: 4px 9px; border-radius: 6px; color: #fff; }
+.vt-coords { background: var(--navy-800); color: #fff; border-radius: 14px; padding: 26px; display: flex; flex-direction: column; gap: 20px; }
+.vt-coord { display: flex; gap: 12px; align-items: flex-start; }
+.vt-coord .sub { color: #93b0c6; font-size: 13px; }
+
+/* Bandeau espace pro */
+.vt-pro-band { background: radial-gradient(900px 400px at 15% 0%, #1d4e7a 0%, rgba(29,78,122,0) 60%), linear-gradient(90deg, #0e2f4c, #163a5f); color: #fff; padding: 60px 0; }
+.vt-pro-band-in { display: flex; align-items: center; justify-content: space-between; gap: 32px; flex-wrap: wrap; }
+
+/* Footer vitrine */
+.vt-footer { background: var(--navy-900); color: #a9c0d3; padding: 44px 0 28px; }
+.vt-footer-cols { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 36px; padding-bottom: 26px; border-bottom: 1px solid rgba(255,255,255,.1); }
+.vt-footer-cols h5 { color: #fff; font-weight: 700; margin: 0 0 8px; font-size: 14px; }
+.vt-footer-cols a { color: #a9c0d3; }
+.vt-footer-legal { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-top: 18px; font-size: 13px; color: #7f9bb2; }
+.vt-footer-legal a { color: #7f9bb2; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .vt-hero-grid, .vt-two, .vt-account { grid-template-columns: 1fr; gap: 32px; }
+  .vt-hero-tiles { max-width: 380px; }
+  .vt-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .vt-contact-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 720px) {
+  .vitrine .vt-wrap { padding: 0 20px; }
+  .vt-nav .vt-link { display: none; }
+  .vt-hero-grid { padding: 48px 20px 52px; }
+  .vt-hero h1 { font-size: 32px; }
+  .vt-sec { padding: 44px 0; }
+  .vt-grid { grid-template-columns: 1fr; }
+  .vt-account { padding: 28px; }
+  .vt-account ul { grid-template-columns: 1fr; }
+}

@@ -7,9 +7,7 @@ export const viewport: Viewport = {
 import { Archivo, Inter, JetBrains_Mono } from 'next/font/google';
 import './design-tokens.css';
 import './globals.css';
-import { Header } from '@/components/layout/Header';
-import { TrustBar } from '@/components/layout/TrustBar';
-import { Footer } from '@/components/layout/Footer';
+import { AppHeader, AppFooter } from '@/components/layout/ChromeGate';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { ToastContainer } from '@/components/ui/Toast';
 import { OrganizationJsonLd } from '@/components/seo/JsonLd';
@@ -68,10 +66,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <AuthSync />
         <SurchargeSync />
-        <Header />
-        <TrustBar />
+        <AppHeader />
         <main>{children}</main>
-        <Footer />
+        <AppFooter />
         <CartDrawer />
         <ToastContainer />
         <AssistantWidget />
