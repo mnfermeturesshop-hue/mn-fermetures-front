@@ -43,6 +43,8 @@ interface BonDeCommandePayload {
   company: string;
   userId?: string;
   shippingMethod: 'standard' | 'express';
+  /** N° du devis à l'origine du BC (si conversion depuis l'espace client). */
+  devisNumber?: string;
   lines: OrderLine[];
   totalHT: number;
   totalTTC: number;
@@ -378,6 +380,19 @@ export async function POST(req: NextRequest) {
   });
 
   if (error) console.error('[bon-de-commande] Supabase insert error:', error);
+
+  // Marque le devis d'origine « converti » — autoritaire (le devis n'est
+  // converti que lorsqu'un BC est réellement créé), restreint au propriétaire
+  // et seulement si l'ordre a bien été enregistré et le devis pas déjà converti.
+  if (!error && payload.devisNumber) {
+    const { error: convErr } = await supabase
+      .from('devis')
+      .update({ status: 'converted' })
+      .eq('devis_number', payload.devisNumber)
+      .eq('user_id', sessionUser.id)
+      .neq('status', 'converted');
+    if (convErr) console.error('[bon-de-commande] marquage devis converti:', convErr);
+  }
 
   // Destinataire interne des bons de commande : CONTACT_BC_EMAIL, sinon le
   // compte Gmail expéditeur (l'ancienne adresse de test codée en dur est retirée)

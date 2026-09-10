@@ -21,7 +21,8 @@ export default function CommandeProPage() {
   const router = useRouter();
   const { user, isPro } = useAuthStore();
   const { lines, totalHT, totalTTC, isFranco, clearCart } = useCartStore();
-  const { shippingAddress, shippingMethod, setShippingAddress, setShippingMethod } = useCheckoutStore();
+  const { shippingAddress, shippingMethod, setShippingAddress, setShippingMethod,
+    sourceDevisNumber, setSourceDevisNumber } = useCheckoutStore();
 
   const [step, setStep]         = useState<BcStep>(1);
   const [address, setAddress]   = useState<Address>(() => ({
@@ -101,6 +102,8 @@ export default function CommandeProPage() {
           company: user.company ?? '',
           userId: user.id,
           shippingMethod: shipping,
+          // Devis d'origine (le cas échéant) → marqué « converti » côté serveur
+          devisNumber: sourceDevisNumber ?? undefined,
           lines: lines.map((l) => ({
             key: l.key,
             name: l.name,
@@ -141,6 +144,7 @@ export default function CommandeProPage() {
       });
 
       clearCart();
+      setSourceDevisNumber(null);
       router.push(`/commande/${orderNumber}`);
     } catch (e) {
       const msg = e instanceof Error && e.message && e.message !== 'api' ? e.message : null;

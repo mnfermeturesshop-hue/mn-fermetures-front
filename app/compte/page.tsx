@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store/auth';
 import { useCartStore } from '@/lib/store/cart';
+import { useCheckoutStore } from '@/lib/store/checkout';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { toast } from '@/components/ui/Toast';
 import { createClient } from '@/lib/supabase/client';
@@ -99,6 +100,7 @@ type CompteTab = 'commandes' | 'devis' | 'stats' | 'profil' | 'tarifs';
 export default function ComptePage() {
   const { user, isPro, logout } = useAuthStore();
   const { setLines, clearCart }  = useCartStore();
+  const setSourceDevisNumber     = useCheckoutStore((s) => s.setSourceDevisNumber);
   const router = useRouter();
   const [orders, setOrders]   = useState<Order[]>([]);
   const [devis, setDevis]     = useState<DevisRow[]>([]);
@@ -296,13 +298,10 @@ export default function ComptePage() {
     } catch {
       setLines(d.lines);
     }
-    // Marquer le devis comme converti (masque le bouton immédiatement)
-    setDevis((prev) => prev.map((x) => x.id === d.id ? { ...x, status: 'converted' } : x));
-    fetch('/api/devis', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ devisNumber: d.devis_number, status: 'converted' }),
-    });
+    // On NE marque PAS « converti » ici : le devis ne devient converti que
+    // lorsque le bon de commande est réellement envoyé (marquage serveur). On
+    // transmet seulement le n° de devis source au tunnel bon de commande.
+    setSourceDevisNumber(d.devis_number);
     toast.info('Panier chargé depuis le devis ' + d.devis_number);
     router.push('/commande-pro');
   };

@@ -69,7 +69,12 @@ interface CheckoutStore {
   paymentMethod: PaymentMethod;
   placedOrder: PlacedOrder | null;
   pendingOrderPayload: PendingOrderPayload | null;
+  /** N° du devis à l'origine du bon de commande en cours (en mémoire, non
+   *  persisté) — permet de marquer le devis « converti » côté serveur quand le
+   *  BC est réellement créé, plutôt qu'optimistiquement au clic. */
+  sourceDevisNumber: string | null;
 
+  setSourceDevisNumber: (n: string | null) => void;
   setPendingOrderPayload: (p: PendingOrderPayload | null) => void;
   setPlacedOrder: (o: PlacedOrder) => void;
   setStep: (s: 1 | 2 | 3) => void;
@@ -110,7 +115,9 @@ export const useCheckoutStore = create<CheckoutStore>()(
       paymentMethod: 'card',
       placedOrder: null,
       pendingOrderPayload: null,
+      sourceDevisNumber: null,
 
+      setSourceDevisNumber: (n) => set({ sourceDevisNumber: n }),
       setPendingOrderPayload: (p) => set({ pendingOrderPayload: p }),
       setPlacedOrder: (o) => set({ placedOrder: o }),
       setStep: (s) => set({ step: s }),
@@ -150,6 +157,7 @@ export const useCheckoutStore = create<CheckoutStore>()(
         sameAsBilling: true,
         shippingMethod: 'standard',
         paymentMethod: 'card',
+        sourceDevisNumber: null,
       }),
     }),
     {
