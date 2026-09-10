@@ -25,7 +25,7 @@ export function VitrineFooter() {
             <h5>Contact</h5>
             <span>04 67 78 06 63</span>
             <span>contact@mnfermetures.com</span>
-            <span style={{ marginTop: 6 }}>Zone : Hérault, Gard, Aude, Pyrénées-Orientales, Vaucluse</span>
+            <span style={{ marginTop: 6 }}>Zone : Hérault, Aude, Pyrénées-Orientales, Gard, Bouches-du-Rhône, Vaucluse, Drôme, Ardèche</span>
           </div>
         </div>
         <div className="vt-footer-legal">

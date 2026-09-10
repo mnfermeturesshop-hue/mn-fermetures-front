@@ -97,7 +97,7 @@ const jsonLd = {
   ],
   areaServed: [
     { '@type': 'AdministrativeArea', name: 'Occitanie' },
-    ...['Hérault', 'Gard', 'Aude', 'Pyrénées-Orientales', 'Vaucluse'].map((d) => ({ '@type': 'AdministrativeArea', name: d })),
+    ...['Hérault', 'Aude', 'Pyrénées-Orientales', 'Gard', 'Bouches-du-Rhône', 'Vaucluse', 'Drôme', 'Ardèche'].map((d) => ({ '@type': 'AdministrativeArea', name: d })),
   ],
 };
 
@@ -158,7 +158,7 @@ export function VitrineHome() {
             <p className="vt-lead-strong">Réactivité, innovation et qualité sont au cœur de nos engagements.</p>
             <p className="vt-lead-p">
               Basés en Occitanie, nous accompagnons les professionnels de l&apos;
-              <strong style={{ color: 'var(--navy-700)', fontWeight: 600 }}>Hérault (34), du Gard (30), de l&apos;Aude (11), des Pyrénées-Orientales (66) et du Vaucluse (84)</strong>
+              <strong style={{ color: 'var(--navy-700)', fontWeight: 600 }}>Hérault (34), de l&apos;Aude (11), des Pyrénées-Orientales (66), du Gard (30), des Bouches-du-Rhône (13), du Vaucluse (84), de la Drôme (26) et de l&apos;Ardèche (07)</strong>
               , avec un commercial dédié par secteur.
             </p>
           </div>
@@ -277,7 +277,7 @@ export function VitrineHome() {
               </div>
               <div className="vt-coord">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--somfy)" strokeWidth="2" style={{ flex: 'none', marginTop: 2 }}><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20" /></svg>
-                <div><div style={{ fontWeight: 700 }}>Zone d&apos;intervention</div><div className="sub">Hérault, Gard, Aude, Pyrénées-Orientales et Vaucluse</div></div>
+                <div><div style={{ fontWeight: 700 }}>Zone d&apos;intervention</div><div className="sub">Hérault, Aude, Pyrénées-Orientales, Gard, Bouches-du-Rhône, Vaucluse, Drôme, Ardèche</div></div>
               </div>
             </div>
           </div>
