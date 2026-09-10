@@ -277,7 +277,7 @@ export function VitrineHome() {
               </div>
               <div className="vt-coord">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--somfy)" strokeWidth="2" style={{ flex: 'none', marginTop: 2 }}><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20" /></svg>
-                <div><div style={{ fontWeight: 700 }}>Zone d&apos;intervention</div><div className="sub">Occitanie et Vaucluse : Hérault, Gard, Aude, P.-O., Vaucluse</div></div>
+                <div><div style={{ fontWeight: 700 }}>Zone d&apos;intervention</div><div className="sub">Hérault, Gard, Aude, Pyrénées-Orientales et Vaucluse</div></div>
               </div>
             </div>
           </div>
