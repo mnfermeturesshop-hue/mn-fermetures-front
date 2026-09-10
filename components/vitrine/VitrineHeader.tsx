@@ -6,7 +6,7 @@ export function VitrineHeader() {
   return (
     <header className="vt-header">
       <div className="vt-wrap vt-header-in">
-        <Link href="#top" className="vt-logo" aria-label="MN Fermetures — accueil">
+        <Link href="#top" className="vt-logo" aria-label="MN Fermetures, accueil">
           <Image src="/logo.png" alt="MN Fermetures" width={150} height={58} priority style={{ objectFit: 'contain', height: 'auto' }} />
         </Link>
         <nav className="vt-nav">

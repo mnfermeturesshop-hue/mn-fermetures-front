@@ -15,3 +15,8 @@ next-env.d.ts
 
 # Garder le template
 !.env.local.example
+
+# Skills de dev installés localement (npx skills add) — non versionnés
+.agents/
+.claude/skills/
+skills-lock.json

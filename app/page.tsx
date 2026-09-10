@@ -4,12 +4,12 @@ import { createClient } from '@/lib/supabase/server';
 import { VitrineHome } from '@/components/vitrine/VitrineHome';
 
 export const metadata: Metadata = {
-  title: { absolute: 'Fermetures pour professionnels en Occitanie — MN Fermetures' },
+  title: { absolute: 'MN Fermetures - Fermetures pour professionnels en Occitanie' },
   description:
-    "Fabricant français depuis 40 ans : volets roulants, blocs baie, volets battants & coulissants, portes de garage enroulables, portails, clôtures, moustiquaires, kits d'axes et pièces détachées. Réservé aux professionnels — Hérault, Gard, Aude, Pyrénées-Orientales, Vaucluse.",
+    "Fabricant français depuis 40 ans : volets roulants, blocs baie, volets battants et coulissants, portes de garage enroulables, portails, clôtures, moustiquaires, kits d'axes et pièces détachées. Réservé aux professionnels. Hérault, Gard, Aude, Pyrénées-Orientales, Vaucluse.",
   alternates: { canonical: '/' },
   openGraph: {
-    title: 'MN Fermetures — Fabricant de fermetures pour les professionnels en Occitanie',
+    title: 'MN Fermetures, fabricant de fermetures pour les professionnels en Occitanie',
     description:
       "40 ans de savoir-faire. Volets, blocs baie, portes de garage, portails, clôtures, moustiquaires et pièces détachées, fabriqués en France pour les professionnels.",
   },

@@ -18,8 +18,8 @@ export function VitrineFooter() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 14 }}>
             <h5>Sites de production</h5>
-            <span>Chemin du Mas de Pastrou — 34560 Villeveyrac</span>
-            <span>2066 Av. Marcel Pagnol — 34470 Pérols</span>
+            <span>Chemin du Mas de Pastrou, 34560 Villeveyrac</span>
+            <span>2066 Av. Marcel Pagnol, 34470 Pérols</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 14 }}>
             <h5>Contact</h5>

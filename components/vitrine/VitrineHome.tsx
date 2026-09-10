@@ -104,11 +104,11 @@ export function VitrineHome() {
       <section className="vt-hero">
         <div className="vt-wrap vt-hero-grid">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-            <span className="eyebrow" style={{ color: 'var(--somfy)' }}>Fabricant français · Occitanie · Depuis 40 ans</span>
+            <span className="eyebrow" style={{ color: 'var(--somfy)' }}>Fabricant français depuis 40 ans</span>
             <h1>Spécialiste de la fermeture pour les professionnels en Occitanie, depuis 40&nbsp;ans</h1>
             <p className="vt-hero-lead">
-              Volets roulants, blocs baie, volets battants &amp; coulissants, portes de garage enroulables,
-              portails, portillons, clôtures et moustiquaires — fabriqués et assemblés en France, à Villeveyrac
+              Volets roulants, blocs baie, volets battants et coulissants, portes de garage enroulables,
+              portails, portillons, clôtures et moustiquaires, fabriqués et assemblés en France, à Villeveyrac
               et Pérols (Hérault), pour les professionnels de toute l&apos;Occitanie.
             </p>
             <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 8 }}>
@@ -132,7 +132,6 @@ export function VitrineHome() {
       <section className="vt-sec">
         <div className="vt-wrap vt-two">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <span className="eyebrow">L&apos;entreprise</span>
             <h2 style={{ fontSize: 32, lineHeight: 1.15 }}>Fabricant de solutions de fermeture sur mesure</h2>
             <p style={{ color: 'var(--muted)', fontSize: 16 }}>
               MN Fermetures est un fabricant de volets roulants, blocs baie, volets battants, volets coulissants
@@ -145,7 +144,7 @@ export function VitrineHome() {
             <p style={{ color: 'var(--muted)', fontSize: 15 }}>
               Basés en Occitanie, nous accompagnons les professionnels de l&apos;
               <strong style={{ color: 'var(--navy-700)', fontWeight: 600 }}>Hérault (34), du Gard (30), de l&apos;Aude (11), des Pyrénées-Orientales (66) et du Vaucluse (84)</strong>
-              {' '}— avec un commercial dédié par secteur.
+              , avec un commercial dédié par secteur.
             </p>
           </div>
           <div className="vt-stats">
@@ -165,7 +164,6 @@ export function VitrineHome() {
         <div className="vt-wrap">
           <div className="vt-sec-head">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <span className="eyebrow">Nos gammes</span>
               <h2 style={{ fontSize: 32 }}>Des fermetures aux pièces détachées</h2>
             </div>
             <Link href="/pro" style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>Configurer dans l&apos;espace pro →</Link>
@@ -198,7 +196,6 @@ export function VitrineHome() {
         <div className="vt-wrap">
           <div className="vt-account">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <span className="eyebrow">Professionnels</span>
               <h2 style={{ fontSize: 28 }}>Ouvrez votre compte professionnel</h2>
               <p style={{ color: 'var(--muted)', fontSize: 16, maxWidth: 560 }}>
                 Accédez à vos tarifs préférentiels HT, générez vos devis, suivez vos commandes et échangez
@@ -226,7 +223,6 @@ export function VitrineHome() {
       <section className="vt-sec alt" id="contact">
         <div className="vt-wrap">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 30, textAlign: 'center', alignItems: 'center' }}>
-            <span className="eyebrow">Contact</span>
             <h2 style={{ fontSize: 32 }}>Parlons de votre projet</h2>
             <p style={{ color: 'var(--muted)', maxWidth: 560 }}>Professionnel ou particulier, notre équipe vous répond sous 24&nbsp;h ouvrées.</p>
           </div>
@@ -248,7 +244,7 @@ export function VitrineHome() {
               </div>
               <div className="vt-coord">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--somfy)" strokeWidth="2" style={{ flex: 'none', marginTop: 2 }}><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20" /></svg>
-                <div><div style={{ fontWeight: 700 }}>Zone d&apos;intervention</div><div className="sub">Occitanie &amp; Vaucluse — Hérault, Gard, Aude, P.-O., Vaucluse</div></div>
+                <div><div style={{ fontWeight: 700 }}>Zone d&apos;intervention</div><div className="sub">Occitanie et Vaucluse : Hérault, Gard, Aude, P.-O., Vaucluse</div></div>
               </div>
             </div>
           </div>
@@ -262,7 +258,7 @@ export function VitrineHome() {
             <h2 style={{ color: '#fff', fontSize: 28 }}>Votre espace professionnel MN Fermetures</h2>
             <p style={{ color: '#c7d5e2', maxWidth: 620, fontSize: 16 }}>
               Configurez vos produits sur mesure, obtenez le prix HT net instantané, éditez vos devis et suivez
-              vos commandes — le tout au même endroit.
+              vos commandes, le tout au même endroit.
             </p>
           </div>
           <Link href="/pro" className="btn gold lg" style={{ whiteSpace: 'nowrap' }}>

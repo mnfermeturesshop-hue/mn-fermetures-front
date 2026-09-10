@@ -52,7 +52,7 @@ function ContactForm({ audience }: { audience: Audience }) {
         </div>
         <h3 style={{ fontSize: 18 }}>Message envoyé</h3>
         <p style={{ color: 'var(--muted)', fontSize: 14 }}>
-          Merci {name ? name.split(' ')[0] : ''} — notre équipe vous répond sous 24&nbsp;h ouvrées.
+          Merci {name ? name.split(' ')[0] : ''}, notre équipe vous répond sous 24&nbsp;h ouvrées.
         </p>
       </div>
     );
