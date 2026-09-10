@@ -50,7 +50,6 @@ function DevisContent() {
   const savedDevisNum = searchParams.get('devis');
 
   const { placedOrder }                                             = useCheckoutStore();
-  const setSourceDevisNumber                                        = useCheckoutStore((s) => s.setSourceDevisNumber);
   const { lines, totalHT, isFranco, fraisLivraison, laquageForfait, hasLaquage } = useCartStore();
   const { user, isPro }                                             = useAuthStore();
 
@@ -229,15 +228,12 @@ function DevisContent() {
               {alreadySaved ? '✓ Sauvegardé' : saving ? 'Sauvegarde…' : '💾 Sauvegarder'}
             </button>
           )}
-          {isPro() && !isOrderMode && (
-            <Link
-              className="btn solid"
-              href="/commande-pro"
-              // Lier ce devis au BC pour qu'il soit marqué « converti » côté serveur —
-              // uniquement en mode panier sauvegardé (le panier correspond alors au devis).
-              onClick={() => setSourceDevisNumber(alreadySaved && !isSavedMode ? devisNum : null)}
-            >
-              Créer un bon de commande →
+          {/* Le bon de commande se crée depuis « Mes devis » (parcours unique et fiable :
+              le devis y est marqué « converti » côté serveur). Ici, on invite juste à
+              sauvegarder puis à s'y rendre. */}
+          {isPro() && !isOrderMode && (alreadySaved || isSavedMode) && (
+            <Link className="btn solid" href="/compte#devis">
+              Créer le bon de commande dans « Mes devis » →
             </Link>
           )}
           <button

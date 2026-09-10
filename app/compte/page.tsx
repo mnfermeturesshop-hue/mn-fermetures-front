@@ -109,6 +109,12 @@ export default function ComptePage() {
   // Onglet actif — une seule rubrique affichée à la fois
   const [tab, setTab] = useState<CompteTab>('commandes');
 
+  // Ouvre directement l'onglet « Mes devis » si on arrive via /compte#devis
+  // (lien depuis l'aperçu du devis après sauvegarde).
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash === '#devis') setTab('devis');
+  }, []);
+
   // Commercial référent assigné (affiché dans l'onglet Tarifs)
   const [commercial, setCommercial] = useState<{ name?: string; phone?: string | null; email?: string | null } | null>(null);
 
