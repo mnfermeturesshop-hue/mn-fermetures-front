@@ -29,7 +29,7 @@ export default function MentionsLegalesPage() {
             Téléphone : 04 67 78 06 63 — E-mail : contact@mnfermetures.fr<br />
             SIRET : 790 910 574 00033 — RCS Montpellier 790 910 574 — Code APE 25.12Z<br />
             Capital social : 581 300 € — TVA intracommunautaire : FR 87 790 910 574<br />
-            Directeur de la publication : Pierre Marques
+            Directeur de la publication : Maryvonne Sorli
           </p>
         </section>
 
