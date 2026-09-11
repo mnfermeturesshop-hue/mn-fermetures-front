@@ -37,24 +37,24 @@ const jetbrainsMono = JetBrains_Mono({
   display: 'swap',
 });
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.mmfermetures.fr';
+const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://mnfermetures.com';
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE),
   title: {
-    default: 'MN Fermetures — Accessoires volets roulants',
+    default: 'MN Fermetures, fabricant de fermetures pour les professionnels en Occitanie',
     template: '%s | MN Fermetures',
   },
   description:
-    'Tabliers sur mesure, kits axes, motorisations Somfy & MN, profilés et pièces détachées. Prix HT, franco de port dès 400 € HT en Occitanie.',
-  keywords: ['volet roulant', 'tablier sur mesure', 'motorisation Somfy', 'accessoires fermeture', 'pièces détachées volet'],
+    'Fabricant français depuis 40 ans : volets roulants, blocs baie, volets battants et coulissants, portes de garage enroulables, portails, clôtures, moustiquaires, kits d\'axes et pièces détachées. Réservé aux professionnels.',
+  keywords: ['fabricant volet roulant', 'volet roulant professionnel', 'bloc baie', 'porte de garage enroulable', 'moustiquaire', 'portail aluminium', 'kit axe volet roulant', 'pièces détachées volet roulant', 'fabricant fermetures Occitanie', 'motorisation Somfy'],
   authors: [{ name: 'MN Fermetures' }],
   openGraph: {
     siteName: 'MN Fermetures',
     locale: 'fr_FR',
     type: 'website',
-    title: 'MN Fermetures — Accessoires volets roulants',
-    description: 'Tabliers sur mesure, kits axes, motorisations Somfy & MN. Franco de port dès 400 € HT.',
+    title: 'MN Fermetures, fabricant de fermetures pour les professionnels en Occitanie',
+    description: 'Fabricant français depuis 40 ans : volets, blocs baie, portes de garage, portails, clôtures, moustiquaires et pièces détachées. Réservé aux professionnels.',
   },
   twitter: { card: 'summary_large_image' },
   robots: { index: true, follow: true },

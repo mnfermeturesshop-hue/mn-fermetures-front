@@ -3,8 +3,7 @@ import Image from 'next/image';
 import { VitrineHeader } from '@/components/vitrine/VitrineHeader';
 import { VitrineFooter } from '@/components/vitrine/VitrineFooter';
 import { ContactForms } from '@/components/vitrine/ContactForms';
-
-const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.mmfermetures.fr';
+import { FaqJsonLd } from '@/components/seo/JsonLd';
 
 const PRODUCTS: { title: string; desc: string; bg: string; img?: string; icon: React.ReactNode }[] = [
   {
@@ -73,33 +72,14 @@ const REASSURE: { label: string; icon: React.ReactNode }[] = [
 
 const ACCOUNT_PERKS = ['Tarifs négociés HT', 'Devis PDF instantané', 'Franco dès 400 € HT', 'Paiement à 30 jours'];
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'HomeAndConstructionBusiness',
-  name: 'MN Fermetures',
-  description:
-    "Fabricant français de volets roulants, blocs baie, volets battants et coulissants, portes de garage enroulables, portails, clôtures, moustiquaires et pièces détachées pour les professionnels.",
-  url: SITE,
-  telephone: '+33467780663',
-  email: 'contact@mnfermetures.com',
-  foundingDate: '1986',
-  address: {
-    '@type': 'PostalAddress',
-    streetAddress: 'Chemin du Mas de Pastrou',
-    postalCode: '34560',
-    addressLocality: 'Villeveyrac',
-    addressRegion: 'Occitanie',
-    addressCountry: 'FR',
-  },
-  location: [
-    { '@type': 'Place', name: 'Site de Villeveyrac', address: { '@type': 'PostalAddress', streetAddress: 'Chemin du Mas de Pastrou', postalCode: '34560', addressLocality: 'Villeveyrac', addressCountry: 'FR' } },
-    { '@type': 'Place', name: 'Site de Pérols', address: { '@type': 'PostalAddress', streetAddress: '2066 Av. Marcel Pagnol', postalCode: '34470', addressLocality: 'Pérols', addressCountry: 'FR' } },
-  ],
-  areaServed: [
-    { '@type': 'AdministrativeArea', name: 'Occitanie' },
-    ...['Hérault', 'Aude', 'Pyrénées-Orientales', 'Gard', 'Bouches-du-Rhône', 'Vaucluse', 'Drôme', 'Ardèche'].map((d) => ({ '@type': 'AdministrativeArea', name: d })),
-  ],
-};
+const FAQ_ITEMS = [
+  { q: 'Qui est MN Fermetures ?', a: "MN Fermetures est un fabricant français de fermetures, à vos côtés depuis 40 ans : volets roulants, blocs baie, volets battants et coulissants, portes de garage enroulables, portails, portillons, clôtures, moustiquaires, kits d'axes et pièces détachées." },
+  { q: 'Où se situe MN Fermetures ?', a: 'En Occitanie, avec deux sites de production : Chemin du Mas de Pastrou à Villeveyrac (34560) et 2066 Av. Marcel Pagnol à Pérols (34470).' },
+  { q: "Quelle est la zone d'intervention ?", a: 'Hérault, Aude, Pyrénées-Orientales, Gard, Bouches-du-Rhône, Vaucluse, Drôme et Ardèche, avec un commercial dédié par secteur.' },
+  { q: 'MN Fermetures vend-il aux particuliers ?', a: "Non, l'offre est réservée aux professionnels. Les particuliers sont orientés vers un installateur partenaire proche de chez eux." },
+  { q: 'Comment ouvrir un compte professionnel ?', a: "Depuis la page Espace pro, renseignez votre SIRET et vos coordonnées ; votre compte est validé sous 24 h ouvrées, puis vous accédez à vos tarifs HT, devis et commandes." },
+  { q: 'Quelles sont les conditions de livraison ?', a: 'Franco de port en Occitanie dès 400 € HT (forfait 26 € HT en deçà, express 24 h à 42 € HT).' },
+];
 
 /** Contenu de la page d'accueil « site vitrine » (public). Rendu sur `/`. */
 export function VitrineHome() {
@@ -126,12 +106,11 @@ export function VitrineHome() {
               <a href="#compte" className="btn ghost-inv lg">Ouvrir un compte</a>
             </div>
           </div>
-          {/* Visuel hero (photo produit) avec repli dégradé marque si le fichier est absent. */}
-          <div
-            className="vt-hero-visual"
-            aria-hidden="true"
-            style={{ background: "linear-gradient(120deg, rgba(16,49,79,.28), rgba(14,47,76,.08)), url('/vitrine/vue_generale.jpg') center / cover no-repeat, linear-gradient(155deg,#2e6c98 0%,#163a5f 55%,#0e2f4c 100%)" }}
-          />
+          {/* Visuel hero (photo produit), optimisé + prioritaire (élément LCP). */}
+          <div className="vt-hero-visual">
+            <Image src="/vitrine/vue_generale.jpg" alt="" fill priority sizes="(max-width: 900px) 100vw, 560px" style={{ objectFit: 'cover' }} />
+            <span className="vt-hero-visual-ov" aria-hidden="true" />
+          </div>
         </div>
       </section>
 
@@ -193,13 +172,10 @@ export function VitrineHome() {
           <div className="vt-grid">
             {PRODUCTS.slice(0, 6).map((p) => (
               <div className="vt-card" key={p.title}>
-                <div
-                  className="vt-card-media"
-                  style={p.img
-                    ? { background: `linear-gradient(0deg, rgba(14,47,76,.10), rgba(14,47,76,.10)), url('${p.img}') center / cover no-repeat, ${p.bg}` }
-                    : { background: p.bg }}
-                >
-                  {p.img ? null : p.icon}
+                <div className="vt-card-media" style={p.img ? undefined : { background: p.bg }}>
+                  {p.img
+                    ? <Image src={p.img} alt={p.title} fill sizes="(max-width: 720px) 100vw, (max-width: 900px) 50vw, 380px" style={{ objectFit: 'cover' }} />
+                    : p.icon}
                 </div>
                 <div className="vt-card-body">
                   <h3>{p.title}</h3>
@@ -252,8 +228,25 @@ export function VitrineHome() {
         </div>
       </section>
 
+      {/* FAQ (AEO) */}
+      <section className="vt-sec alt" id="faq">
+        <div className="vt-wrap">
+          <div style={{ textAlign: 'center', marginBottom: 30 }}>
+            <h2 style={{ fontSize: 32 }}>Questions fréquentes</h2>
+          </div>
+          <div className="vt-faq">
+            {FAQ_ITEMS.map((it) => (
+              <details className="vt-faq-item" key={it.q}>
+                <summary>{it.q}</summary>
+                <p>{it.a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* CONTACT */}
-      <section className="vt-sec alt" id="contact">
+      <section className="vt-sec" id="contact">
         <div className="vt-wrap">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 30, textAlign: 'center', alignItems: 'center' }}>
             <h2 style={{ fontSize: 32 }}>Parlons de votre projet</h2>
@@ -303,7 +296,7 @@ export function VitrineHome() {
 
       <VitrineFooter />
 
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <FaqJsonLd items={FAQ_ITEMS} />
     </div>
   );
 }

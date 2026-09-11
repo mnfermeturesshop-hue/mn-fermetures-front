@@ -26,7 +26,7 @@ export default function MentionsLegalesPage() {
             <strong>MN FERMETURES SAS</strong><br />
             Chemin du Mas de Pastrou — 34560 Villeveyrac (France)<br />
             Second site : 2066 Av. Marcel Pagnol — 34470 Pérols<br />
-            Téléphone : 04 67 78 06 63 — E-mail : contact@mnfermetures.fr<br />
+            Téléphone : 04 67 78 06 63 — E-mail : contact@mnfermetures.com<br />
             SIRET : 790 910 574 00033 — RCS Montpellier 790 910 574 — Code APE 25.12Z<br />
             Capital social : 581 300 € — TVA intracommunautaire : FR 87 790 910 574<br />
             Directeur de la publication : Maryvonne Sorli

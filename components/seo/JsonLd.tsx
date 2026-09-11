@@ -3,7 +3,7 @@ import { isUnit, isKit, isMatrix } from '@/lib/catalog/types';
 import { priceFrom } from '@/lib/catalog/resolvePrice';
 import { getBrand } from '@/lib/catalog/mock';
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.mmfermetures.fr';
+const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://mnfermetures.com';
 
 /** Sérialise en JSON-LD sûr : neutralise `</script>` dans un champ (audit S10). */
 function safeJsonLd(obj: unknown): string {
@@ -69,25 +69,92 @@ export function ProductJsonLd({ product }: { product: Product }) {
   );
 }
 
+/** Départements couverts (zone d'intervention) — repris de la vitrine. */
+const AREA_SERVED = ['Hérault', 'Aude', 'Pyrénées-Orientales', 'Gard', 'Bouches-du-Rhône', 'Vaucluse', 'Drôme', 'Ardèche'];
+
+/** Profils/fiches externes de la marque (renforce l'entité pour Google + IA).
+ *  À compléter avec les URLs exactes : page Facebook, fiche Google Business Profile. */
+const SAME_AS: string[] = [
+  // 'https://www.facebook.com/…',
+  // 'https://www.google.com/maps/place/…',
+];
+
+/**
+ * Entité unique du site (SEO local + GEO/AEO) : le fabricant + le WebSite,
+ * reliés par `@id`, rendus une seule fois via le layout. Évite les entités
+ * Organization dupliquées entre pages.
+ */
 export function OrganizationJsonLd() {
-  const schema = {
-    '@context': 'https://schema.org',
-    '@type': 'Organization',
+  const org = {
+    '@type': 'HomeAndConstructionBusiness',
+    '@id': `${BASE}/#org`,
     name: 'MN Fermetures',
+    legalName: 'MN FERMETURES SAS',
     url: BASE,
     logo: `${BASE}/logo.png`,
-    contactPoint: [
-      { '@type': 'ContactPoint', telephone: '+33-4-67-78-06-63', contactType: 'sales', availableLanguage: 'French' },
-    ],
+    image: `${BASE}/logo.png`,
+    email: 'contact@mnfermetures.com',
+    telephone: '+33-4-67-78-06-63',
+    foundingDate: '1986',
+    description:
+      "Fabricant français depuis 40 ans de volets roulants, blocs baie, volets battants et coulissants, portes de garage enroulables, portails, clôtures, moustiquaires, kits d'axes et pièces détachées, pour les professionnels.",
+    ...(SAME_AS.length ? { sameAs: SAME_AS } : {}),
     address: {
       '@type': 'PostalAddress',
       streetAddress: 'Chemin du Mas de Pastrou',
       postalCode: '34560',
       addressLocality: 'Villeveyrac',
+      addressRegion: 'Occitanie',
       addressCountry: 'FR',
+    },
+    location: [
+      { '@type': 'Place', name: 'MN Fermetures — Villeveyrac', address: { '@type': 'PostalAddress', streetAddress: 'Chemin du Mas de Pastrou', postalCode: '34560', addressLocality: 'Villeveyrac', addressCountry: 'FR' } },
+      { '@type': 'Place', name: 'MN Fermetures — Pérols', address: { '@type': 'PostalAddress', streetAddress: '2066 Av. Marcel Pagnol', postalCode: '34470', addressLocality: 'Pérols', addressCountry: 'FR' } },
+    ],
+    areaServed: [
+      { '@type': 'AdministrativeArea', name: 'Occitanie' },
+      ...AREA_SERVED.map((d) => ({ '@type': 'AdministrativeArea', name: d })),
+    ],
+    contactPoint: [
+      { '@type': 'ContactPoint', telephone: '+33-4-67-78-06-63', contactType: 'sales', availableLanguage: 'French', areaServed: 'FR' },
+    ],
+  };
+
+  const website = {
+    '@type': 'WebSite',
+    '@id': `${BASE}/#website`,
+    url: BASE,
+    name: 'MN Fermetures',
+    inLanguage: 'fr-FR',
+    publisher: { '@id': `${BASE}/#org` },
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: `${BASE}/recherche?q={search_term_string}`,
+      'query-input': 'required name=search_term_string',
     },
   };
 
+  const schema = { '@context': 'https://schema.org', '@graph': [org, website] };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: safeJsonLd(schema) }}
+    />
+  );
+}
+
+/** FAQ (AEO) — questions/réponses factuelles pour Google + moteurs de réponse IA. */
+export function FaqJsonLd({ items }: { items: { q: string; a: string }[] }) {
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: items.map((it) => ({
+      '@type': 'Question',
+      name: it.q,
+      acceptedAnswer: { '@type': 'Answer', text: it.a },
+    })),
+  };
   return (
     <script
       type="application/ld+json"
