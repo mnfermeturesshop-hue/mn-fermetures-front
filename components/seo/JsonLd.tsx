@@ -75,7 +75,8 @@ const AREA_SERVED = ['Hérault', 'Aude', 'Pyrénées-Orientales', 'Gard', 'Bouch
 /** Profils/fiches externes de la marque (renforce l'entité pour Google + IA).
  *  À compléter avec les URLs exactes : page Facebook, fiche Google Business Profile. */
 const SAME_AS: string[] = [
-  // 'https://www.facebook.com/…',
+  'https://www.facebook.com/p/MN-Fermetures-100063541122119/',
+  // Fiche Google Business Profile — à compléter :
   // 'https://www.google.com/maps/place/…',
 ];
 
