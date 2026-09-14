@@ -77,6 +77,9 @@ export interface Field {
   /** Champ de choix rendu en grille de vignettes (une image par option, via
    *  `option.imageUrl`) plutôt qu'en onglets — sélecteur visuel (ex. modèle). */
   imageChoice?: boolean;
+  /** Variante « large » du sélecteur visuel : une option par ligne, image affichée en
+   *  grand (adaptée aux schémas horizontaux, ex. configurations de vantaux). */
+  imageChoiceWide?: boolean;
 }
 
 /* ---------- Étapes du wizard (pilotées par données) ---------- */

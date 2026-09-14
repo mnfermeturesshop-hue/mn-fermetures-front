@@ -244,7 +244,7 @@ export function ConfigurateurProduit({ slug }: Props) {
       return (
         <div className="cfg-section" key={f.id}>
           <h3 className="cfg-title">{f.label}</h3>
-          <div className="cfg-modelgrid">
+          <div className={`cfg-modelgrid${f.imageChoiceWide ? ' cfg-modelgrid--wide' : ''}`}>
             {shown.map((o) => (
               <button key={o.value} type="button" title={o.hint}
                 className={`cfg-modelcard${values[f.id] === o.value ? ' active' : ''}`}

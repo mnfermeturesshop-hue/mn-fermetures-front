@@ -2031,6 +2031,10 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 .cfg-modelcard span { font-size: 13px; font-weight: 600; text-align: center; line-height: 1.2; }
 .cfg-modelcard.active { border-color: var(--steel-600); box-shadow: 0 0 0 2px var(--steel-600) inset; }
 .cfg-modelcard:not(.active):hover { border-color: var(--steel-600); }
+/* Variante large : 1 option/ligne, image en grand (schémas horizontaux, ex. vantaux) */
+.cfg-modelgrid--wide { grid-template-columns: 1fr; gap: 12px; }
+.cfg-modelgrid--wide .cfg-modelcard { padding: 12px 16px; }
+.cfg-modelgrid--wide .cfg-modelcard img { height: auto; max-height: 150px; }
 .cfg-tab:disabled { opacity: .38; cursor: not-allowed; background: var(--surface-2); }
 .cfg-tab:disabled:hover { border-color: var(--line); color: var(--ink); }
 

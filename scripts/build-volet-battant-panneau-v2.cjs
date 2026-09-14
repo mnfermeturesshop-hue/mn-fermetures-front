@@ -93,7 +93,7 @@ fields.push({
   ],
 });
 fields.push({
-  id: 'config_vantaux', label: 'Configuration', type: 'choice', default: '1d', imageChoice: true,
+  id: 'config_vantaux', label: 'Configuration', type: 'choice', default: '1d', imageChoice: true, imageChoiceWide: true,
   help: 'Sens et répartition des vantaux (G = gauche, D = droite ; « ouverture principale » = grand vantail).',
   options: [
     // 1 vantail
