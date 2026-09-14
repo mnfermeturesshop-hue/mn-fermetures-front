@@ -95,6 +95,7 @@ fields.push({
 fields.push({
   id: 'config_vantaux', label: 'Configuration', type: 'choice', default: '1d',
   help: 'Sens et répartition des vantaux (G = gauche, D = droite ; « ouverture principale » = grand vantail).',
+  helpImage: '/vantaux.png',
   options: [
     // 1 vantail
     { value: '1d', label: '1 vantail — ouverture à droite', availableWhen: eq('nb_vantaux', '1') },
