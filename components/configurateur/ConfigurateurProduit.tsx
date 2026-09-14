@@ -128,6 +128,9 @@ export function ConfigurateurProduit({ slug }: Props) {
   const unitNet = split ? split.productNet + split.surchargeNet + ecoContribHT : 0;
   // Prix « réel » à afficher : uniquement après une 1re interaction (sinon 0 €).
   const priced = touched && !!result?.ok;
+  // Mode « tarif sur demande » (Phase 1 sans grille) : pas de prix, l'utilisateur
+  // configure puis demande un devis. Débloque la navigation (le prix n'est pas requis).
+  const onRequest = !!def?.priceOnRequest;
 
   // ── États de garde ──
   if (status === 'gated') {
@@ -315,9 +318,19 @@ export function ConfigurateurProduit({ slug }: Props) {
   const step = steps[cur];
   const isLast = cur === steps.length - 1;
   // La progression bloque tant que le prix n'est pas calculable (dimensions / récap).
-  const stepBlocked = (step.hasDim || step.isRecap) && !result?.ok;
-  const primaryDisabled = isLast ? !result?.ok : stepBlocked;
-  const onPrimary = () => { if (isLast) addToCart(); else { setTouched(true); setStepIdx(cur + 1); } };
+  const stepBlocked = !onRequest && (step.hasDim || step.isRecap) && !result?.ok;
+  const primaryDisabled = onRequest ? false : (isLast ? !result?.ok : stepBlocked);
+  const onPrimary = () => {
+    if (!isLast) { setTouched(true); setStepIdx(cur + 1); return; }
+    if (onRequest) {
+      // « Demander un devis » : ouvre un email pré-rempli avec la configuration.
+      const subject = `Demande de devis — ${def.name}`;
+      const body = `Demande de devis pour : ${def.name}\n\n${buildDetail()}\n\nQuantité : ${qty}\n\n(Configuration générée via le configurateur ${def.slug}.)`;
+      window.location.href = `mailto:contact@mnfermetures.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      return;
+    }
+    addToCart();
+  };
 
   // ── Détail + ajout panier (générique) ──
   // Sur mesure : les cotes affichées/enregistrées sont les cotes EXACTES saisies.
@@ -432,7 +445,9 @@ export function ConfigurateurProduit({ slug }: Props) {
           <button type="button" onClick={() => setQty(qty + 1)}>+</button>
         </div>
       </div>
-      {result?.ok && <div className="cfg-total"><span>Total HT</span><strong>{euro((priced ? unitNet : 0) * qty)}</strong></div>}
+      {onRequest
+        ? <div className="cfg-total"><span>Tarif</span><strong>Sur demande</strong></div>
+        : result?.ok && <div className="cfg-total"><span>Total HT</span><strong>{euro((priced ? unitNet : 0) * qty)}</strong></div>}
     </section>
   );
 
@@ -461,7 +476,7 @@ export function ConfigurateurProduit({ slug }: Props) {
         <div className="cfg-nav">
           <button type="button" className="btn ghost" disabled={cur === 0} onClick={() => setStepIdx(cur - 1)}>← Précédent</button>
           <button type="button" className="btn solid" disabled={primaryDisabled} onClick={onPrimary}>
-            {isLast ? 'Ajouter au panier' : 'Suivant →'}
+            {isLast ? (onRequest ? 'Demander un devis' : 'Ajouter au panier') : 'Suivant →'}
           </button>
         </div>
       </div>
@@ -471,7 +486,12 @@ export function ConfigurateurProduit({ slug }: Props) {
         <div className="cfg-summary">
           <div className="cfg-summary-head"><span>Votre produit</span></div>
           <div className="cfg-summary-lame"><strong>{def.name}</strong></div>
-          {touched && result?.ok ? (
+          {onRequest ? (
+            <>
+              <div className="cfg-total"><span>Tarif</span><strong>Sur demande</strong></div>
+              <div className="cfg-summary-empty">Configurez votre volet battant, puis cliquez sur « Demander un devis » : notre équipe vous communique le prix sous 24&nbsp;h ouvrées.</div>
+            </>
+          ) : touched && result?.ok ? (
             <>
               <div className="cfg-price-breakdown">
                 {result.lineItems.map((li) => (
@@ -514,9 +534,9 @@ export function ConfigurateurProduit({ slug }: Props) {
 
       {/* ── Barre de prix collante (mobile) ── */}
       <div className="cfg-mobar">
-        <div className="cfg-mobar-price">{priced ? `${euro(unitNet)} HT` : (touched ? '—' : `${euro(0)} HT`)}</div>
+        <div className="cfg-mobar-price">{onRequest ? 'Sur demande' : (priced ? `${euro(unitNet)} HT` : (touched ? '—' : `${euro(0)} HT`))}</div>
         <button type="button" className="btn solid" disabled={primaryDisabled} onClick={onPrimary}>
-          {isLast ? 'Ajouter' : 'Suivant →'}
+          {isLast ? (onRequest ? 'Devis' : 'Ajouter') : 'Suivant →'}
         </button>
       </div>
     </div>

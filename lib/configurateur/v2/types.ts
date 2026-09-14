@@ -133,6 +133,9 @@ export interface DefV2 {
   constraints?: Constraint[];
   /** Personnalisation graphique du configurateur (couleur d'accent, logo). */
   theme?: { primary?: string; logo?: string };
+  /** « Tarif sur demande » : aucun prix affiché, l'utilisateur configure puis demande
+   *  un devis (mode Phase 1 tant que les grilles de prix ne sont pas intégrées). */
+  priceOnRequest?: boolean;
 }
 
 /* ---------- Résultat de calcul ---------- */

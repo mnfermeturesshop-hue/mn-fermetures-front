@@ -52,7 +52,7 @@ const TREE: SeedGamme[] = [
     ] },
   ] },
   { name: 'Volets battants', slug: 'volets-battants', children: [
-    { name: 'Panneaux', slug: 'vb-panneaux', children: [ { name: 'Ecotek', slug: 'ecotek' }, { name: 'Novatek', slug: 'novatek' } ] },
+    { name: 'Panneaux', slug: 'vb-panneaux', generatorSlug: 'volet-battant-panneau', children: [ { name: 'Ecotek', slug: 'ecotek' }, { name: 'Novatek', slug: 'novatek' } ] },
     { name: 'Extrudés', slug: 'vb-extrudes' },
   ] },
   { name: 'Moustiquaires', slug: 'moustiquaires', generatorSlug: 'moustiquaire', children: [

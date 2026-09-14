@@ -16,4 +16,5 @@ export const FEATURED_CONFIGURATORS: FeaturedConfigurator[] = [
   { slug: 'tablier-sur-mesure', name: 'Tablier sur mesure', desc: 'PVC & aluminium · prix HT instantané', href: '/configurateur/tablier-sur-mesure', icon: '▥' },
   { slug: 'porte-de-garage', name: 'Porte de garage', desc: 'Ecopark enroulable · pack radio homme présent', href: '/configurateur/porte-de-garage', icon: '▤' },
   { slug: 'moustiquaire', name: 'Moustiquaire', desc: 'Verticales · Latérales · Plissées · Fixes · Battantes', href: '/configurateur/moustiquaire', icon: '▩' },
+  { slug: 'volet-battant-panneau', name: 'Volet battant panneau', desc: 'Ecotek · Novatek · tarif sur demande', href: '/configurateur/volet-battant-panneau', icon: '▧' },
 ];
