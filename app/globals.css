@@ -2204,6 +2204,12 @@ footer.site .legal { border-top: 1px solid rgba(255,255,255,.12); margin-top: 24
 .cfg-help-schema { margin-top: 8px; }
 .cfg-help-toggle { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: #eef2f7; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--steel-600, #1e3a5f); cursor: pointer; }
 .cfg-help-toggle:hover { background: #e2e8f0; }
+/* Schéma en modale (helpModal) */
+.cfg-modal { position: fixed; inset: 0; z-index: 1000; background: rgba(14,34,46,.6); display: flex; align-items: center; justify-content: center; padding: 24px; }
+.cfg-modal-box { position: relative; background: #fff; border-radius: 12px; padding: 16px; max-width: min(960px, 96vw); max-height: 92vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+.cfg-modal-img { display: block; max-width: 100%; height: auto; }
+.cfg-modal-close { position: absolute; top: 8px; right: 8px; width: 34px; height: 34px; border: none; border-radius: 8px; background: var(--navy-700, #163a5f); color: #fff; font-size: 15px; line-height: 1; cursor: pointer; }
+.cfg-modal-close:hover { background: var(--navy-800, #10314f); }
 .cfg-mobar { display: none; }
 
 /* Responsive */

@@ -95,11 +95,11 @@ fields.push({
 fields.push({
   id: 'config_vantaux', label: 'Configuration', type: 'choice', default: '1d',
   help: 'Sens et répartition des vantaux (G = gauche, D = droite ; « ouverture principale » = grand vantail).',
-  helpImage: '/Vantaux.png',
+  helpImage: '/Vantaux.png', helpModal: true,
   options: [
     // 1 vantail
     { value: '1d', label: '1 vantail — ouverture à droite', availableWhen: eq('nb_vantaux', '1') },
-    { value: '1g', label: '1 vantail — ouverture à gauche', availableWhen: eq('nb_vantaux', '1') },
+    { value: '1g', label: '1 vantail — ouverture à gauche', imageUrl: '/1V1G.png', availableWhen: eq('nb_vantaux', '1') },
     // 2 vantaux
     { value: '2_1g1d_d', label: '1G/1D — ouverture principale à droite', availableWhen: eq('nb_vantaux', '2') },
     { value: '2_1g1d_g', label: '1G/1D — ouverture principale à gauche', availableWhen: eq('nb_vantaux', '2') },
