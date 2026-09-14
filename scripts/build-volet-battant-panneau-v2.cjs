@@ -75,6 +75,7 @@ fields.push({
 // ── Étape 4 : Type de volet (Ecotek 3 choix ; Novatek +1 contemporain) ──
 fields.push({
   id: 'type_volet', label: 'Type de volet', type: 'choice', default: 'pentures',
+  helpImage: '/type_de_volets.png',
   options: [
     { value: 'pentures', label: 'Pentures / contre-pentures' },
     { value: 'barres_echarpe', label: 'Barres et écharpe' },
@@ -117,6 +118,7 @@ fields.push({
 // ── Étape 6 : Feuillure (sans / avec → FH/FB/FG/FD, oui = valeur) ──
 fields.push({
   id: 'feuillure', label: 'Feuillure', type: 'choice', default: 'non',
+  helpImage: '/feuillure.png',
   options: [{ value: 'non', label: 'Sans feuillure' }, { value: 'oui', label: 'Avec feuillure' }],
 });
 const FEUILLURE_ON = eq('feuillure', 'oui');
@@ -130,6 +132,7 @@ fields.push({ id: 'feuillure_fd', label: 'Feuillure droite (FD)', type: 'number'
 // ── Étape 7 : Cintrage (sans / arc surbaissé / plein cintre / anse de panier) ──
 fields.push({
   id: 'cintrage', label: 'Cintrage', type: 'choice', default: 'non',
+  helpImage: '/cintrage.png',
   options: [
     { value: 'non', label: 'Sans cintrage' },
     { value: 'arc', label: 'Arc surbaissé régulier' },
@@ -174,6 +177,7 @@ fields.push({
 const GONDS_FOURNIS = eq('pose', 'gonds_fournis');
 fields.push({
   id: 'gonds_type', label: 'Type de gonds', type: 'choice', default: 'sceller', visibleWhen: GONDS_FOURNIS,
+  helpImage: '/Position_gonds.png',
   options: [{ value: 'sceller', label: 'Gonds à sceller' }, { value: 'visser', label: 'Gonds à visser' }],
 });
 fields.push({ id: 'pose_help', type: 'info', visibleWhen: GONDS_FOURNIS, help: 'Position des gonds (mm) depuis le haut : GH (haut), GI (intermédiaire), GB (bas).' });
