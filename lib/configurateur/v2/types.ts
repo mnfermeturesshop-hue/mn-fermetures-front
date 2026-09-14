@@ -72,8 +72,6 @@ export interface Field {
   default?: Primitive;
   visibleWhen?: Condition;                                // champ conditionnel
   help?: string; helpImage?: string;                      // aide contextuelle (guide)
-  /** Affiche le schéma (helpImage / imageUrl de l'option) dans une modale plutôt qu'en inline. */
-  helpModal?: boolean;
   /** 'spec' = champ de fabrication (remonté à la prod, sans impact prix). */
   role?: 'spec';
   /** Champ de choix rendu en grille de vignettes (une image par option, via

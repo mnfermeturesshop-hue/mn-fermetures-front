@@ -93,26 +93,25 @@ fields.push({
   ],
 });
 fields.push({
-  id: 'config_vantaux', label: 'Configuration', type: 'choice', default: '1d',
+  id: 'config_vantaux', label: 'Configuration', type: 'choice', default: '1d', imageChoice: true,
   help: 'Sens et répartition des vantaux (G = gauche, D = droite ; « ouverture principale » = grand vantail).',
-  helpImage: '/Vantaux.png', helpModal: true,
   options: [
     // 1 vantail
-    { value: '1d', label: '1 vantail — ouverture à droite', availableWhen: eq('nb_vantaux', '1') },
+    { value: '1d', label: '1 vantail — ouverture à droite', imageUrl: '/1V1D.png', availableWhen: eq('nb_vantaux', '1') },
     { value: '1g', label: '1 vantail — ouverture à gauche', imageUrl: '/1V1G.png', availableWhen: eq('nb_vantaux', '1') },
     // 2 vantaux
-    { value: '2_1g1d_d', label: '1G/1D — ouverture principale à droite', availableWhen: eq('nb_vantaux', '2') },
-    { value: '2_1g1d_g', label: '1G/1D — ouverture principale à gauche', availableWhen: eq('nb_vantaux', '2') },
-    { value: '2_2d', label: '2 vantaux à droite (2D)', availableWhen: eq('nb_vantaux', '2') },
-    { value: '2_2g', label: '2 vantaux à gauche (2G)', availableWhen: eq('nb_vantaux', '2') },
+    { value: '2_1g1d_d', label: '1G/1D — ouverture principale à droite', imageUrl: '/2V-1G1D-OD.png', availableWhen: eq('nb_vantaux', '2') },
+    { value: '2_1g1d_g', label: '1G/1D — ouverture principale à gauche', imageUrl: '/2V-1G1D-OG.png', availableWhen: eq('nb_vantaux', '2') },
+    { value: '2_2d', label: '2 vantaux à droite (2D)', imageUrl: '/2V-2D.png', availableWhen: eq('nb_vantaux', '2') },
+    { value: '2_2g', label: '2 vantaux à gauche (2G)', imageUrl: '/2V-2G.png', availableWhen: eq('nb_vantaux', '2') },
     // 3 vantaux
-    { value: '3_2g1d_d', label: '2G/1D — ouverture principale à droite', availableWhen: eq('nb_vantaux', '3') },
-    { value: '3_2g1d_g', label: '2G/1D — ouverture principale à gauche', availableWhen: eq('nb_vantaux', '3') },
-    { value: '3_1g2d_d', label: '1G/2D — ouverture principale à droite', availableWhen: eq('nb_vantaux', '3') },
-    { value: '3_1g2d_g', label: '1G/2D — ouverture principale à gauche', availableWhen: eq('nb_vantaux', '3') },
+    { value: '3_2g1d_d', label: '2G/1D — ouverture principale à droite', imageUrl: '/3V-2G1D-OD.png', availableWhen: eq('nb_vantaux', '3') },
+    { value: '3_2g1d_g', label: '2G/1D — ouverture principale à gauche', imageUrl: '/3V-2G1D-OG.png', availableWhen: eq('nb_vantaux', '3') },
+    { value: '3_1g2d_d', label: '1G/2D — ouverture principale à droite', imageUrl: '/3V-1G2D-OD.png', availableWhen: eq('nb_vantaux', '3') },
+    { value: '3_1g2d_g', label: '1G/2D — ouverture principale à gauche', imageUrl: '/3V-1G2D-OG.png', availableWhen: eq('nb_vantaux', '3') },
     // 4 vantaux
-    { value: '4_2g2d_d', label: '2G/2D — ouverture principale à droite', availableWhen: eq('nb_vantaux', '4') },
-    { value: '4_2g2d_g', label: '2G/2D — ouverture principale à gauche', availableWhen: eq('nb_vantaux', '4') },
+    { value: '4_2g2d_d', label: '2G/2D — ouverture principale à droite', imageUrl: '/4V-2G2D-OD.png', availableWhen: eq('nb_vantaux', '4') },
+    { value: '4_2g2d_g', label: '2G/2D — ouverture principale à gauche', imageUrl: '/4V-2G2D-OG.png', availableWhen: eq('nb_vantaux', '4') },
   ],
 });
 

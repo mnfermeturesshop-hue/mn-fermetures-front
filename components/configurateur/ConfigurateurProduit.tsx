@@ -171,27 +171,10 @@ export function ConfigurateurProduit({ slug }: Props) {
     const img = selImg || f.helpImage;
     if (!img) return null;
     const open = !!shownImages[f.id];
-    const toggle = () => setShownImages((s) => ({ ...s, [f.id]: !open }));
-    // Variante modale (pop-up) — activée par `helpModal` sur le champ.
-    if (f.helpModal) {
-      return (
-        <div className="cfg-help-schema">
-          <button type="button" className="cfg-help-toggle" onClick={toggle}>▸ Voir le schéma</button>
-          {open && (
-            <div className="cfg-modal" role="dialog" aria-modal="true" onClick={toggle}>
-              <div className="cfg-modal-box" onClick={(e) => e.stopPropagation()}>
-                <button type="button" className="cfg-modal-close" aria-label="Fermer" onClick={toggle}>✕</button>
-                <img className="cfg-modal-img" src={img} alt=""
-                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-              </div>
-            </div>
-          )}
-        </div>
-      );
-    }
     return (
       <div className="cfg-help-schema">
-        <button type="button" className="cfg-help-toggle" onClick={toggle}>
+        <button type="button" className="cfg-help-toggle"
+          onClick={() => setShownImages((s) => ({ ...s, [f.id]: !open }))}>
           {open ? '▾ Masquer le schéma' : '▸ Voir le schéma'}
         </button>
         {open && (
