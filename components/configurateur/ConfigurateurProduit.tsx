@@ -319,7 +319,21 @@ export function ConfigurateurProduit({ slug }: Props) {
   const isLast = cur === steps.length - 1;
   // La progression bloque tant que le prix n'est pas calculable (dimensions / récap).
   const stepBlocked = !onRequest && (step.hasDim || step.isRecap) && !result?.ok;
-  const primaryDisabled = onRequest ? false : (isLast ? !result?.ok : stepBlocked);
+  // Mode « prix sur demande » : pas de contrôle de prix, mais on impose les limites
+  // effectives des champs `dimension` (cotes renseignées et dans les bornes) avant d'avancer.
+  let dimFieldError: string | null = null;
+  if (onRequest) {
+    for (const f of step.fields) {
+      if (f.type !== 'dimension') continue;
+      const raw = values[f.id];
+      const n = raw === '' || raw == null ? NaN : Number(raw);
+      if (Number.isNaN(n) || (f.min != null && n < f.min) || (f.max != null && n > f.max)) {
+        dimFieldError = `${f.label} : ${f.min ?? '?'}–${f.max ?? '?'}${f.unit ? ' ' + f.unit : ''}`;
+        break;
+      }
+    }
+  }
+  const primaryDisabled = onRequest ? !!dimFieldError : (isLast ? !result?.ok : stepBlocked);
   const onPrimary = () => {
     if (!isLast) { setTouched(true); setStepIdx(cur + 1); return; }
     if (onRequest) {
@@ -464,10 +478,16 @@ export function ConfigurateurProduit({ slug }: Props) {
           {step.isRecap ? recapNode : (
             <>
               {step.fields.map((f) => renderField(f))}
-              {step.hasDim && result?.ok && (
+              {step.hasDim && onRequest && dimFieldError && (
+                <p className="cfg-error">Limites à respecter — {dimFieldError}</p>
+              )}
+              {step.hasDim && onRequest && !dimFieldError && (
                 <p className="cfg-dim-hint">Fabriqué <strong>sur mesure</strong> aux cotes exactes indiquées.</p>
               )}
-              {step.hasDim && !result?.ok && (result?.errors.length ?? 0) > 0 && (
+              {step.hasDim && !onRequest && result?.ok && (
+                <p className="cfg-dim-hint">Fabriqué <strong>sur mesure</strong> aux cotes exactes indiquées.</p>
+              )}
+              {step.hasDim && !onRequest && !result?.ok && (result?.errors.length ?? 0) > 0 && (
                 <p className="cfg-error">{result!.errors[0]}</p>
               )}
             </>
