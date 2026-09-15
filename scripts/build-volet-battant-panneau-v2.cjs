@@ -11,8 +11,9 @@
    (flèche ≤ 800 mm pour arc/plein) ; couvre-joint 70 mm ECOTEK = 24 €/ml (périmètre
    2H+2L) — Novatek : 70 mm inclus, 24/35/50 mm sans supplément ; arrêt (marseillais/
    automatique/paillette posé/non posé) = plus/moins-value au volet entier selon le
-   nombre de vantaux (paillette impossible > 2 vantaux). Reste à tarifer : feuillure,
-   gonds (aujourd'hui sans impact prix).
+   nombre de vantaux (paillette impossible > 2 vantaux) ; gonds fournis (uniquement
+   sans cadre) = barème au volet entier selon vantaux × hauteur (fenêtre ≤ 1650 mm /
+   porte-fenêtre > 1650 mm). Feuillure : sans impact prix (confirmé PDG).
    ===================================================================== */
 const fs = require('fs');
 const path = require('path');
@@ -189,6 +190,7 @@ fields.push({
 // ── Étape 9 : Pose (gonds existants / fournis → à sceller / à visser + positions) ──
 fields.push({
   id: 'pose', label: 'Pose', type: 'choice', default: 'gonds_existants',
+  help: 'Gonds fournis facturés uniquement sans cadre (barème selon vantaux et hauteur). Avec un cadre, le volet est pré-ferré.',
   options: [
     { value: 'gonds_existants', label: 'Gonds existants' },
     { value: 'gonds_fournis', label: 'Gonds fournis et à poser' },
@@ -264,6 +266,8 @@ const byCount = (m) => {
   for (let i = keys.length - 1; i >= 0; i--) acc = IF(eq('nb_vantaux', keys[i]), m[keys[i]], acc);
   return acc;
 };
+// Montant selon la hauteur : fenêtre (H ≤ 1650) vs porte-fenêtre (H > 1650).
+const hIf = (fenetre, porteFenetre) => IF({ op: 'gt', left: V('hauteur'), right: 1650 }, porteFenetre, fenetre);
 
 // ---- Prix ----
 const priceRules = [
@@ -292,6 +296,11 @@ const priceRules = [
     amount: byCount({ 1: 28, 2: 56 }) },
   { code: 'arret_paillette_p', label: 'Arrêt à paillette (posé)', kind: 'add', when: eq('arret', 'paillette_pose'),
     amount: byCount({ 1: 70, 2: 140 }) },
+  // Gonds fournis (uniquement sans cadre) : barème au volet entier selon vantaux × hauteur
+  // (fenêtre H ≤ 1650 mm / porte-fenêtre H > 1650 mm).
+  { code: 'gonds_fournis', label: 'Gonds fournis et à poser', kind: 'add',
+    when: AND([eq('cadre', 'non'), eq('pose', 'gonds_fournis')]),
+    amount: byCount({ 1: hIf(11, 16.50), 2: hIf(22, 33), 3: hIf(23.20, 37.80), 4: hIf(24.40, 36.60) }) },
 ];
 
 // ---- Contraintes de bornes L/H, générées par grille (scopées par la clé `grid`) ----
