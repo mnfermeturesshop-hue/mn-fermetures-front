@@ -3,19 +3,23 @@
    UN configurateur multi-modèles, MANUEL. Arbre de décision PDG (8 étapes) :
    modèle → dimensions → couleur (diffère Ecotek/Novatek) → type de volet →
    vantaux → feuillure → cintrage → cadre → pose → arrêt.
-   ⚠️ PHASE 1 : structure + « prix sur demande » (priceOnRequest). Prix (grilles
-   Ecotek/Novatek, « Cadre U » / « Cadre C », couvre-joint 70 mm +24 €…) : PHASE 2.
-   Schémas d'images (dimensions, type de volet, vantaux, feuillure, cintrage,
-   position des gonds) à intégrer via helpImage/imageChoice quand fournis.
+   PHASE 2 : prix instantané. Grille = lookup2d(vb_<CODE>_<vantaux>, hauteur, largeur),
+   CODE routé par modèle × type de volet × cadre (sans / U 3 côtés). 56 grilles
+   (docs/Tarif_VB → volet-battant-grids.json). Bornes L/H par nb de vantaux via
+   contraintes. Cadre 4 côtés (C), couvre-joint 70 mm, feuillure/cintrage/arrêt/
+   gonds : plus-values à intégrer quand le PDG les fournira (aujourd'hui sans impact prix).
    ===================================================================== */
 const fs = require('fs');
 const path = require('path');
+const grids = require('../lib/configurateur/data/volet-battant-grids.json');
 
 const V = (n) => ({ var: n });
 const eq = (n, v) => ({ op: 'eq', left: V(n), right: v });
 const ne = (n, v) => ({ op: 'ne', left: V(n), right: v });
 const inSet = (n, set) => ({ op: 'in', value: V(n), set });
 const AND = (cs) => (cs.length === 1 ? cs[0] : { all: cs });
+const IF = (cond, then, els) => ({ op: 'if', cond, then, else: els });
+const eqV = (n, v) => ({ op: 'eq', left: V(n), right: v }); // alias lisible
 
 const IS_ECO = eq('modele', 'ecotek');
 const IS_NOV = eq('modele', 'novatek');
@@ -33,8 +37,8 @@ fields.push({
 });
 
 // ── Étape 2 : Dimensions (identiques) — cotes de commande en mm. ──
-fields.push({ id: 'dim_help', type: 'info', help: 'Cotes de commande (mm). Largeur 500–1100 · Hauteur 850–2550.' });
-fields.push({ id: 'largeur', label: 'Largeur', type: 'dimension', unit: 'mm', min: 500, max: 1100, step: 1 });
+fields.push({ id: 'dim_help', type: 'info', help: 'Cotes de commande (mm). Les bornes de largeur dépendent du nombre de vantaux (hauteur 850–2550).' });
+fields.push({ id: 'largeur', label: 'Largeur', type: 'dimension', unit: 'mm', min: 500, max: 2600, step: 1 });
 fields.push({ id: 'hauteur', label: 'Hauteur', type: 'dimension', unit: 'mm', min: 850, max: 2550, step: 1 });
 
 // ── Étape 3 : Couleur (diffère selon le modèle) ──
@@ -154,15 +158,15 @@ fields.push({
 const CADRE_ON = AND([NO_CINTRAGE, eq('cadre', 'oui')]);
 fields.push({
   id: 'cadre_type', label: 'Type de cadre', type: 'choice', default: 'u', visibleWhen: CADRE_ON,
-  options: [{ value: 'u', label: '3 côtés (U inversé)' }, { value: 'c', label: '4 côtés (carré)' }],
+  help: 'Cadre 3 côtés (U inversé). Le cadre 4 côtés sera proposé prochainement.',
+  options: [{ value: 'u', label: '3 côtés (U inversé)' }],
 });
 fields.push({
-  id: 'cadre_couvrejoint', label: 'Couvre-joint', type: 'choice', default: 'sans', visibleWhen: CADRE_ON,
-  help: 'Couvre-joint 70 mm : plus-value +24 € (appliquée en Phase 2 avec les grilles).',
+  id: 'cadre_couvrejoint', label: 'Couvre-joint', type: 'choice', role: 'spec', default: 'sans', visibleWhen: CADRE_ON,
   options: [
     { value: 'sans', label: 'Sans couvre-joint' },
     { value: '50', label: 'Couvre-joint 50 mm (inclus)' },
-    { value: '70', label: 'Couvre-joint 70 mm (+24 €)' },
+    { value: '70', label: 'Couvre-joint 70 mm' },
   ],
 });
 
@@ -215,20 +219,57 @@ const steps = [
   { id: 'recap', title: 'Récapitulatif', fields: [] },
 ];
 
-// PHASE 1 : aucun prix (grilles Phase 2). Base à 0 + priceOnRequest → « Tarif sur demande ».
-const priceRules = [
-  { code: 'base', label: 'Volet battant panneau (tarif sur demande)', kind: 'base', amount: 0 },
+// ---- Routage : code fichier de grille selon modèle / panneau / type / cadre ----
+const t = 'type_volet';
+const cadreOn = eq('cadre', 'oui');          // cadre masqué si cintrage → reste 'non'
+const contemp = eq(t, 'pentures_contemporain');
+const typeIf = (m) => IF(eq(t, 'pentures'), m.pentures, IF(eq(t, 'barres_echarpe'), m.barres_echarpe, m.barres));
+const ecoCode = IF(cadreOn,
+  typeIf({ pentures: 'VBEPCPC', barres_echarpe: 'VBEPBEC', barres: 'VBEPBC' }),
+  typeIf({ pentures: 'VBEPCP',  barres_echarpe: 'VBEPBE',  barres: 'VBEPB'  }));
+const novClass = IF(cadreOn,
+  typeIf({ pentures: 'VBNPCPC', barres_echarpe: 'VBNPBEC', barres: 'VBNPBC' }),
+  typeIf({ pentures: 'VBNPCP',  barres_echarpe: 'VBNPBE',  barres: 'VBNPB'  }));
+const novCode = IF(contemp, IF(cadreOn, 'VBNCONTPCPC', 'VBNCONTPCP'), novClass);
+const vbcode = IF(eq('modele', 'ecotek'), ecoCode, novCode);
+
+const derived = [
+  { id: 'grid', expr: { op: 'concat', args: ['vb_', vbcode, '_', V('nb_vantaux')] } },
 ];
+
+// ---- Prix de base = lookup2d(grille, hauteur, largeur) ----
+const priceRules = [
+  { code: 'base', label: 'Volet battant panneau', kind: 'base',
+    amount: { op: 'lookup2d', table: V('grid'), row: V('hauteur'), col: V('largeur') } },
+];
+
+// ---- Contraintes de bornes L/H, générées par grille (scopées par la clé `grid`) ----
+const gte = (n, v) => ({ op: 'gte', left: V(n), right: v });
+const lte = (n, v) => ({ op: 'lte', left: V(n), right: v });
+const NVLABEL = { 1: '1 vantail', 2: '2 vantaux', 3: '3 vantaux', 4: '4 vantaux' };
+const constraints = [];
+for (const [key, g] of Object.entries(grids)) {
+  const lmin = g.cols[0], lmax = g.cols[g.cols.length - 1];
+  const hmin = g.rows[0], hmax = g.rows[g.rows.length - 1];
+  const cnt = key.split('_').pop();
+  constraints.push({
+    requires: { any: [ ne('grid', key), { all: [gte('largeur', lmin), lte('largeur', lmax), gte('hauteur', hmin), lte('hauteur', hmax)] } ] },
+    message: `${NVLABEL[cnt] || cnt} : largeur ${lmin}–${lmax} mm, hauteur ${hmin}–${hmax} mm.`,
+  });
+}
+
+// ---- Libellés de grilles (onglets Excel lisibles) ----
+const tableLabels = {};
+for (const k of Object.keys(grids)) tableLabels[k] = k.replace(/^vb_/, '').replace(/_(\d)$/, ' · $1V');
 
 const def = {
   slug: 'volet-battant-panneau',
   name: 'Volet battant Ecotek / Novatek',
   famille: 'volets-battants',
   nodeField: 'modele',
-  priceOnRequest: true,
-  fields, steps, priceRules,
+  fields, derived, steps, priceRules, tables: { d2: grids }, tableLabels, constraints,
 };
 
 const out = path.join(__dirname, '..', 'lib', 'configurateur', 'data', 'volet-battant-panneau.v2.json');
 fs.writeFileSync(out, JSON.stringify(def), 'utf8');
-console.log(`Écrit ${path.relative(process.cwd(), out)} — ${fields.length} champs, ${steps.length} étapes, prix sur demande.`);
+console.log(`Écrit ${path.relative(process.cwd(), out)} — ${fields.length} champs, ${steps.length} étapes, ${constraints.length} contraintes, ${Object.keys(grids).length} grilles (prix instantané).`);
