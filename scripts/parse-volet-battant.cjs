@@ -40,11 +40,14 @@ const num = (v) => {
 };
 
 const grids = {};
+const surch = {}; // plus-value « Dormant 4 côtés » (cadre C) : Table1D par clé de grille
 for (const [code, file] of Object.entries(CODE_FILE)) {
   const wb = XLSX.readFile(path.join(DIR, file));
   const ws = wb.Sheets[wb.SheetNames[0]];
   const a = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false, defval: '' });
   const countRow = a[0], larRow = a[1];
+  // Ligne de plus-value cadre 4 côtés (libellé « Dormant 4 cotés » en col 0)
+  const dormantRow = a.find((r) => typeof r[0] === 'string' && /dormant/i.test(r[0]));
 
   // Colonnes groupées par nb de vantaux
   const byCount = {}; // count -> { cols:[largeur], idx:[colIndex] }
@@ -75,6 +78,16 @@ for (const [code, file] of Object.entries(CODE_FILE)) {
       rows.push(hRows[ri]); cells.push(rowCells);
     }
     grids[`vb_${code}_${cntStr}`] = { rows, cols, cells };
+
+    // Table1D de surcharge cadre 4 côtés (constante en hauteur, variable en largeur)
+    if (dormantRow) {
+      const keys = [], values = [];
+      for (let i = 0; i < idx.length; i++) {
+        const v = num(dormantRow[idx[i]]);
+        if (v != null) { keys.push(cols[i]); values.push(v); }
+      }
+      if (keys.length) surch[`vb_${code}_${cntStr}`] = { keys, values };
+    }
   }
 }
 
@@ -95,8 +108,24 @@ check('vb_VBEPCP_2', 1350, 1200, 732);
 check('vb_VBEPCP_3', 850, 1100, 666);
 check('vb_VBEPCP_4', 850, 1400, 903);
 
+// Iso-valeur plus-value cadre 4 côtés (« Dormant 4 cotés »)
+const checkS = (key, l, expected) => {
+  const t = surch[key];
+  if (!t) { console.warn('  ⚠ surcharge absente:', key); return; }
+  const ki = t.keys.indexOf(l);
+  const got = ki >= 0 ? t.values[ki] : undefined;
+  console.log(`  ${got === expected ? '✓' : '✗'} ${key} (cadre 4 côtés) L${l} = ${got} (attendu ${expected})`);
+};
+console.log('Iso-valeur cadre 4 côtés :');
+checkS('vb_VBEPCPC_1', 500, 19);
+checkS('vb_VBEPCPC_1', 1100, 27);
+checkS('vb_VBNPCPC_1', 500, 21);
+
 const out = path.join(__dirname, '..', 'lib', 'configurateur', 'data', 'volet-battant-grids.json');
 fs.writeFileSync(out, JSON.stringify(grids), 'utf8');
+const outS = path.join(__dirname, '..', 'lib', 'configurateur', 'data', 'volet-battant-surcharges.json');
+fs.writeFileSync(outS, JSON.stringify(surch), 'utf8');
 const counts = {};
 for (const k of Object.keys(grids)) { const c = k.split('_').pop(); counts[c] = (counts[c] || 0) + 1; }
 console.log(`Écrit ${path.relative(process.cwd(), out)} — ${Object.keys(grids).length} grilles`, counts);
+console.log(`Écrit ${path.relative(process.cwd(), outS)} — ${Object.keys(surch).length} tables de surcharge cadre 4 côtés`);

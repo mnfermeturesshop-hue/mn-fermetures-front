@@ -6,14 +6,18 @@
    PHASE 2 : prix instantané. Grille = lookup2d(vb_<CODE>_<vantaux>, hauteur, largeur),
    CODE routé par modèle × type de volet × cadre (sans / U 3 côtés). 56 grilles
    (docs/Tarif_VB → volet-battant-grids.json). Bornes L/H par nb de vantaux via
-   contraintes. Cadre 4 côtés (C), couvre-joint 70 mm, feuillure/cintrage/arrêt/
-   gonds : plus-values à intégrer quand le PDG les fournira (aujourd'hui sans impact prix).
+   contraintes. Plus-values intégrées : cadre 4 côtés (« Dormant 4 cotés », lookup1d
+   selon largeur, tables __d4) ; cintrage arc/plein 110 €/vantail, anse 170 €/vantail
+   (flèche ≤ 800 mm pour arc/plein). Reste à tarifer : couvre-joint 70 mm, feuillure,
+   arrêt, gonds (aujourd'hui sans impact prix).
    ===================================================================== */
 const fs = require('fs');
 const path = require('path');
 const grids = require('../lib/configurateur/data/volet-battant-grids.json');
+const surch = require('../lib/configurateur/data/volet-battant-surcharges.json');
 
 const V = (n) => ({ var: n });
+const MUL = (...args) => ({ op: '*', args });
 const eq = (n, v) => ({ op: 'eq', left: V(n), right: v });
 const ne = (n, v) => ({ op: 'ne', left: V(n), right: v });
 const inSet = (n, set) => ({ op: 'in', value: V(n), set });
@@ -158,8 +162,11 @@ fields.push({
 const CADRE_ON = AND([NO_CINTRAGE, eq('cadre', 'oui')]);
 fields.push({
   id: 'cadre_type', label: 'Type de cadre', type: 'choice', default: 'u', visibleWhen: CADRE_ON,
-  help: 'Cadre 3 côtés (U inversé). Le cadre 4 côtés sera proposé prochainement.',
-  options: [{ value: 'u', label: '3 côtés (U inversé)' }],
+  help: 'Cadre 3 côtés (U inversé) ou 4 côtés (dormant complet, plus-value selon la largeur).',
+  options: [
+    { value: 'u', label: '3 côtés (U inversé)' },
+    { value: 'c', label: '4 côtés (dormant complet)' },
+  ],
 });
 fields.push({
   id: 'cadre_couvrejoint', label: 'Couvre-joint', type: 'choice', role: 'spec', default: 'sans', visibleWhen: CADRE_ON,
@@ -235,12 +242,24 @@ const vbcode = IF(eq('modele', 'ecotek'), ecoCode, novCode);
 
 const derived = [
   { id: 'grid', expr: { op: 'concat', args: ['vb_', vbcode, '_', V('nb_vantaux')] } },
+  // Table de surcharge « Dormant 4 côtés » : même clé de grille + suffixe __d4
+  { id: 'grid4', expr: { op: 'concat', args: [V('grid'), '__d4'] } },
 ];
 
-// ---- Prix de base = lookup2d(grille, hauteur, largeur) ----
+// ---- Prix ----
 const priceRules = [
+  // Base = lookup2d(grille, hauteur, largeur)
   { code: 'base', label: 'Volet battant panneau', kind: 'base',
     amount: { op: 'lookup2d', table: V('grid'), row: V('hauteur'), col: V('largeur') } },
+  // Cadre 4 côtés (dormant complet) : plus-value selon largeur (constante en hauteur)
+  { code: 'cadre_4cotes', label: 'Cadre 4 côtés (dormant complet)', kind: 'add',
+    when: AND([eq('cadre', 'oui'), eq('cadre_type', 'c')]),
+    amount: { op: 'lookup1d', table: V('grid4'), key: V('largeur') } },
+  // Cintrage (par vantail × nombre de vantaux)
+  { code: 'cintrage_arc_plein', label: 'Cintrage (arc surbaissé / plein cintre)', kind: 'add',
+    when: inSet('cintrage', ['arc', 'plein']), amount: MUL(110, V('nb_vantaux')) },
+  { code: 'cintrage_anse', label: 'Cintrage anse de panier', kind: 'add',
+    when: eq('cintrage', 'anse'), amount: MUL(170, V('nb_vantaux')) },
 ];
 
 // ---- Contraintes de bornes L/H, générées par grille (scopées par la clé `grid`) ----
@@ -257,17 +276,26 @@ for (const [key, g] of Object.entries(grids)) {
     message: `${NVLABEL[cnt] || cnt} : largeur ${lmin}–${lmax} mm, hauteur ${hmin}–${hmax} mm.`,
   });
 }
+// Flèche de cintrage limitée à 800 mm (arc surbaissé / plein cintre)
+constraints.push({
+  requires: { any: [ { not: inSet('cintrage', ['arc', 'plein']) }, { not: { op: 'gt', left: V('cintrage_f'), right: 800 } } ] },
+  message: 'Flèche du cintre limitée à 800 mm (arc surbaissé / plein cintre).',
+});
 
 // ---- Libellés de grilles (onglets Excel lisibles) ----
 const tableLabels = {};
 for (const k of Object.keys(grids)) tableLabels[k] = k.replace(/^vb_/, '').replace(/_(\d)$/, ' · $1V');
+
+// Tables de surcharge cadre 4 côtés indexées avec le suffixe __d4 (cf. dérivée grid4)
+const d1 = {};
+for (const [k, t] of Object.entries(surch)) d1[`${k}__d4`] = t;
 
 const def = {
   slug: 'volet-battant-panneau',
   name: 'Volet battant Ecotek / Novatek',
   famille: 'volets-battants',
   nodeField: 'modele',
-  fields, derived, steps, priceRules, tables: { d2: grids }, tableLabels, constraints,
+  fields, derived, steps, priceRules, tables: { d1, d2: grids }, tableLabels, constraints,
 };
 
 const out = path.join(__dirname, '..', 'lib', 'configurateur', 'data', 'volet-battant-panneau.v2.json');
