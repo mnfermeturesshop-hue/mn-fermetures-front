@@ -13,7 +13,8 @@
    automatique/paillette posé/non posé) = plus/moins-value au volet entier selon le
    nombre de vantaux (paillette impossible > 2 vantaux) ; gonds fournis (uniquement
    sans cadre) = barème au volet entier selon vantaux × hauteur (fenêtre ≤ 1650 mm /
-   porte-fenêtre > 1650 mm). Feuillure : sans impact prix (confirmé PDG).
+   porte-fenêtre > 1650 mm) ; options de dormant si cadre (perçage +43, dormant monté
+   +41, coupe basse biaisée +38, cases à cocher). Feuillure : sans impact prix (confirmé PDG).
    ===================================================================== */
 const fs = require('fs');
 const path = require('path');
@@ -186,6 +187,10 @@ fields.push({
     { value: '24_35_50', label: 'Couvre-joint 24 / 35 / 50 mm (inclus)', availableWhen: IS_NOV },
   ],
 });
+// Options de dormant (cases à cocher, « Non » par défaut) — suppléments au volet entier.
+fields.push({ id: 'cadre_percage', label: 'Perçage du cadre dormant (bouchons fournis noirs ou blancs) (+43 €)', type: 'boolean', default: false, visibleWhen: CADRE_ON });
+fields.push({ id: 'cadre_monte', label: 'Dormant fourni monté (+41 €)', type: 'boolean', default: false, visibleWhen: CADRE_ON });
+fields.push({ id: 'cadre_coupe_biaisee', label: 'Coupe basse du dormant 3 côtés biaisée (+38 €)', type: 'boolean', default: false, visibleWhen: CADRE_ON });
 
 // ── Étape 9 : Pose (gonds existants / fournis → à sceller / à visser + positions) ──
 fields.push({
@@ -233,7 +238,7 @@ const steps = [
   { id: 'vantaux', title: 'Vantaux', fields: ['nb_vantaux', 'config_vantaux'] },
   { id: 'feuillure', title: 'Feuillure', fields: ['feuillure', 'feuillure_help', 'feuillure_fh', 'feuillure_fb', 'feuillure_fg', 'feuillure_fd'] },
   { id: 'cintrage', title: 'Cintrage', fields: ['cintrage', 'cintrage_f', 'cintrage_info'] },
-  { id: 'cadre', title: 'Cadre', fields: ['cadre', 'cadre_type', 'cadre_couvrejoint'] },
+  { id: 'cadre', title: 'Cadre', fields: ['cadre', 'cadre_type', 'cadre_couvrejoint', 'cadre_percage', 'cadre_monte', 'cadre_coupe_biaisee'] },
   { id: 'pose', title: 'Pose', fields: ['pose', 'gonds_type', 'pose_help', 'gond_gh', 'gond_gi', 'gond_gb'] },
   { id: 'arret', title: 'Arrêt', fields: ['arret', 'arret_gonds'] },
   { id: 'recap', title: 'Récapitulatif', fields: [] },
@@ -301,6 +306,13 @@ const priceRules = [
   { code: 'gonds_fournis', label: 'Gonds fournis et à poser', kind: 'add',
     when: AND([eq('cadre', 'non'), eq('pose', 'gonds_fournis')]),
     amount: byCount({ 1: hIf(11, 16.50), 2: hIf(22, 33), 3: hIf(23.20, 37.80), 4: hIf(24.40, 36.60) }) },
+  // Options de dormant (si cadre) — suppléments fixes au volet entier
+  { code: 'cadre_percage', label: 'Perçage du cadre dormant', kind: 'add',
+    when: AND([CADRE_ON, eq('cadre_percage', true)]), amount: 43 },
+  { code: 'cadre_monte', label: 'Dormant fourni monté', kind: 'add',
+    when: AND([CADRE_ON, eq('cadre_monte', true)]), amount: 41 },
+  { code: 'cadre_coupe_biaisee', label: 'Coupe basse du dormant 3 côtés biaisée', kind: 'add',
+    when: AND([CADRE_ON, eq('cadre_coupe_biaisee', true)]), amount: 38 },
 ];
 
 // ---- Contraintes de bornes L/H, générées par grille (scopées par la clé `grid`) ----
