@@ -8,8 +8,9 @@
    (docs/Tarif_VB → volet-battant-grids.json). Bornes L/H par nb de vantaux via
    contraintes. Plus-values intégrées : cadre 4 côtés (« Dormant 4 cotés », lookup1d
    selon largeur, tables __d4) ; cintrage arc/plein 110 €/vantail, anse 170 €/vantail
-   (flèche ≤ 800 mm pour arc/plein). Reste à tarifer : couvre-joint 70 mm, feuillure,
-   arrêt, gonds (aujourd'hui sans impact prix).
+   (flèche ≤ 800 mm pour arc/plein) ; couvre-joint 70 mm ECOTEK = 24 €/ml (périmètre
+   2H+2L) — Novatek : 70 mm inclus, 24/35/50 mm sans supplément. Reste à tarifer :
+   feuillure, arrêt, gonds (aujourd'hui sans impact prix).
    ===================================================================== */
 const fs = require('fs');
 const path = require('path');
@@ -168,12 +169,18 @@ fields.push({
     { value: 'c', label: '4 côtés (dormant complet)' },
   ],
 });
+// Couvre-joint : options et défaut différents selon le modèle.
+//  ECOTEK  : 50 mm par défaut (inclus) · sans (sans plus-value) · 70 mm = 24 €/ml (2H+2L)
+//  NOVATEK : 70 mm par défaut (inclus) · sans (sans plus-value) · 24/35/50 mm (sans plus-value)
+// L'ordre place le défaut de chaque modèle en tête (repairValues prend la 1re dispo).
 fields.push({
-  id: 'cadre_couvrejoint', label: 'Couvre-joint', type: 'choice', role: 'spec', default: 'sans', visibleWhen: CADRE_ON,
+  id: 'cadre_couvrejoint', label: 'Couvre-joint', type: 'choice', default: '50', visibleWhen: CADRE_ON,
+  help: 'Ecotek : 50 mm inclus (70 mm en supplément 24 €/ml). Novatek : 70 mm inclus (24/35/50 mm sans supplément).',
   options: [
+    { value: '50', label: 'Couvre-joint 50 mm (inclus)', availableWhen: IS_ECO },
+    { value: '70', label: 'Couvre-joint 70 mm' }, // dispo pour les deux modèles (défaut Novatek, +24 €/ml Ecotek)
     { value: 'sans', label: 'Sans couvre-joint' },
-    { value: '50', label: 'Couvre-joint 50 mm (inclus)' },
-    { value: '70', label: 'Couvre-joint 70 mm' },
+    { value: '24_35_50', label: 'Couvre-joint 24 / 35 / 50 mm (inclus)', availableWhen: IS_NOV },
   ],
 });
 
@@ -260,6 +267,10 @@ const priceRules = [
     when: inSet('cintrage', ['arc', 'plein']), amount: MUL(110, V('nb_vantaux')) },
   { code: 'cintrage_anse', label: 'Cintrage anse de panier', kind: 'add',
     when: eq('cintrage', 'anse'), amount: MUL(170, V('nb_vantaux')) },
+  // Couvre-joint 70 mm ECOTEK : 24 €/ml sur le périmètre (2×hauteur + 2×largeur)
+  { code: 'couvrejoint_70_eco', label: 'Couvre-joint 70 mm (Ecotek)', kind: 'add',
+    when: AND([eq('cadre', 'oui'), eq('modele', 'ecotek'), eq('cadre_couvrejoint', '70')]),
+    amount: { op: 'round', decimals: 2, arg: MUL(0.024, { op: '+', args: [MUL(2, V('hauteur')), MUL(2, V('largeur'))] }) } },
 ];
 
 // ---- Contraintes de bornes L/H, générées par grille (scopées par la clé `grid`) ----
