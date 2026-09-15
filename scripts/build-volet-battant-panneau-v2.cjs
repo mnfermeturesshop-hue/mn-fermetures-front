@@ -14,7 +14,8 @@
    nombre de vantaux (paillette impossible > 2 vantaux) ; gonds fournis (uniquement
    sans cadre) = barème au volet entier selon vantaux × hauteur (fenêtre ≤ 1650 mm /
    porte-fenêtre > 1650 mm) ; options de dormant si cadre (perçage +43, dormant monté
-   +41, coupe basse biaisée +38, cases à cocher). Feuillure : sans impact prix (confirmé PDG).
+   +41, coupe basse biaisée +38, cases à cocher) ; montage des pentures (types à pentures)
+   = barème au volet entier vantaux × hauteur (48/72 ×N). Feuillure : sans impact prix (confirmé PDG).
    ===================================================================== */
 const fs = require('fs');
 const path = require('path');
@@ -96,6 +97,10 @@ fields.push({
     { value: 'pentures_contemporain', label: 'Pentures / contre-pentures contemporain', availableWhen: IS_NOV },
   ],
 });
+// Option « Montage des pentures » : seulement pour les types à pentures (classique/contemporain).
+const IS_PENTURES = inSet('type_volet', ['pentures', 'pentures_contemporain']);
+fields.push({ id: 'montage_pentures', label: 'Montage des pentures', type: 'boolean', default: false, visibleWhen: IS_PENTURES,
+  help: 'Prestation de montage des pentures (selon nombre de vantaux et hauteur).' });
 
 // ── Étape 5 : Vantaux (identique) — nombre puis configuration/sens d'ouverture ──
 fields.push({
@@ -234,7 +239,7 @@ const steps = [
   { id: 'modele', title: 'Modèle', fields: ['modele'] },
   { id: 'dimensions', title: 'Dimensions', fields: ['dim_help', 'largeur', 'hauteur'] },
   { id: 'couleur', title: 'Couleur', fields: ['coloris_ecotek', 'coloris_novatek'] },
-  { id: 'type', title: 'Type de volet', fields: ['type_volet'] },
+  { id: 'type', title: 'Type de volet', fields: ['type_volet', 'montage_pentures'] },
   { id: 'vantaux', title: 'Vantaux', fields: ['nb_vantaux', 'config_vantaux'] },
   { id: 'feuillure', title: 'Feuillure', fields: ['feuillure', 'feuillure_help', 'feuillure_fh', 'feuillure_fb', 'feuillure_fg', 'feuillure_fd'] },
   { id: 'cintrage', title: 'Cintrage', fields: ['cintrage', 'cintrage_f', 'cintrage_info'] },
@@ -313,6 +318,10 @@ const priceRules = [
     when: AND([CADRE_ON, eq('cadre_monte', true)]), amount: 41 },
   { code: 'cadre_coupe_biaisee', label: 'Coupe basse du dormant 3 côtés biaisée', kind: 'add',
     when: AND([CADRE_ON, eq('cadre_coupe_biaisee', true)]), amount: 38 },
+  // Montage des pentures (types à pentures) : barème au volet entier selon vantaux × hauteur
+  { code: 'montage_pentures', label: 'Montage des pentures', kind: 'add',
+    when: AND([IS_PENTURES, eq('montage_pentures', true)]),
+    amount: byCount({ 1: hIf(48, 72), 2: hIf(96, 144), 3: hIf(144, 216), 4: hIf(192, 288) }) },
 ];
 
 // ---- Contraintes de bornes L/H, générées par grille (scopées par la clé `grid`) ----
