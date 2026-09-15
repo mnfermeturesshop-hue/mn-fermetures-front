@@ -9,8 +9,10 @@
    contraintes. Plus-values intégrées : cadre 4 côtés (« Dormant 4 cotés », lookup1d
    selon largeur, tables __d4) ; cintrage arc/plein 110 €/vantail, anse 170 €/vantail
    (flèche ≤ 800 mm pour arc/plein) ; couvre-joint 70 mm ECOTEK = 24 €/ml (périmètre
-   2H+2L) — Novatek : 70 mm inclus, 24/35/50 mm sans supplément. Reste à tarifer :
-   feuillure, arrêt, gonds (aujourd'hui sans impact prix).
+   2H+2L) — Novatek : 70 mm inclus, 24/35/50 mm sans supplément ; arrêt (marseillais/
+   automatique/paillette posé/non posé) = plus/moins-value au volet entier selon le
+   nombre de vantaux (paillette impossible > 2 vantaux). Reste à tarifer : feuillure,
+   gonds (aujourd'hui sans impact prix).
    ===================================================================== */
 const fs = require('fs');
 const path = require('path');
@@ -203,14 +205,16 @@ fields.push({ id: 'gond_gh', label: 'Gond haut (GH)', type: 'number', unit: 'mm'
 fields.push({ id: 'gond_gi', label: 'Gond intermédiaire (GI)', type: 'number', unit: 'mm', min: 0, step: 1, role: 'spec', visibleWhen: GONDS_FOURNIS });
 fields.push({ id: 'gond_gb', label: 'Gond bas (GB)', type: 'number', unit: 'mm', min: 0, step: 1, role: 'spec', visibleWhen: GONDS_FOURNIS });
 
-// ── Étape 10 : Arrêt ──
+// ── Étape 10 : Arrêt (plus/moins-value au volet entier, selon le nb de vantaux) ──
+// L'arrêt à paillette (posé ou non) n'existe pas au-delà de 2 vantaux.
 fields.push({
   id: 'arret', label: 'Arrêt de volet', type: 'choice', default: 'sans',
   options: [
-    { value: 'sans', label: 'Sans arrêts' },
-    { value: 'marseillais', label: 'Marseillais' },
-    { value: 'automatique', label: 'Automatique' },
-    { value: 'paillette', label: 'Paillette' },
+    { value: 'sans', label: 'Sans arrêt' },
+    { value: 'marseillais', label: 'Arrêt marseillais' },
+    { value: 'automatique', label: 'Arrêt automatique' },
+    { value: 'paillette_non_pose', label: 'Arrêt à paillette (non posé)', availableWhen: inSet('nb_vantaux', ['1', '2']) },
+    { value: 'paillette_pose', label: 'Arrêt à paillette (posé)', availableWhen: inSet('nb_vantaux', ['1', '2']) },
   ],
 });
 fields.push({
@@ -253,6 +257,14 @@ const derived = [
   { id: 'grid4', expr: { op: 'concat', args: [V('grid'), '__d4'] } },
 ];
 
+// Montant selon le nombre de vantaux : chaîne IF(nb_vantaux == k, montant, …) ; null hors barème.
+const byCount = (m) => {
+  const keys = Object.keys(m);
+  let acc = null;
+  for (let i = keys.length - 1; i >= 0; i--) acc = IF(eq('nb_vantaux', keys[i]), m[keys[i]], acc);
+  return acc;
+};
+
 // ---- Prix ----
 const priceRules = [
   // Base = lookup2d(grille, hauteur, largeur)
@@ -271,6 +283,15 @@ const priceRules = [
   { code: 'couvrejoint_70_eco', label: 'Couvre-joint 70 mm (Ecotek)', kind: 'add',
     when: AND([eq('cadre', 'oui'), eq('modele', 'ecotek'), eq('cadre_couvrejoint', '70')]),
     amount: { op: 'round', decimals: 2, arg: MUL(0.024, { op: '+', args: [MUL(2, V('hauteur')), MUL(2, V('largeur'))] }) } },
+  // Arrêt : plus/moins-value au volet entier, barème par nombre de vantaux.
+  { code: 'arret_marseillais', label: 'Arrêt marseillais', kind: 'add', when: eq('arret', 'marseillais'),
+    amount: byCount({ 1: -9.80, 2: -19.60, 3: -20.90, 4: -22.20 }) },
+  { code: 'arret_automatique', label: 'Arrêt automatique', kind: 'add', when: eq('arret', 'automatique'),
+    amount: byCount({ 1: 4.80, 2: 9.60, 3: 10.50, 4: 11.40 }) },
+  { code: 'arret_paillette_np', label: 'Arrêt à paillette (non posé)', kind: 'add', when: eq('arret', 'paillette_non_pose'),
+    amount: byCount({ 1: 28, 2: 56 }) },
+  { code: 'arret_paillette_p', label: 'Arrêt à paillette (posé)', kind: 'add', when: eq('arret', 'paillette_pose'),
+    amount: byCount({ 1: 70, 2: 140 }) },
 ];
 
 // ---- Contraintes de bornes L/H, générées par grille (scopées par la clé `grid`) ----
